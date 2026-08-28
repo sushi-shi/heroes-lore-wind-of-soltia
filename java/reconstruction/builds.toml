@@ -14,25 +14,9 @@
 title = "Heroes Lore: Wind of Soltia"
 slug = "heroes-lore-wind-of-soltia"
 fork = "2d"   # 2d = Graphics2D (gothic path); 3d = M3G (stalker path)
-baseline = ""          # TODO Phase 1: pick the quality baseline id
-naming_reference = ""  # TODO Phase 1: pick the semantic-naming id
-# unique jar payloads: 59; jads: 0; zip containers: 8; 3D payloads: 0
-
-[[payload]]
-id = "heroes_lore_wind_of_soltia_j2me_en_v212_1_zip_heroes_lore_20_01"
-sha256 = "7eb032297967f5d8382cc4f1ab5c3016459e01b235b42a3b88c6a8bfe46c5f61"
-bytes = 554715
-kind = "jar"
-is_3d = false
-class_count = 89
-midlet_name = "(WaP.Ka4Ka.Ru) Heroes Lore"
-midlet_version = "2.1.2"
-vendor = "Hands-On Mobile"
-cldc = "CLDC-1.0"
-declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
-official = true   # TODO Phase 1: set false + move to [[archived]] if a fan repack
-collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v212(1).zip::Heroes Lore (2008)(Hands-On Mobile)(v2.1.2).jar"]
-containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v212(1).zip"]
+baseline = "heroes_lore_wind_of_soltia_j2me_en_v207_50"
+naming_reference = "heroes_lore_wind_of_soltia_j2me_en_v207_50"   # no WoS build is de-obfuscated (~0.97); names cross-referenced against the sibling heroes-lore-zero rpg.* engine
+# unique jar payloads: 58 (42 official + 16 fan-repack); jads: 0; zip containers: 8; 3D payloads: 0
 
 [[payload]]
 id = "heroes_lore_wind_of_soltia_j2me_en_v212_zip_heroes_lore_2007_02"
@@ -113,23 +97,6 @@ declared_language = "en"   # HINT from filename/manifest; verify from content (R
 official = true   # TODO Phase 1: set false + move to [[archived]] if a fan repack
 collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v212.zip::Heroes Lore (2007)(Hands-On Mobile)(v2.1.2).jar"]
 containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v212.zip"]
-
-[[payload]]
-id = "heroes_lore_wind_of_soltia_j2me_en_v207_zip_heroes_lore_2007_07"
-sha256 = "c22a96a0314e294b3f208dedeaa10f86c1c4ba35d6ece88205313d4311efdce4"
-bytes = 742062
-kind = "jar"
-is_3d = false
-class_count = 98
-midlet_name = "Heroes Lore by SunYu_911"
-midlet_version = "2.0.7"
-vendor = "Hands-On Mobile"
-cldc = "CLDC-1.0"
-declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
-official = true   # TODO Phase 1: set false + move to [[archived]] if a fan repack
-repack_tag = "by S"   # fan-repack signature detected — likely [[archived]]
-collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip::Heroes Lore (2007)(Hands-On Mobile)(v2.0.7)(a).jar"]
-containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip"]
 
 [[payload]]
 id = "heroes_lore_wind_of_soltia_j2me_en_v002_zip_heroes_lore_2008_08"
@@ -228,40 +195,6 @@ collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v210.jar"]
 containers = ["_originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v210.jar"]
 
 [[payload]]
-id = "heroes_lore_wind_of_soltia_j2me_en_v207_zip_heroes_lore_2007_14"
-sha256 = "84db3acb5a1a577c28467d154722905a6a564395338e193f9931096db573b58c"
-bytes = 792499
-kind = "jar"
-is_3d = false
-class_count = 98
-midlet_name = "Heroes Lore by SunYu_911"
-midlet_version = "2.0.7"
-vendor = "Hands-On Mobile"
-cldc = "CLDC-1.0"
-declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
-official = true   # TODO Phase 1: set false + move to [[archived]] if a fan repack
-repack_tag = "by S"   # fan-repack signature detected — likely [[archived]]
-collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip::Heroes Lore (2007)(Hands-On Mobile)(v2.0.7)(a4).jar"]
-containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip"]
-
-[[payload]]
-id = "heroes_lore_wind_of_soltia_j2me_en_v207_zip_heroes_lore_2007_15"
-sha256 = "2122d6a9125afa63ffaab674cf1bff21288a6346ad10d583f287ae4872a8585a"
-bytes = 794402
-kind = "jar"
-is_3d = false
-class_count = 90
-midlet_name = "Heroes Lore by SunYu_911"
-midlet_version = "2.0.7"
-vendor = "Hands-On Mobile"
-cldc = "CLDC-1.0"
-declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
-official = true   # TODO Phase 1: set false + move to [[archived]] if a fan repack
-repack_tag = "by S"   # fan-repack signature detected — likely [[archived]]
-collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip::Heroes Lore (2007)(Hands-On Mobile)(v2.0.7)(a7).jar"]
-containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip"]
-
-[[payload]]
 id = "heroes_lore_wind_of_soltia_j2me_en_v203_16"
 sha256 = "4fd531d1e0b6057c02c37bb56d9835d59d2356171f19ace616b1a89cc44e2c2a"
 bytes = 795497
@@ -278,23 +211,6 @@ collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v203.jar"]
 containers = ["_originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v203.jar"]
 
 [[payload]]
-id = "heroes_lore_wind_of_soltia_j2me_en_v207_zip_heroes_lore_2007_17"
-sha256 = "d8b30e0629e2af323ecb94a2d91065daeb7fe02dddd7b11738f421e7a3d8bf73"
-bytes = 796157
-kind = "jar"
-is_3d = false
-class_count = 98
-midlet_name = "Heroes Lore by SunYu_911"
-midlet_version = "2.0.7"
-vendor = "Hands-On Mobile"
-cldc = "CLDC-1.0"
-declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
-official = true   # TODO Phase 1: set false + move to [[archived]] if a fan repack
-repack_tag = "by S"   # fan-repack signature detected — likely [[archived]]
-collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip::Heroes Lore (2007)(Hands-On Mobile)(v2.0.7)(a1).jar"]
-containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip"]
-
-[[payload]]
 id = "heroes_lore_wind_of_soltia_j2me_en_v207_1_zip_heroes_lore_20_18"
 sha256 = "1c2deeb346dc1eb9caa1a9f4b8dc4997f54d36ac22b5d01d00e4f6de37b8591b"
 bytes = 798544
@@ -308,57 +224,6 @@ cldc = "CLDC-1.0"
 declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
 official = true   # TODO Phase 1: set false + move to [[archived]] if a fan repack
 collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(1).zip::Heroes Lore (2008)(Hands-On Mobile)(v2.0.7)(a3).jar"]
-containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(1).zip"]
-
-[[payload]]
-id = "heroes_lore_wind_of_soltia_j2me_en_v207_2_19"
-sha256 = "e6b3a3136b63e402ebb084d09a52eb2a2dafdba1d17e220fd205eb13ec61875a"
-bytes = 798585
-kind = "jar"
-is_3d = false
-class_count = 98
-midlet_name = "Heroes Lore by SunYu_911"
-midlet_version = "2.0.7"
-vendor = "Hands-On Mobile"
-cldc = "CLDC-1.0"
-declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
-official = true   # TODO Phase 1: set false + move to [[archived]] if a fan repack
-repack_tag = "by S"   # fan-repack signature detected — likely [[archived]]
-collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(2).jar"]
-containers = ["_originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(2).jar"]
-
-[[payload]]
-id = "heroes_lore_wind_of_soltia_j2me_en_v207_1_20"
-sha256 = "03bca0fe3c6f90aad3d0e00fbd650df3fffdd081185ad81bb464e00f5aea149f"
-bytes = 799356
-kind = "jar"
-is_3d = false
-class_count = 98
-midlet_name = "Heroes Lore by SunYu_911"
-midlet_version = "2.0.7"
-vendor = "Hands-On Mobile"
-cldc = "CLDC-1.0"
-declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
-official = true   # TODO Phase 1: set false + move to [[archived]] if a fan repack
-repack_tag = "by S"   # fan-repack signature detected — likely [[archived]]
-collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(1).jar"]
-containers = ["_originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(1).jar"]
-
-[[payload]]
-id = "heroes_lore_wind_of_soltia_j2me_en_v207_1_zip_heroes_lore_20_21"
-sha256 = "178ed92056dce5f2012c36ba24d15f38aa15a3617e113faa7f3a7a853c0eabe3"
-bytes = 799803
-kind = "jar"
-is_3d = false
-class_count = 98
-midlet_name = "Heroes Lore by SunYu_911"
-midlet_version = "2.0.7"
-vendor = "Hands-On Mobile"
-cldc = "CLDC-1.0"
-declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
-official = true   # TODO Phase 1: set false + move to [[archived]] if a fan repack
-repack_tag = "by S"   # fan-repack signature detected — likely [[archived]]
-collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(1).zip::Heroes Lore (2008)(Hands-On Mobile)(v2.0.7)(a5).jar"]
 containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(1).zip"]
 
 [[payload]]
@@ -503,23 +368,6 @@ cldc = "CLDC-1.0"
 declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
 official = true   # TODO Phase 1: set false + move to [[archived]] if a fan repack
 collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip::Heroes Lore (2007)(Hands-On Mobile)(v2.0.7)(a18).jar"]
-containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip"]
-
-[[payload]]
-id = "heroes_lore_wind_of_soltia_j2me_en_v207_zip_heroes_lore_2007_31"
-sha256 = "b907342155cd053987e5901400153f78e271ad92aec64b66542ba4f7ea544703"
-bytes = 821044
-kind = "jar"
-is_3d = false
-class_count = 90
-midlet_name = "Heroes Lore by Kowciu"
-midlet_version = "2.0.7"
-vendor = "Hands-On Mobile"
-cldc = "CLDC-1.0"
-declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
-official = true   # TODO Phase 1: set false + move to [[archived]] if a fan repack
-repack_tag = "by K"   # fan-repack signature detected — likely [[archived]]
-collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip::Heroes Lore (2007)(Hands-On Mobile)(v2.0.7).jar"]
 containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip"]
 
 [[payload]]
@@ -718,108 +566,6 @@ collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip::Heroes Lore (2007)
 containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip"]
 
 [[payload]]
-id = "heroes_lore_wind_of_soltia_j2me_en_v207_2_zip_heroes_lore_20_44"
-sha256 = "3101a583faf983378bb29e39a27939e14dfd53bdd1e15b0cbc84b44dd2583c24"
-bytes = 845822
-kind = "jar"
-is_3d = false
-class_count = 91
-midlet_name = "Heroes Lore by Jambo"
-midlet_version = "2.0.7"
-vendor = "Hands-On Mobile"
-cldc = "CLDC-1.0"
-declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
-official = true   # TODO Phase 1: set false + move to [[archived]] if a fan repack
-repack_tag = "by J"   # fan-repack signature detected — likely [[archived]]
-collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(2).zip::Heroes Lore (2009)(Hands-On Mobile)(v2.0.7)(a1).jar"]
-containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(2).zip"]
-
-[[payload]]
-id = "heroes_lore_wind_of_soltia_j2me_en_v207_2_zip_heroes_lore_20_45"
-sha256 = "b8513822d94694d1870629f9a09b1f6c85c175b03ff06db9ebfed32c99a19e61"
-bytes = 846054
-kind = "jar"
-is_3d = false
-class_count = 91
-midlet_name = "Heroes Lore by Jambo"
-midlet_version = "2.0.7"
-vendor = "Hands-On Mobile"
-cldc = "CLDC-1.0"
-declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
-official = true   # TODO Phase 1: set false + move to [[archived]] if a fan repack
-repack_tag = "by J"   # fan-repack signature detected — likely [[archived]]
-collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(2).zip::Heroes Lore (2009)(Hands-On Mobile)(v2.0.7)(a).jar"]
-containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(2).zip"]
-
-[[payload]]
-id = "heroes_lore_wind_of_soltia_j2me_en_v207_zip_heroes_lore_2007_46"
-sha256 = "38b685c4ecb45d510bcebdfff53e8b4a46996ecc4a1828cfd42e3eeeb0f18d2d"
-bytes = 846400
-kind = "jar"
-is_3d = false
-class_count = 98
-midlet_name = "Heroes Lore by SunYu_911"
-midlet_version = "2.0.7"
-vendor = "Hands-On Mobile"
-cldc = "CLDC-1.0"
-declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
-official = true   # TODO Phase 1: set false + move to [[archived]] if a fan repack
-repack_tag = "by S"   # fan-repack signature detected — likely [[archived]]
-collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip::Heroes Lore (2007)(Hands-On Mobile)(v2.0.7)(a2).jar"]
-containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip"]
-
-[[payload]]
-id = "heroes_lore_wind_of_soltia_j2me_en_v207_zip_heroes_lore_2007_47"
-sha256 = "612a92d5fd2d91f15d65d1ecc48c859427d3e75108f2b57e4f36e11ff70527fe"
-bytes = 846403
-kind = "jar"
-is_3d = false
-class_count = 98
-midlet_name = "Heroes Lore by SunYu_911"
-midlet_version = "2.0.7"
-vendor = "Hands-On Mobile"
-cldc = "CLDC-1.0"
-declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
-official = true   # TODO Phase 1: set false + move to [[archived]] if a fan repack
-repack_tag = "by S"   # fan-repack signature detected — likely [[archived]]
-collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip::Heroes Lore (2007)(Hands-On Mobile)(v2.0.7)(a5).jar"]
-containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip"]
-
-[[payload]]
-id = "heroes_lore_wind_of_soltia_j2me_en_v207_1_zip_heroes_lore_20_48"
-sha256 = "d0512011c88406f8f915dcae7d0cd6fbc5b6a38c698ccfc5e93906b238699f41"
-bytes = 847521
-kind = "jar"
-is_3d = false
-class_count = 90
-midlet_name = "Heroes Lore by Gudki.com"
-midlet_version = "2.0.7"
-vendor = "Hands-On Mobile"
-cldc = "CLDC-1.0"
-declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
-official = true   # TODO Phase 1: set false + move to [[archived]] if a fan repack
-repack_tag = "by G"   # fan-repack signature detected — likely [[archived]]
-collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(1).zip::Heroes Lore (2008)(Hands-On Mobile)(v2.0.7)(a4).jar"]
-containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(1).zip"]
-
-[[payload]]
-id = "heroes_lore_wind_of_soltia_j2me_en_v207_zip_heroes_lore_2007_49"
-sha256 = "3181fc96e919edc7f902c59f928d62a6085cdff5a9a02983e4faa4d69290fd5b"
-bytes = 847522
-kind = "jar"
-is_3d = false
-class_count = 90
-midlet_name = "Heroes Lore by SunYu_911"
-midlet_version = "2.0.7"
-vendor = "Hands-On Mobile"
-cldc = "CLDC-1.0"
-declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
-official = true   # TODO Phase 1: set false + move to [[archived]] if a fan repack
-repack_tag = "by S"   # fan-repack signature detected — likely [[archived]]
-collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip::Heroes Lore (2007)(Hands-On Mobile)(v2.0.7)(a6).jar"]
-containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip"]
-
-[[payload]]
 id = "heroes_lore_wind_of_soltia_j2me_en_v207_50"
 sha256 = "110030fce1f3dcd8ca2af80f7da1b40829401732e2d3b93d911ff2bcece55faa"
 bytes = 847527
@@ -850,23 +596,6 @@ declared_language = "en"   # HINT from filename/manifest; verify from content (R
 official = true   # TODO Phase 1: set false + move to [[archived]] if a fan repack
 collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(2).zip::Heroes Lore (2009)(Hands-On Mobile)(v2.0.7).jar"]
 containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(2).zip"]
-
-[[payload]]
-id = "heroes_lore_wind_of_soltia_j2me_en_v207_zip_heroes_lore_2007_52"
-sha256 = "d7d0839120841e1e29f2a21b0a05534e21451613a50115192aff799621090d6d"
-bytes = 864361
-kind = "jar"
-is_3d = false
-class_count = 121
-midlet_name = "Heroes Lore by SunYu_911"
-midlet_version = "2.0.7"
-vendor = "Hands-On Mobile"
-cldc = "CLDC-1.0"
-declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
-official = true   # TODO Phase 1: set false + move to [[archived]] if a fan repack
-repack_tag = "by S"   # fan-repack signature detected — likely [[archived]]
-collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip::Heroes Lore (2007)(Hands-On Mobile)(v2.0.7)(a3).jar"]
-containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip"]
 
 [[payload]]
 id = "heroes_lore_wind_of_soltia_j2me_en_v207_1_zip_heroes_lore_20_53"
@@ -935,22 +664,6 @@ collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(1).zip::Heroes Lore (20
 containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(1).zip"]
 
 [[payload]]
-id = "heroes_lore_wind_of_soltia_j2me_en_v10_57"
-sha256 = "00d97b57f02bf3aa6aaf114f13fb717669c487c81f2407b250a5dd9f14f845bd"
-bytes = 1048089
-kind = "jar"
-is_3d = false
-class_count = 141
-midlet_name = "Heroes Lore"
-midlet_version = "1.0"
-vendor = "EA"
-cldc = "CLDC-1.0"
-declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
-official = true   # TODO Phase 1: set false + move to [[archived]] if a fan repack
-collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v10.jar"]
-containers = ["_originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v10.jar"]
-
-[[payload]]
 id = "heroes_lore_wind_of_soltia_j2me_zh_v10_lenovo_v800_58"
 sha256 = "444ef9900f4b84fec6541342ce530eb8c8ac31e227a96a7dfa4a4d3dd1036605"
 bytes = 553903
@@ -983,6 +696,279 @@ declared_language = "zh"   # HINT from filename/manifest; verify from content (R
 official = true   # TODO Phase 1: set false + move to [[archived]] if a fan repack
 collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_ZH_v10-Motorola-V600.jar"]
 containers = ["_originals/Heroes-Lore-Wind-of-Soltia_J2ME_ZH_v10-Motorola-V600.jar"]
+
+# --- Fan repacks (preserved, verified, never recovery targets) ---
+
+[[archived]]
+id = "heroes_lore_wind_of_soltia_j2me_en_v212_1_zip_heroes_lore_20_01"
+sha256 = "7eb032297967f5d8382cc4f1ab5c3016459e01b235b42a3b88c6a8bfe46c5f61"
+bytes = 554715
+kind = "jar"
+is_3d = false
+class_count = 89
+midlet_name = "(WaP.Ka4Ka.Ru) Heroes Lore"
+midlet_version = "2.1.2"
+vendor = "Hands-On Mobile"
+cldc = "CLDC-1.0"
+declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
+official = false  # fan repack (archived)
+collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v212(1).zip::Heroes Lore (2008)(Hands-On Mobile)(v2.1.2).jar"]
+containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v212(1).zip"]
+
+[[archived]]
+id = "heroes_lore_wind_of_soltia_j2me_en_v207_zip_heroes_lore_2007_07"
+sha256 = "c22a96a0314e294b3f208dedeaa10f86c1c4ba35d6ece88205313d4311efdce4"
+bytes = 742062
+kind = "jar"
+is_3d = false
+class_count = 98
+midlet_name = "Heroes Lore by SunYu_911"
+midlet_version = "2.0.7"
+vendor = "Hands-On Mobile"
+cldc = "CLDC-1.0"
+declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
+official = false  # fan repack (archived)
+repack_tag = "by S"   # fan-repack signature detected — likely [[archived]]
+collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip::Heroes Lore (2007)(Hands-On Mobile)(v2.0.7)(a).jar"]
+containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip"]
+
+[[archived]]
+id = "heroes_lore_wind_of_soltia_j2me_en_v207_zip_heroes_lore_2007_14"
+sha256 = "84db3acb5a1a577c28467d154722905a6a564395338e193f9931096db573b58c"
+bytes = 792499
+kind = "jar"
+is_3d = false
+class_count = 98
+midlet_name = "Heroes Lore by SunYu_911"
+midlet_version = "2.0.7"
+vendor = "Hands-On Mobile"
+cldc = "CLDC-1.0"
+declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
+official = false  # fan repack (archived)
+repack_tag = "by S"   # fan-repack signature detected — likely [[archived]]
+collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip::Heroes Lore (2007)(Hands-On Mobile)(v2.0.7)(a4).jar"]
+containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip"]
+
+[[archived]]
+id = "heroes_lore_wind_of_soltia_j2me_en_v207_zip_heroes_lore_2007_15"
+sha256 = "2122d6a9125afa63ffaab674cf1bff21288a6346ad10d583f287ae4872a8585a"
+bytes = 794402
+kind = "jar"
+is_3d = false
+class_count = 90
+midlet_name = "Heroes Lore by SunYu_911"
+midlet_version = "2.0.7"
+vendor = "Hands-On Mobile"
+cldc = "CLDC-1.0"
+declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
+official = false  # fan repack (archived)
+repack_tag = "by S"   # fan-repack signature detected — likely [[archived]]
+collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip::Heroes Lore (2007)(Hands-On Mobile)(v2.0.7)(a7).jar"]
+containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip"]
+
+[[archived]]
+id = "heroes_lore_wind_of_soltia_j2me_en_v207_zip_heroes_lore_2007_17"
+sha256 = "d8b30e0629e2af323ecb94a2d91065daeb7fe02dddd7b11738f421e7a3d8bf73"
+bytes = 796157
+kind = "jar"
+is_3d = false
+class_count = 98
+midlet_name = "Heroes Lore by SunYu_911"
+midlet_version = "2.0.7"
+vendor = "Hands-On Mobile"
+cldc = "CLDC-1.0"
+declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
+official = false  # fan repack (archived)
+repack_tag = "by S"   # fan-repack signature detected — likely [[archived]]
+collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip::Heroes Lore (2007)(Hands-On Mobile)(v2.0.7)(a1).jar"]
+containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip"]
+
+[[archived]]
+id = "heroes_lore_wind_of_soltia_j2me_en_v207_2_19"
+sha256 = "e6b3a3136b63e402ebb084d09a52eb2a2dafdba1d17e220fd205eb13ec61875a"
+bytes = 798585
+kind = "jar"
+is_3d = false
+class_count = 98
+midlet_name = "Heroes Lore by SunYu_911"
+midlet_version = "2.0.7"
+vendor = "Hands-On Mobile"
+cldc = "CLDC-1.0"
+declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
+official = false  # fan repack (archived)
+repack_tag = "by S"   # fan-repack signature detected — likely [[archived]]
+collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(2).jar"]
+containers = ["_originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(2).jar"]
+
+[[archived]]
+id = "heroes_lore_wind_of_soltia_j2me_en_v207_1_20"
+sha256 = "03bca0fe3c6f90aad3d0e00fbd650df3fffdd081185ad81bb464e00f5aea149f"
+bytes = 799356
+kind = "jar"
+is_3d = false
+class_count = 98
+midlet_name = "Heroes Lore by SunYu_911"
+midlet_version = "2.0.7"
+vendor = "Hands-On Mobile"
+cldc = "CLDC-1.0"
+declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
+official = false  # fan repack (archived)
+repack_tag = "by S"   # fan-repack signature detected — likely [[archived]]
+collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(1).jar"]
+containers = ["_originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(1).jar"]
+
+[[archived]]
+id = "heroes_lore_wind_of_soltia_j2me_en_v207_1_zip_heroes_lore_20_21"
+sha256 = "178ed92056dce5f2012c36ba24d15f38aa15a3617e113faa7f3a7a853c0eabe3"
+bytes = 799803
+kind = "jar"
+is_3d = false
+class_count = 98
+midlet_name = "Heroes Lore by SunYu_911"
+midlet_version = "2.0.7"
+vendor = "Hands-On Mobile"
+cldc = "CLDC-1.0"
+declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
+official = false  # fan repack (archived)
+repack_tag = "by S"   # fan-repack signature detected — likely [[archived]]
+collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(1).zip::Heroes Lore (2008)(Hands-On Mobile)(v2.0.7)(a5).jar"]
+containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(1).zip"]
+
+[[archived]]
+id = "heroes_lore_wind_of_soltia_j2me_en_v207_zip_heroes_lore_2007_31"
+sha256 = "b907342155cd053987e5901400153f78e271ad92aec64b66542ba4f7ea544703"
+bytes = 821044
+kind = "jar"
+is_3d = false
+class_count = 90
+midlet_name = "Heroes Lore by Kowciu"
+midlet_version = "2.0.7"
+vendor = "Hands-On Mobile"
+cldc = "CLDC-1.0"
+declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
+official = false  # fan repack (archived)
+repack_tag = "by K"   # fan-repack signature detected — likely [[archived]]
+collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip::Heroes Lore (2007)(Hands-On Mobile)(v2.0.7).jar"]
+containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip"]
+
+[[archived]]
+id = "heroes_lore_wind_of_soltia_j2me_en_v207_2_zip_heroes_lore_20_44"
+sha256 = "3101a583faf983378bb29e39a27939e14dfd53bdd1e15b0cbc84b44dd2583c24"
+bytes = 845822
+kind = "jar"
+is_3d = false
+class_count = 91
+midlet_name = "Heroes Lore by Jambo"
+midlet_version = "2.0.7"
+vendor = "Hands-On Mobile"
+cldc = "CLDC-1.0"
+declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
+official = false  # fan repack (archived)
+repack_tag = "by J"   # fan-repack signature detected — likely [[archived]]
+collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(2).zip::Heroes Lore (2009)(Hands-On Mobile)(v2.0.7)(a1).jar"]
+containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(2).zip"]
+
+[[archived]]
+id = "heroes_lore_wind_of_soltia_j2me_en_v207_2_zip_heroes_lore_20_45"
+sha256 = "b8513822d94694d1870629f9a09b1f6c85c175b03ff06db9ebfed32c99a19e61"
+bytes = 846054
+kind = "jar"
+is_3d = false
+class_count = 91
+midlet_name = "Heroes Lore by Jambo"
+midlet_version = "2.0.7"
+vendor = "Hands-On Mobile"
+cldc = "CLDC-1.0"
+declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
+official = false  # fan repack (archived)
+repack_tag = "by J"   # fan-repack signature detected — likely [[archived]]
+collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(2).zip::Heroes Lore (2009)(Hands-On Mobile)(v2.0.7)(a).jar"]
+containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(2).zip"]
+
+[[archived]]
+id = "heroes_lore_wind_of_soltia_j2me_en_v207_zip_heroes_lore_2007_46"
+sha256 = "38b685c4ecb45d510bcebdfff53e8b4a46996ecc4a1828cfd42e3eeeb0f18d2d"
+bytes = 846400
+kind = "jar"
+is_3d = false
+class_count = 98
+midlet_name = "Heroes Lore by SunYu_911"
+midlet_version = "2.0.7"
+vendor = "Hands-On Mobile"
+cldc = "CLDC-1.0"
+declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
+official = false  # fan repack (archived)
+repack_tag = "by S"   # fan-repack signature detected — likely [[archived]]
+collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip::Heroes Lore (2007)(Hands-On Mobile)(v2.0.7)(a2).jar"]
+containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip"]
+
+[[archived]]
+id = "heroes_lore_wind_of_soltia_j2me_en_v207_zip_heroes_lore_2007_47"
+sha256 = "612a92d5fd2d91f15d65d1ecc48c859427d3e75108f2b57e4f36e11ff70527fe"
+bytes = 846403
+kind = "jar"
+is_3d = false
+class_count = 98
+midlet_name = "Heroes Lore by SunYu_911"
+midlet_version = "2.0.7"
+vendor = "Hands-On Mobile"
+cldc = "CLDC-1.0"
+declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
+official = false  # fan repack (archived)
+repack_tag = "by S"   # fan-repack signature detected — likely [[archived]]
+collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip::Heroes Lore (2007)(Hands-On Mobile)(v2.0.7)(a5).jar"]
+containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip"]
+
+[[archived]]
+id = "heroes_lore_wind_of_soltia_j2me_en_v207_1_zip_heroes_lore_20_48"
+sha256 = "d0512011c88406f8f915dcae7d0cd6fbc5b6a38c698ccfc5e93906b238699f41"
+bytes = 847521
+kind = "jar"
+is_3d = false
+class_count = 90
+midlet_name = "Heroes Lore by Gudki.com"
+midlet_version = "2.0.7"
+vendor = "Hands-On Mobile"
+cldc = "CLDC-1.0"
+declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
+official = false  # fan repack (archived)
+repack_tag = "by G"   # fan-repack signature detected — likely [[archived]]
+collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(1).zip::Heroes Lore (2008)(Hands-On Mobile)(v2.0.7)(a4).jar"]
+containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207(1).zip"]
+
+[[archived]]
+id = "heroes_lore_wind_of_soltia_j2me_en_v207_zip_heroes_lore_2007_49"
+sha256 = "3181fc96e919edc7f902c59f928d62a6085cdff5a9a02983e4faa4d69290fd5b"
+bytes = 847522
+kind = "jar"
+is_3d = false
+class_count = 90
+midlet_name = "Heroes Lore by SunYu_911"
+midlet_version = "2.0.7"
+vendor = "Hands-On Mobile"
+cldc = "CLDC-1.0"
+declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
+official = false  # fan repack (archived)
+repack_tag = "by S"   # fan-repack signature detected — likely [[archived]]
+collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip::Heroes Lore (2007)(Hands-On Mobile)(v2.0.7)(a6).jar"]
+containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip"]
+
+[[archived]]
+id = "heroes_lore_wind_of_soltia_j2me_en_v207_zip_heroes_lore_2007_52"
+sha256 = "d7d0839120841e1e29f2a21b0a05534e21451613a50115192aff799621090d6d"
+bytes = 864361
+kind = "jar"
+is_3d = false
+class_count = 121
+midlet_name = "Heroes Lore by SunYu_911"
+midlet_version = "2.0.7"
+vendor = "Hands-On Mobile"
+cldc = "CLDC-1.0"
+declared_language = "en"   # HINT from filename/manifest; verify from content (R10)
+official = false  # fan repack (archived)
+repack_tag = "by S"   # fan-repack signature detected — likely [[archived]]
+collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip::Heroes Lore (2007)(Hands-On Mobile)(v2.0.7)(a3).jar"]
+containers = ["inside _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.zip"]
 
 [[container]]
 id = "heroes_lore_wind_of_soltia_j2me_en_v002_1"
@@ -1047,4 +1033,3 @@ bytes = 1498067
 collected_as = ["Heroes-Lore-Wind-of-Soltia_J2ME_EN_v212.zip"]
 holds = ["1103d0de1eda280e2b5848f0ecf157895540f4ac0e92c651df1d75ee384a226d", "d447e44dd006ac05288aaf4c4693faea95f2b818b5c7dbd62dc5bd497e972eae", "6b6745c936d4b74ae42b84f7c5ecc18e2ffdecfcf83eb994764101b2cc405d19"]
 notes = "Immutable zip distribution wrapper (preserved for provenance)."
-
