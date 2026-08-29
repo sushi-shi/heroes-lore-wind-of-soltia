@@ -1,0 +1,2809 @@
+# symbols.toml — reviewed-naming ledger for Heroes Lore: Wind of Soltia (J2ME).
+#
+# TRACKED, R1-CLEAN. This is the ONE tracked artifact derived from the baseline
+# bytecode. It contains ONLY obfuscated identifiers and JVM type descriptors
+# (structural facts, exactly like builds.toml) — NEVER decompiled source and
+# NEVER resource content. Decompiled Java lives only under the git-ignored
+# _reference/ tree.
+#
+# HOW NAMING WORKS (playbook: bytecode is the authority):
+#   - The obfuscated `.class` bytecode is the sole source of truth.
+#   - `name` is a reviewed, human-assigned semantic name. It is applied at
+#     DECOMPILE TIME via a decompiler rename/mapping (e.g. jadx mappings),
+#     NEVER by text-substituting decompiled output.
+#   - Every `name` starts empty. Naming is EARNED by reading the class later;
+#     do NOT invent semantic names here. `name = ""` means "not yet reviewed".
+#
+# FIELDS (per [[class]]):
+#   obf        obfuscated simple name as it appears in the bytecode.
+#   internal   JVM binary name (package/simple), the class's identity.
+#   descriptor JVM class type descriptor (L<internal>;).
+#   package    JVM package ("" = default package).
+#   name       reviewed semantic name (TODO — assigned later, by review).
+#   zero_twin  true iff this obf simple-name also occurs as a class in the
+#              sibling heroes-lore-zero corpus. Twins are the shared rpg.*
+#              engine surface; a non-twin is unique to Wind of Soltia.
+#   members    (optional) reviewed member-name map for a NAMED class. Array of
+#              inline tables { obf, descriptor, name }. Member identity is
+#              (obf simple-name + JVM descriptor) EXACTLY as it appears in the
+#              baseline bytecode (playbook R14 — verified with `javap -c -p -s`);
+#              descriptors that reference still-obfuscated classes keep their obf
+#              form (e.g. `(Lao;)Z`). `name = ""` = named later (see its # TODO).
+#              Framework overrides (paint/keyPressed/startApp/…) keep the JVM name.
+#              These names are the ones applied in the de-obfuscated crosswalk app
+#              under java/src/main/java (bg->TitleScreen, ao->Hero, ae->GameMap,
+#              ah->EventScript, rpg.GameMIDlet).
+#
+# PROVENANCE:
+#   baseline  : _originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.jar
+#               (MIDlet-1 launcher rpg.GameMIDlet, 90 classes)
+#   zero ref  : simple-name union of the 22 "Heroes Lore - Zero" builds under
+#               /home/sheep/Projects/j2me/heroes-lore-zero/_originals/
+#               (Zero launcher is rpg.RPGHeroEx; Zero has no GameMIDlet).
+#   Every [[class]] below corresponds to a REAL .class entry in the baseline
+#   bytecode (playbook R14). Counts: 90 classes, 89 zero_twins,
+#   1 unique (rpg.GameMIDlet).
+
+class_count = 90
+zero_twin_count = 89
+zero_twin_reference = "heroes-lore-zero corpus (union of 22 andrew-lviv.net Zero builds)"
+
+[[class]]
+obf = "a"
+internal = "a"
+descriptor = "La;"
+package = ""
+name = "ContinueMenu"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "h", descriptor = "[B", name = "slotData" },
+  { obf = "c", descriptor = "B", name = "cursorAnimFrame" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lbf;[B)V", name = "<init>" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "b"
+internal = "b"
+descriptor = "Lb;"
+package = ""
+name = "WrapFont"
+zero_twin = true
+members = [
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Ljava/lang/String;IIZ)V", name = "<init>" },
+  { obf = "a", descriptor = "(Ljava/lang/String;II)I", name = "wrap" },
+  { obf = "a", descriptor = "(Ljava/util/Vector;Ljava/lang/String;I)Ljava/util/Vector;", name = "wrapInto" },
+  { obf = "a", descriptor = "(Ljava/lang/String;IIZ)Laz;", name = "create" },
+  { obf = "a", descriptor = "(Ljava/lang/String;IZ)Laz;", name = "create" },
+]
+
+[[class]]
+obf = "c"
+internal = "c"
+descriptor = "Lc;"
+package = ""
+name = "ClassSelectMenu"
+zero_twin = true
+members = [
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lbf;)V", name = "<init>" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(BB)V", name = "onPopupResult" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "d"
+internal = "d"
+descriptor = "Ld;"
+package = ""
+name = "SystemTab"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "c", descriptor = "B", name = "saveState" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lcb;)V", name = "<init>" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "d", descriptor = "()V", name = "promptExit" },
+  { obf = "a", descriptor = "(BB)V", name = "onPopupResult" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "e"
+internal = "e"
+descriptor = "Le;"
+package = ""
+name = "Equipment"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "S", name = "value" },
+  { obf = "d", descriptor = "B", name = "levelReq" },
+  { obf = "a", descriptor = "Z", name = "needsIdentify" },
+  { obf = "b", descriptor = "Z", name = "identified" },
+  { obf = "e", descriptor = "B", name = "refineLevel" },
+  { obf = "j", descriptor = "[B", name = "enchant" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(BB)V", name = "<init>" },
+  { obf = "a", descriptor = "(Z[BI)I", name = "parseRecord" },
+  { obf = "a", descriptor = "([BIZ)I", name = "parseEquipStats" },
+  { obf = "a", descriptor = "()[B", name = "serialize" },
+  { obf = "a", descriptor = "(B[B[BB)V", name = "rollEnchant" },
+  { obf = "a", descriptor = "(BBBB)V", name = "setEnchant" },
+]
+
+[[class]]
+obf = "f"
+internal = "f"
+descriptor = "Lf;"
+package = ""
+name = "Overlay"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "S", name = "lifetime" },
+  { obf = "b", descriptor = "S", name = "frame" },
+  { obf = "a", descriptor = "Z", name = "finished" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(S)V", name = "<init>" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "g"
+internal = "g"
+descriptor = "Lg;"
+package = ""
+name = "ItemBag"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "[B", name = "QUICK_TYPES" },
+  { obf = "a", descriptor = "[Lad;", name = "slots" },
+  { obf = "a", descriptor = "B", name = "quickSlot" },
+  { obf = "b", descriptor = "B", name = "quickTypeCursor" },
+  { obf = "a", descriptor = "I", name = "gold" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(B)V", name = "<init>" },
+  { obf = "a", descriptor = "()V", name = "resetQuickSelection" },
+  { obf = "a", descriptor = "(I)Lad;", name = "get" },
+  { obf = "a", descriptor = "()[B", name = "occupiedSlots" },
+  { obf = "a", descriptor = "(ZB)[B", name = "equipmentSlots" },
+  { obf = "a", descriptor = "(B)[B", name = "slotsOfType" },
+  { obf = "b", descriptor = "()[B", name = "quickUsableSlots" },
+  { obf = "a", descriptor = "(Lad;B)Lad;", name = "replaceAt" },
+  { obf = "a", descriptor = "()Lad;", name = "currentQuickItem" },
+  { obf = "a", descriptor = "()B", name = "currentQuickType" },
+  { obf = "b", descriptor = "()V", name = "cycleQuickType" },
+  { obf = "f", descriptor = "()V", name = "revalidateQuickSlot" },
+  { obf = "g", descriptor = "()V", name = "ensureQuickSlot" },
+  { obf = "a", descriptor = "(Lad;I)Z", name = "add" },
+  { obf = "a", descriptor = "(BBB)V", name = "removeItems" },
+  { obf = "a", descriptor = "(BB)V", name = "removeFromSlot" },
+  { obf = "a", descriptor = "(Lad;B)V", name = "decrementItem" },
+  { obf = "a", descriptor = "(Lad;)V", name = "removeItem" },
+  { obf = "c", descriptor = "()V", name = "removeQuestItems" },
+  { obf = "d", descriptor = "()V", name = "compact" },
+  { obf = "a", descriptor = "(BB)Lad;", name = "findItem" },
+  { obf = "a", descriptor = "(BB)[Lad;", name = "findAllItems" },
+  { obf = "a", descriptor = "(BB)I", name = "totalQuantity" },
+  { obf = "a", descriptor = "(Lad;)B", name = "slotOf" },
+  { obf = "a", descriptor = "(BB)B", name = "findSlot" },
+  { obf = "a", descriptor = "(BBI)Z", name = "canAdd" },
+  { obf = "b", descriptor = "()B", name = "firstFreeSlot" },
+  { obf = "a", descriptor = "(BBB)Z", name = "hasAtLeast" },
+  { obf = "e", descriptor = "()V", name = "mergeStacks" },
+  { obf = "c", descriptor = "()[B", name = "serialize" },
+  { obf = "a", descriptor = "([B)V", name = "deserialize" },
+]
+
+[[class]]
+obf = "h"
+internal = "h"
+descriptor = "Lh;"
+package = ""
+name = "ByteUtil"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "Ljava/util/Random;", name = "rng" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "()V", name = "<init>" },
+  { obf = "a", descriptor = "(II)I", name = "randRange" },
+  { obf = "a", descriptor = "([BI)S", name = "readU16" },
+  { obf = "a", descriptor = "([C[C)[C", name = "concat" },
+  { obf = "a", descriptor = "([BI)I", name = "readS32" },
+  { obf = "a", descriptor = "(I[BI)V", name = "writeI32" },
+]
+
+[[class]]
+obf = "i"
+internal = "i"
+descriptor = "Li;"
+package = ""
+name = "Projectile"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "Lo;", name = "owner" },
+  { obf = "d", descriptor = "Z", name = "piercing" },
+  { obf = "f", descriptor = "B", name = "dir" },
+  { obf = "g", descriptor = "B", name = "range" },
+  { obf = "h", descriptor = "B", name = "chainFrame" },
+  { obf = "e", descriptor = "Z", name = "hasHit" },
+  { obf = "a", descriptor = "I", name = "damage" },
+  { obf = "i", descriptor = "B", name = "statusKind" },
+  { obf = "f", descriptor = "Z", name = "crit" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(BB[BLo;BBB)V", name = "<init>" },
+  { obf = "<init>", descriptor = "(BB[BLo;ZBBBIBZ)V", name = "<init>" },
+  { obf = "a", descriptor = "()V", name = "onFrame" },
+  { obf = "a", descriptor = "()Z", name = "isFinished" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "j"
+internal = "j"
+descriptor = "Lj;"
+package = ""
+name = "EnemyType"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "[Lj;", name = "types" },
+  { obf = "a", descriptor = "[B", name = "attackHitFrame" },
+  { obf = "a", descriptor = "[C", name = "name" },
+  { obf = "a", descriptor = "B", name = "size" },
+  { obf = "b", descriptor = "B", name = "elemColor" },
+  { obf = "c", descriptor = "B", name = "element" },
+  { obf = "d", descriptor = "B", name = "aiType" },
+  { obf = "a", descriptor = "Z", name = "relentless" },
+  { obf = "b", descriptor = "Z", name = "armored" },
+  { obf = "c", descriptor = "Z", name = "summonsAllies" },
+  { obf = "d", descriptor = "Z", name = "ambush" },
+  { obf = "e", descriptor = "B", name = "summonWardElement" },
+  { obf = "f", descriptor = "B", name = "level" },
+  { obf = "a", descriptor = "S", name = "maxHp" },
+  { obf = "b", descriptor = "S", name = "attack" },
+  { obf = "c", descriptor = "S", name = "defense" },
+  { obf = "d", descriptor = "S", name = "evasion" },
+  { obf = "g", descriptor = "B", name = "sightRange" },
+  { obf = "h", descriptor = "B", name = "attackDelay" },
+  { obf = "i", descriptor = "B", name = "hurtDelay" },
+  { obf = "e", descriptor = "S", name = "expReward" },
+  { obf = "b", descriptor = "[B", name = "dropTable" },
+  { obf = "j", descriptor = "B", name = "walkFrames" },
+  { obf = "k", descriptor = "B", name = "attackFrames" },
+  { obf = "l", descriptor = "B", name = "castFrames" },
+  { obf = "m", descriptor = "B", name = "dieFrames" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "()V", name = "<init>" },
+  { obf = "a", descriptor = "(I)V", name = "alloc" },
+  { obf = "a", descriptor = "([BBB)V", name = "parse" },
+  { obf = "a", descriptor = "(B)V", name = "bindSprites" },
+  { obf = "b", descriptor = "(B)V", name = "bindSpritesBoss" },
+]
+
+[[class]]
+obf = "k"
+internal = "k"
+descriptor = "Lk;"
+package = ""
+name = "CombineMenu"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "[Lad;", name = "craftSlots" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lcb;)V", name = "<init>" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(BB)V", name = "onPopupResult" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "l"
+internal = "l"
+descriptor = "Ll;"
+package = ""
+name = "Weapon"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "B", name = "accuracy" },
+  { obf = "b", descriptor = "B", name = "critBonus" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(BB)V", name = "<init>" },
+  { obf = "a", descriptor = "(Z[BI)I", name = "parseRecord" },
+]
+
+[[class]]
+obf = "m"
+internal = "m"
+descriptor = "Lm;"
+package = ""
+name = "ItemPickerList"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "h", descriptor = "[B", name = "slots" },
+  { obf = "c", descriptor = "B", name = "resultTag" },
+  { obf = "a", descriptor = "[C", name = "title" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lcb;[BB[C)V", name = "<init>" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "n"
+internal = "n"
+descriptor = "Ln;"
+package = ""
+name = "GameState"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "h", descriptor = "[B", name = "clearBonusTable" },
+  { obf = "i", descriptor = "[B", name = "saveKey" },
+  { obf = "j", descriptor = "[B", name = "classStartTable" },
+  { obf = "a", descriptor = "[Ljava/lang/String;", name = "saveSlots" },
+  { obf = "a", descriptor = "Lae;", name = "map" },
+  { obf = "a", descriptor = "I", name = "camTargetX" },
+  { obf = "b", descriptor = "I", name = "camTargetY" },
+  { obf = "c", descriptor = "I", name = "camX" },
+  { obf = "d", descriptor = "I", name = "camY" },
+  { obf = "a", descriptor = "Lao;", name = "hero" },
+  { obf = "a", descriptor = "B", name = "classId" },
+  { obf = "e", descriptor = "I", name = "screen" },
+  { obf = "b", descriptor = "B", name = "nextState" },
+  { obf = "c", descriptor = "B", name = "arg0" },
+  { obf = "d", descriptor = "B", name = "arg1" },
+  { obf = "e", descriptor = "B", name = "arg2" },
+  { obf = "f", descriptor = "B", name = "storyMapId" },
+  { obf = "h", descriptor = "B", name = "pendingHeroState" },
+  { obf = "i", descriptor = "B", name = "pendingHeroFacing" },
+  { obf = "k", descriptor = "[B", name = "switches" },
+  { obf = "l", descriptor = "[B", name = "flags" },
+  { obf = "g", descriptor = "B", name = "clearCount" },
+  { obf = "a", descriptor = "[[Z", name = "classStartFlags" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "()V", name = "<init>" },
+  { obf = "a", descriptor = "()V", name = "startNewMap" },
+  { obf = "b", descriptor = "()V", name = "continueGame" },
+  { obf = "c", descriptor = "()V", name = "startNewCharacter" },
+  { obf = "a", descriptor = "(BBBB)V", name = "requestState" },
+  { obf = "a", descriptor = "(BBB)V", name = "requestState" },
+  { obf = "a", descriptor = "(BB)V", name = "requestState" },
+  { obf = "a", descriptor = "(B)V", name = "requestState" },
+  { obf = "d", descriptor = "()V", name = "clearRequest" },
+  { obf = "e", descriptor = "()V", name = "processStateRequest" },
+  { obf = "b", descriptor = "(BBBB)V", name = "requestMapWarp" },
+  { obf = "f", descriptor = "()V", name = "warpMap" },
+  { obf = "g", descriptor = "()V", name = "centerCamera" },
+  { obf = "a", descriptor = "(I)V", name = "setScreen" },
+  { obf = "a", descriptor = "(Lae;)V", name = "setMap" },
+  { obf = "a", descriptor = "(ZZ)V", name = "scrollCamera" },
+  { obf = "b", descriptor = "(B)V", name = "walkHero" },
+  { obf = "h", descriptor = "()V", name = "stopHero" },
+  { obf = "a", descriptor = "(Z)V", name = "requestHeroAttack" },
+  { obf = "i", descriptor = "()V", name = "update" },
+  { obf = "j", descriptor = "()V", name = "stepEvents" },
+  { obf = "q", descriptor = "()V", name = "applyPendingHeroAction" },
+  { obf = "k", descriptor = "()V", name = "clearPendingHeroAction" },
+  { obf = "a", descriptor = "()Z", name = "tryPickup" },
+  { obf = "l", descriptor = "()V", name = "clearSwitches" },
+  { obf = "a", descriptor = "(I)Z", name = "isSwitch" },
+  { obf = "b", descriptor = "(I)V", name = "setSwitch" },
+  { obf = "c", descriptor = "(I)V", name = "clearSwitch" },
+  { obf = "d", descriptor = "(I)V", name = "toggleSwitch" },
+  { obf = "m", descriptor = "()V", name = "clearFlags" },
+  { obf = "b", descriptor = "(I)Z", name = "isFlag" },
+  { obf = "e", descriptor = "(I)V", name = "setFlag" },
+  { obf = "f", descriptor = "(I)V", name = "clearFlag" },
+  { obf = "g", descriptor = "(I)V", name = "toggleFlag" },
+  { obf = "a", descriptor = "()Lao;", name = "hero" },
+  { obf = "a", descriptor = "()B", name = "heroState" },
+  { obf = "b", descriptor = "()B", name = "heroFacing" },
+  { obf = "c", descriptor = "(B)V", name = "setHeroState" },
+  { obf = "d", descriptor = "(B)V", name = "setHeroFacing" },
+  { obf = "n", descriptor = "()V", name = "updateHero" },
+  { obf = "a", descriptor = "(II)V", name = "setHeroTile" },
+  { obf = "b", descriptor = "()Z", name = "isHeroOnGrid" },
+  { obf = "a", descriptor = "()[B", name = "packProgress" },
+  { obf = "a", descriptor = "([B)V", name = "unpackProgress" },
+  { obf = "o", descriptor = "()V", name = "saveGame" },
+  { obf = "r", descriptor = "()V", name = "loadGame" },
+  { obf = "a", descriptor = "(B)[B", name = "readSaveSlot" },
+  { obf = "a", descriptor = "(B)B", name = "progressBonus" },
+  { obf = "p", descriptor = "()V", name = "buildLoadMenu" },
+  { obf = "a", descriptor = "(ZB[Z)V", name = "newGame" },
+]
+
+[[class]]
+obf = "o"
+internal = "o"
+descriptor = "Lo;"
+package = ""
+name = "Battler"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "Ljava/util/Vector;", name = "floaters" },
+  { obf = "b", descriptor = "Ljava/util/Vector;", name = "statuses" },
+  { obf = "h", descriptor = "B", name = "state" },
+  { obf = "i", descriptor = "B", name = "facing" },
+  { obf = "j", descriptor = "B", name = "moveDir" },
+  { obf = "k", descriptor = "B", name = "animFrame" },
+  { obf = "l", descriptor = "B", name = "knockbackTimer" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(SSBB)V", name = "<init>" },
+  { obf = "a", descriptor = "()V", name = "init" },
+  { obf = "c", descriptor = "()V", name = "clearFloaters" },
+  { obf = "a", descriptor = "(B)V", name = "setState" },
+  { obf = "b", descriptor = "(B)V", name = "setFacing" },
+  { obf = "d", descriptor = "()V", name = "update" },
+  { obf = "e", descriptor = "()V", name = "stepIfMoving" },
+  { obf = "f", descriptor = "()V", name = "clearOccupancy" },
+  { obf = "g", descriptor = "()V", name = "setOccupancy" },
+  { obf = "a", descriptor = "()Z", name = "tryStepForward" },
+  { obf = "a", descriptor = "(I)V", name = "move" },
+  { obf = "a", descriptor = "(Lck;B)V", name = "approach" },
+  { obf = "a", descriptor = "(Lck;BZ)B", name = "findSidestepDir" },
+  { obf = "a", descriptor = "()Lal;", name = "enemyAhead" },
+  { obf = "a", descriptor = "(B)Lal;", name = "enemyInDir" },
+  { obf = "a", descriptor = "(BLck;)Lck;", name = "entityInDir" },
+  { obf = "a", descriptor = "(Lf;)V", name = "addFloater" },
+  { obf = "a", descriptor = "(B)Z", name = "applyStatus" },
+  { obf = "b", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "drawFloaters" },
+  { obf = "c", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "drawStatusIcons" },
+]
+
+[[class]]
+obf = "p"
+internal = "p"
+descriptor = "Lp;"
+package = ""
+name = "Guardian"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "[S", name = "levelStartTable" },
+  { obf = "h", descriptor = "[B", name = "skillUnlockLevel" },
+  { obf = "b", descriptor = "[S", name = "skillCostTable" },
+  { obf = "i", descriptor = "[B", name = "castDurationTable" },
+  { obf = "d", descriptor = "[S", name = "effectDurationTable" },
+  { obf = "j", descriptor = "[B", name = "aoeOffsets" },
+  { obf = "f", descriptor = "B", name = "type" },
+  { obf = "g", descriptor = "B", name = "skillSlotA" },
+  { obf = "h", descriptor = "B", name = "skillSlotB" },
+  { obf = "a", descriptor = "S", name = "level" },
+  { obf = "a", descriptor = "I", name = "exp" },
+  { obf = "b", descriptor = "I", name = "expToNext" },
+  { obf = "i", descriptor = "B", name = "castState" },
+  { obf = "j", descriptor = "B", name = "castDir" },
+  { obf = "b", descriptor = "S", name = "animFrame" },
+  { obf = "e", descriptor = "S", name = "effectFrame" },
+  { obf = "k", descriptor = "B", name = "castTotalFrames" },
+  { obf = "l", descriptor = "B", name = "castRemaining" },
+  { obf = "m", descriptor = "B", name = "activeSkillSlot" },
+  { obf = "d", descriptor = "Z", name = "effectDone" },
+  { obf = "c", descriptor = "[S", name = "skillCharges" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(SSB)V", name = "<init>" },
+  { obf = "a", descriptor = "(I)V", name = "addExp" },
+  { obf = "f", descriptor = "()V", name = "levelUp" },
+  { obf = "a", descriptor = "()V", name = "recomputeExpToNext" },
+  { obf = "c", descriptor = "()V", name = "dismiss" },
+  { obf = "a", descriptor = "()B", name = "element" },
+  { obf = "a", descriptor = "()Z", name = "isBusy" },
+  { obf = "d", descriptor = "()V", name = "clearSlots" },
+  { obf = "a", descriptor = "(ZBZ)Z", name = "equipSkill" },
+  { obf = "a", descriptor = "(ZBII)V", name = "castSkill" },
+  { obf = "e", descriptor = "()V", name = "update" },
+  { obf = "a", descriptor = "(BB)V", name = "applySkillEffect" },
+  { obf = "g", descriptor = "()V", name = "dealForwardStrikeDamage" },
+  { obf = "h", descriptor = "()V", name = "dealQuakeStrikeDamage" },
+  { obf = "a", descriptor = "(SI)V", name = "dealRandomAoeDamage" },
+  { obf = "a", descriptor = "(IIII)V", name = "dealRingPulse" },
+  { obf = "a", descriptor = "(B)V", name = "banishMatchingEnemies" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;)V", name = "drawSkillBanner" },
+  { obf = "i", descriptor = "()V", name = "spawnForwardStrikeEffects" },
+  { obf = "j", descriptor = "()V", name = "spawnQuakeStrikeEffects" },
+  { obf = "a", descriptor = "(IISB)V", name = "spawnScatterEffects" },
+  { obf = "a", descriptor = "(BII)V", name = "spawnRingEffects" },
+  { obf = "a", descriptor = "(S)V", name = "spawnBanishEffects" },
+  { obf = "a", descriptor = "(Lae;SSB)V", name = "spawnEffect" },
+  { obf = "b", descriptor = "(I)V", name = "randomizeAoeOffsets" },
+]
+
+[[class]]
+obf = "q"
+internal = "q"
+descriptor = "Lq;"
+package = ""
+name = "StatusPage"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "[C", name = "className" },
+  { obf = "b", descriptor = "[C", name = "classDesc" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lcb;)V", name = "<init>" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "r"
+internal = "r"
+descriptor = "Lr;"
+package = ""
+name = "BaseCanvas"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "Z", name = "keyDown" },
+  { obf = "f", descriptor = "I", name = "pendingKey" },
+  { obf = "g", descriptor = "I", name = "width" },
+  { obf = "h", descriptor = "I", name = "height" },
+  { obf = "i", descriptor = "I", name = "halfW" },
+  { obf = "j", descriptor = "I", name = "halfH" },
+  { obf = "b", descriptor = "Z", name = "keepLoadingProgress" },
+  { obf = "k", descriptor = "I", name = "loadProgress" },
+  { obf = "l", descriptor = "I", name = "loadTotal" },
+  { obf = "m", descriptor = "I", name = "loadPhase" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "()V", name = "<init>" },
+  { obf = "i", descriptor = "()V", name = "flushKey" },
+  { obf = "c", descriptor = "(Ljavax/microedition/lcdui/Graphics;IIII)V", name = "drawNumberAt" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;IIIII)V", name = "drawNumber" },
+  { obf = "d", descriptor = "(Ljavax/microedition/lcdui/Graphics;IIII)V", name = "drawFraction" },
+  { obf = "a", descriptor = "(I)I", name = "numberWidth" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;Ljava/lang/String;II)I", name = "drawLabelBox" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;[CII)I", name = "drawLabelBox" },
+  { obf = "c", descriptor = "(Ljavax/microedition/lcdui/Graphics;)V", name = "drawLoadingScreen" },
+  { obf = "a", descriptor = "(Ljava/lang/String;I)V", name = "beginLoading" },
+  { obf = "j", descriptor = "()V", name = "requestRepaint" },
+  { obf = "a", descriptor = "(I)V", name = "setViewHeight" },
+  { obf = "k", descriptor = "()V", name = "yieldTick" },
+]
+
+[[class]]
+obf = "s"
+internal = "s"
+descriptor = "Ls;"
+package = ""
+name = "SkillTab"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "h", descriptor = "[B", name = "skillEntries" },
+  { obf = "c", descriptor = "B", name = "skillIndex" },
+  { obf = "d", descriptor = "B", name = "skillVariant" },
+  { obf = "a", descriptor = "[C", name = "skillName" },
+  { obf = "b", descriptor = "[C", name = "skillDesc" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lcb;)V", name = "<init>" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(BB)V", name = "onPopupResult" },
+  { obf = "d", descriptor = "()V", name = "loadSelectedSkill" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "t"
+internal = "t"
+descriptor = "Lt;"
+package = ""
+name = "Armor"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "h", descriptor = "[B", name = "PROC_STATUS" },
+  { obf = "a", descriptor = "Lz;", name = "attributeNames" },
+  { obf = "i", descriptor = "[B", name = "PROC_CHANCE" },
+  { obf = "c", descriptor = "B", name = "attribute" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(BB)V", name = "<init>" },
+  { obf = "a", descriptor = "(Z[BI)I", name = "parseRecord" },
+  { obf = "a", descriptor = "()[B", name = "serialize" },
+]
+
+[[class]]
+obf = "u"
+internal = "u"
+descriptor = "Lu;"
+package = ""
+name = "Directions"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "[[B", name = "elementDamageMultiplier" },
+  { obf = "a", descriptor = "[B", name = "dirDx" },
+  { obf = "b", descriptor = "[B", name = "dirDy" },
+  { obf = "a", descriptor = "[Z", name = "facingIsHorizontal" },
+  { obf = "c", descriptor = "[B", name = "diagCW" },
+  { obf = "d", descriptor = "[B", name = "diagCCW" },
+  { obf = "e", descriptor = "[B", name = "rotateCW" },
+  { obf = "f", descriptor = "[B", name = "rotateCCW" },
+  { obf = "g", descriptor = "[B", name = "reverse" },
+]
+
+[[class]]
+obf = "v"
+internal = "v"
+descriptor = "Lv;"
+package = ""
+name = "ShopItemList"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "[Lad;", name = "items" },
+  { obf = "c", descriptor = "B", name = "category" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lcb;Ljava/util/Vector;B)V", name = "<init>" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "w"
+internal = "w"
+descriptor = "Lw;"
+package = ""
+name = "AppConfig"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "Ljavax/microedition/midlet/MIDlet;", name = "midlet" },
+  { obf = "a", descriptor = "[Ljava/lang/String;", name = "locales" },
+  { obf = "a", descriptor = "Ljava/lang/String;", name = "buyUrl" },
+  { obf = "a", descriptor = "Z", name = "menuBuyEnabled" },
+  { obf = "b", descriptor = "Z", name = "exitBuyEnabled" },
+  { obf = "c", descriptor = "Z", name = "fullVersion" },
+  { obf = "a", descriptor = "[Z", name = "localeEnabled" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "()V", name = "<init>" },
+  { obf = "a", descriptor = "(Ljavax/microedition/midlet/MIDlet;)V", name = "init" },
+  { obf = "a", descriptor = "()V", name = "apply" },
+  { obf = "c", descriptor = "()Z", name = "isFullVersion" },
+  { obf = "a", descriptor = "()Z", name = "showFullVersionLink" },
+  { obf = "b", descriptor = "()Z", name = "showDemoBuyLink" },
+  { obf = "a", descriptor = "()I", name = "initAvailableLocales" },
+  { obf = "a", descriptor = "()Ljava/lang/String;", name = "resolveBuyLabel" },
+  { obf = "b", descriptor = "()Ljava/lang/String;", name = "resolveBuyUrl" },
+  { obf = "a", descriptor = "(Z)Z", name = "isBuySetupEnabled" },
+]
+
+[[class]]
+obf = "x"
+internal = "x"
+descriptor = "Lx;"
+package = ""
+name = "Debug"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "Z", name = "fullVersion" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "()V", name = "<init>" },
+  { obf = "a", descriptor = "(Z)V", name = "assertTrue" },
+]
+
+[[class]]
+obf = "y"
+internal = "y"
+descriptor = "Ly;"
+package = ""
+name = "Effect"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "[S", name = "FRAME_COUNTS" },
+  { obf = "i", descriptor = "[B", name = "TYPE_SPRITE_INDEX" },
+  { obf = "a", descriptor = "S", name = "frameCount" },
+  { obf = "b", descriptor = "S", name = "frame" },
+  { obf = "f", descriptor = "B", name = "type" },
+  { obf = "a", descriptor = "[Ljavax/microedition/lcdui/Image;", name = "frameBank" },
+  { obf = "h", descriptor = "[B", name = "spriteScript" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(SSB)V", name = "<init>" },
+  { obf = "<init>", descriptor = "(BB[B)V", name = "<init>" },
+  { obf = "a", descriptor = "()V", name = "onFrame" },
+  { obf = "a", descriptor = "()Z", name = "isFinished" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+  { obf = "c", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "drawHitSpark" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;IIILjavax/microedition/lcdui/Image;)V", name = "drawRisingCast" },
+  { obf = "b", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "drawSprite" },
+  { obf = "d", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "drawSummonPuff" },
+]
+
+[[class]]
+obf = "z"
+internal = "z"
+descriptor = "Lz;"
+package = ""
+name = "TextTable"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "[I", name = "stringIds" },
+  { obf = "a", descriptor = "S", name = "count" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Ljava/lang/String;)V", name = "<init>" },
+  { obf = "a", descriptor = "(I)[C", name = "get" },
+]
+
+[[class]]
+obf = "aa"
+internal = "aa"
+descriptor = "Laa;"
+package = ""
+name = "BlacksmithMenu"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "I", name = "panelX" },
+  { obf = "b", descriptor = "I", name = "panelY" },
+  { obf = "a", descriptor = "Lz;", name = "text" },
+  { obf = "a", descriptor = "Laa;", name = "instance" },
+  # --- methods ---
+  { obf = "a", descriptor = "()Laa;", name = "instance" },
+  { obf = "<init>", descriptor = "()V", name = "<init>" },
+  { obf = "d", descriptor = "()V", name = "open" },
+  { obf = "e", descriptor = "()V", name = "closeBlacksmith" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(BB)V", name = "onPopupResult" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;)V", name = "draw" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "ab"
+internal = "ab"
+descriptor = "Lab;"
+package = ""
+name = "BuySellDialog"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "Lad;", name = "item" },
+  { obf = "c", descriptor = "B", name = "quantity" },
+  { obf = "c", descriptor = "Z", name = "buying" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lcb;Lad;Z)V", name = "<init>" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(BB)V", name = "onPopupResult" },
+  { obf = "a", descriptor = "(B)V", name = "moveCursor" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "ac"
+internal = "ac"
+descriptor = "Lac;"
+package = ""
+name = "Npc"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "f", descriptor = "B", name = "kind" },
+  { obf = "g", descriptor = "B", name = "spriteSet" },
+  { obf = "d", descriptor = "Z", name = "visible" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(SSBB)V", name = "<init>" },
+  { obf = "a", descriptor = "(SS)V", name = "setPixelPos" },
+  { obf = "a", descriptor = "(I)V", name = "move" },
+  { obf = "a", descriptor = "()Z", name = "tryStepForward" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "ad"
+internal = "ad"
+descriptor = "Lad;"
+package = ""
+name = "Item"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "b", descriptor = "Lz;", name = "typeNames" },
+  { obf = "b", descriptor = "[Z", name = "STACKABLE" },
+  { obf = "c", descriptor = "[Z", name = "QUICK_USABLE" },
+  { obf = "f", descriptor = "B", name = "type" },
+  { obf = "g", descriptor = "B", name = "subId" },
+  { obf = "a", descriptor = "[C", name = "name" },
+  { obf = "b", descriptor = "[C", name = "description" },
+  { obf = "a", descriptor = "I", name = "price" },
+  { obf = "h", descriptor = "B", name = "quantity" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(BB)V", name = "<init>" },
+  { obf = "a", descriptor = "(Z)V", name = "load" },
+  { obf = "a", descriptor = "(Z[BI)I", name = "parseRecord" },
+  { obf = "a", descriptor = "([BI)I", name = "parseName" },
+  { obf = "b", descriptor = "([BI)I", name = "parseDescription" },
+  { obf = "c", descriptor = "([BI)I", name = "parsePrice" },
+  { obf = "a", descriptor = "()[B", name = "serialize" },
+  { obf = "a", descriptor = "(B)V", name = "addQuantity" },
+  { obf = "b", descriptor = "(B)V", name = "removeQuantity" },
+  { obf = "a", descriptor = "()[C", name = "typeName" },
+  { obf = "a", descriptor = "()Z", name = "isUsable" },
+  { obf = "b", descriptor = "()Z", name = "isQuestItem" },
+  { obf = "a", descriptor = "(BBZZ)Lad;", name = "create" },
+  { obf = "a", descriptor = "([BIZZ)Lad;", name = "createFromBytes" },
+  { obf = "a", descriptor = "([B)Lad;", name = "deserialize" },
+  { obf = "a", descriptor = "()[Ljava/util/Vector;", name = "buildShopStock" },
+  { obf = "a", descriptor = "(Lad;Lad;Lad;)Lad;", name = "craft" },
+]
+
+[[class]]
+obf = "ae"
+internal = "ae"
+descriptor = "Lae;"
+package = ""
+name = "GameMap"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "B", name = "mapType" },
+  { obf = "b", descriptor = "B", name = "tilesetId" },
+  { obf = "c", descriptor = "Z", name = "combatEnabled" },
+  { obf = "a", descriptor = "I", name = "widthTiles" },
+  { obf = "b", descriptor = "I", name = "heightTiles" },
+  { obf = "c", descriptor = "I", name = "widthPx" },
+  { obf = "d", descriptor = "I", name = "heightPx" },
+  { obf = "b", descriptor = "[[B", name = "tileGrid" },
+  { obf = "c", descriptor = "[[B", name = "collisionGrid" },
+  { obf = "a", descriptor = "[[Lck;", name = "occupancy" },
+  { obf = "a", descriptor = "[Lac;", name = "npcs" },
+  { obf = "a", descriptor = "[Laj;", name = "objects" },
+  { obf = "a", descriptor = "Laq;", name = "entities" },
+  { obf = "a", descriptor = "[Ljava/lang/Object;", name = "triggers" },
+  { obf = "b", descriptor = "[Ljava/lang/Object;", name = "eventScripts" },
+  { obf = "c", descriptor = "[Ljava/lang/Object;", name = "dialogueStrings" },
+  { obf = "a", descriptor = "[C", name = "zoneName" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(B)V", name = "<init>" },
+  { obf = "a", descriptor = "()V", name = "load" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;)V", name = "paint" },
+  { obf = "b", descriptor = "(Ljavax/microedition/lcdui/Graphics;)V", name = "paintMinimap" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;IIII)V", name = "drawTiles" },
+  { obf = "b", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "drawEntities" },
+  { obf = "a", descriptor = "([BI)V", name = "parseTiles" },
+  { obf = "b", descriptor = "([BI)V", name = "parseCollision" },
+  { obf = "a", descriptor = "([BI)I", name = "parseObjects" },
+  { obf = "b", descriptor = "([BI)I", name = "parseNpcs" },
+  { obf = "c", descriptor = "([BI)I", name = "parseEnemies" },
+  { obf = "d", descriptor = "([BI)I", name = "parseFaces" },
+  { obf = "e", descriptor = "([BI)I", name = "parseTriggers" },
+  { obf = "c", descriptor = "([BI)V", name = "applyInitialPatches" },
+  { obf = "b", descriptor = "(BBBB)V", name = "applyPatch" },
+  { obf = "a", descriptor = "(II)Z", name = "isWalkable" },
+  { obf = "a", descriptor = "(IIB)Z", name = "isWalkableSpan" },
+  { obf = "a", descriptor = "(Lo;II)Z", name = "canOccupy" },
+  { obf = "a", descriptor = "(Lo;B)Z", name = "canStep" },
+  { obf = "a", descriptor = "(Lck;)V", name = "removeEntity" },
+  { obf = "b", descriptor = "(Lck;)V", name = "addEntity" },
+  { obf = "c", descriptor = "(Lck;)V", name = "unlinkEntity" },
+  { obf = "b", descriptor = "()V", name = "updateWorld" },
+  { obf = "c", descriptor = "()V", name = "updateNpcs" },
+  { obf = "d", descriptor = "()V", name = "fadeStep" },
+  { obf = "a", descriptor = "(BBBBZBB)Z", name = "spawnEnemyAt" },
+  { obf = "a", descriptor = "(BBBB)V", name = "dropPickup" },
+  { obf = "a", descriptor = "(BBS)V", name = "dropPickup" },
+  { obf = "a", descriptor = "(BB)[B", name = "takePickup" },
+  { obf = "a", descriptor = "(BB)Z", name = "hasPickup" },
+  # --- members reviewed & named in batch-1 (absent from the initial curated list) ---
+  { obf = "a", descriptor = "[I", name = "minimapColors" },
+  { obf = "c", descriptor = "B", name = "minimapScale" },
+  { obf = "h", descriptor = "[B", name = "musicByTileset" },
+  { obf = "d", descriptor = "B", name = "lastTilesetId" },
+  { obf = "a", descriptor = "Z", name = "bossMap" },
+  { obf = "b", descriptor = "Z", name = "lockedCamera" },
+  { obf = "e", descriptor = "B", name = "zoneBannerTimer" },
+  { obf = "a", descriptor = "Ljava/util/Vector;", name = "pickups" },
+  { obf = "b", descriptor = "Ljava/util/Vector;", name = "spawnQueue" },
+  { obf = "g", descriptor = "I", name = "spawnTick" },
+  { obf = "e", descriptor = "I", name = "cameraShiftX" },
+  { obf = "f", descriptor = "I", name = "cameraShiftY" },
+  { obf = "d", descriptor = "Z", name = "minimapBlink" },
+  { obf = "i", descriptor = "[B", name = "mapData" },
+  { obf = "a", descriptor = "(I)Z", name = "isBossMap" },
+  { obf = "l", descriptor = "()V", name = "clearFaces" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "drawPickups" },
+  { obf = "a", descriptor = "(ZB)V", name = "processSpawnQueue" },
+  { obf = "a", descriptor = "(IIII)V", name = "queueEnemySpawn" },
+  { obf = "m", descriptor = "()V", name = "updateCombatants" },
+  { obf = "n", descriptor = "()V", name = "updateNpcEntities" },
+  { obf = "o", descriptor = "()V", name = "expirePickups" },
+  { obf = "e", descriptor = "()V", name = "loadRockyBossData" },
+  { obf = "f", descriptor = "()V", name = "spawnRockyBoss" },
+  { obf = "g", descriptor = "()V", name = "loadNordBossData" },
+  { obf = "a", descriptor = "(Z)V", name = "spawnNordBoss" },
+  { obf = "h", descriptor = "()V", name = "loadGebBossData" },
+  { obf = "i", descriptor = "()V", name = "spawnGebBoss" },
+  { obf = "j", descriptor = "()V", name = "loadGebCoreData" },
+  { obf = "k", descriptor = "()V", name = "spawnGebCore" },
+]
+
+[[class]]
+obf = "af"
+internal = "af"
+descriptor = "Laf;"
+package = ""
+name = "PopupMenu"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "c", descriptor = "B", name = "type" },
+  { obf = "a", descriptor = "[Ljava/lang/Object;", name = "options" },
+  { obf = "a", descriptor = "[C", name = "joinedText" },
+  { obf = "a", descriptor = "I", name = "boxHeight" },
+  { obf = "b", descriptor = "[C", name = "positiveLabel" },
+  { obf = "c", descriptor = "[C", name = "negativeLabel" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lcb;BB[Ljava/lang/Object;[C[C)V", name = "<init>" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "ag"
+internal = "ag"
+descriptor = "Lag;"
+package = ""
+name = "NordBody2"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "Lcd;", name = "healer" },
+  { obf = "a", descriptor = "Lbd;", name = "striker" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(BBBB)V", name = "<init>" },
+  { obf = "a", descriptor = "(Lcd;Lbd;)V", name = "setParts" },
+  { obf = "d", descriptor = "()V", name = "update" },
+  { obf = "h", descriptor = "()V", name = "chase" },
+  { obf = "i", descriptor = "()V", name = "tryAttack" },
+  { obf = "j", descriptor = "()V", name = "resolveAttack" },
+  { obf = "k", descriptor = "()V", name = "stepDeathAnim" },
+  { obf = "l", descriptor = "()V", name = "die" },
+  { obf = "m", descriptor = "()V", name = "onDeath" },
+]
+
+[[class]]
+obf = "ah"
+internal = "ah"
+descriptor = "Lah;"
+package = ""
+name = "EventScript"
+zero_twin = true
+members = [
+  # --- fields (all static: the .evt opcode VM) ---
+  { obf = "a", descriptor = "B", name = "state" },
+  { obf = "a", descriptor = "I", name = "pc" },
+  { obf = "b", descriptor = "I", name = "delay" },
+  { obf = "b", descriptor = "[[B", name = "script" },
+  { obf = "a", descriptor = "[C", name = "text" },
+  { obf = "b", descriptor = "Z", name = "textAdvance" },
+  { obf = "c", descriptor = "Z", name = "yesSelected" },
+  { obf = "d", descriptor = "Z", name = "choiceMade" },
+  { obf = "f", descriptor = "B", name = "fillMode" },
+  { obf = "a", descriptor = "Z", name = "skip" },
+  { obf = "g", descriptor = "Z", name = "isSaveDialog" },
+  { obf = "c", descriptor = "I", name = "textStart" },  # TODO: typewriter cursor (textStart) — med, not byte-verified
+  { obf = "d", descriptor = "I", name = "lineLen" },  # TODO: typewriter cursor (lineLen) — med, not byte-verified
+  { obf = "e", descriptor = "I", name = "charShown" },  # TODO: typewriter cursor (charShown) — med, not byte-verified
+  { obf = "f", descriptor = "I", name = "prevShown" },  # TODO: typewriter cursor (prevShown) — med, not byte-verified
+  # --- fields reviewed & named in batch-1 (absent from the initial curated list) ---
+  { obf = "e", descriptor = "Z", name = "cameraFollowHero" },
+  { obf = "b", descriptor = "B", name = "cameraFollowNpc" },
+  { obf = "c", descriptor = "B", name = "cameraOffsetDir" },
+  { obf = "d", descriptor = "B", name = "cameraOffsetDist" },
+  { obf = "h", descriptor = "[B", name = "shakeOffsets" },
+  { obf = "e", descriptor = "B", name = "flashTimer" },
+  { obf = "b", descriptor = "[C", name = "messageLine1" },
+  { obf = "c", descriptor = "[C", name = "messageLine2" },
+  { obf = "f", descriptor = "Z", name = "messageConfirmed" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "()V", name = "<init>" },
+  { obf = "a", descriptor = "()V", name = "step" },
+  { obf = "a", descriptor = "(II)V", name = "handleKey" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;)V", name = "paint" },
+  { obf = "a", descriptor = "(Lao;)Z", name = "checkTileTrigger" },
+  { obf = "a", descriptor = "()Z", name = "checkActionTrigger" },
+  { obf = "b", descriptor = "()Z", name = "checkFacingTrigger" },
+  { obf = "a", descriptor = "(B)V", name = "fire" },
+  { obf = "a", descriptor = "(BB)Z", name = "findTrigger" },
+  { obf = "a", descriptor = "(B)Z", name = "hasTrigger" },
+  { obf = "a", descriptor = "([B)Z", name = "conditionMet" },
+  { obf = "b", descriptor = "(B)V", name = "setState" },
+  { obf = "a", descriptor = "([[B)V", name = "run" },
+  { obf = "c", descriptor = "()V", name = "endEvent" },
+  { obf = "d", descriptor = "()V", name = "runMovement" },
+  { obf = "e", descriptor = "()V", name = "runTextbox" },
+  { obf = "f", descriptor = "()V", name = "runYesNo" },
+  { obf = "g", descriptor = "()V", name = "runMessage" },
+  { obf = "h", descriptor = "()V", name = "runScreenFx" },
+  { obf = "i", descriptor = "()V", name = "opMapChange" },
+  { obf = "s", descriptor = "()V", name = "opSetHeroPos" },
+  { obf = "j", descriptor = "()V", name = "opSetSwitch" },
+  { obf = "p", descriptor = "()V", name = "opChangeMoney" },
+  { obf = "q", descriptor = "()V", name = "opGiveItem" },
+  { obf = "o", descriptor = "()V", name = "opChangeExp" },
+  { obf = "m", descriptor = "()V", name = "opChangeHp" },
+  { obf = "n", descriptor = "()V", name = "opChangeSp" },
+  { obf = "r", descriptor = "()V", name = "opSummonGuardian" },
+  { obf = "l", descriptor = "()V", name = "opSetCombo" },
+  { obf = "k", descriptor = "()V", name = "opQueueSwitch" },
+  { obf = "u", descriptor = "()V", name = "opChangeObject" },
+  { obf = "v", descriptor = "()V", name = "opChangeNpcFace" },
+  { obf = "t", descriptor = "()V", name = "opChangeTile" },
+  { obf = "w", descriptor = "()V", name = "resetCamera" },
+  { obf = "b", descriptor = "()V", name = "applyCamera" },
+  { obf = "b", descriptor = "(Ljavax/microedition/lcdui/Graphics;)V", name = "paintTextbox" },
+  { obf = "c", descriptor = "(Ljavax/microedition/lcdui/Graphics;)V", name = "paintYesNo" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;IIII[Ljava/lang/Object;III)V", name = "paintListBox" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;IIII[C[C)V", name = "paintMessageBox" },
+  { obf = "a", descriptor = "([C[C)V", name = "showMessage" },
+]
+
+[[class]]
+obf = "ai"
+internal = "ai"
+descriptor = "Lai;"
+package = ""
+name = "CharacterMenu"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "I", name = "panelX" },
+  { obf = "b", descriptor = "I", name = "panelY" },
+  { obf = "h", descriptor = "[B", name = "equipSnapshot" },
+  { obf = "c", descriptor = "B", name = "guardianSnapshot" },
+  { obf = "a", descriptor = "Lz;", name = "text" },
+  { obf = "a", descriptor = "Lai;", name = "singleton" },
+  # --- methods ---
+  { obf = "a", descriptor = "()Lai;", name = "instance" },
+  { obf = "<init>", descriptor = "()V", name = "<init>" },
+  { obf = "d", descriptor = "()V", name = "open" },
+  { obf = "e", descriptor = "()V", name = "openSystemQuit" },
+  { obf = "a", descriptor = "(Z)V", name = "closeMenu" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;)V", name = "draw" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+  { obf = "a", descriptor = "(B)V", name = "moveCursor" },
+]
+
+[[class]]
+obf = "aj"
+internal = "aj"
+descriptor = "Laj;"
+package = ""
+name = "MapObject"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "Ljavax/microedition/lcdui/Image;", name = "image" },
+  { obf = "a", descriptor = "S", name = "minX" },
+  { obf = "b", descriptor = "S", name = "maxX" },
+  { obf = "e", descriptor = "S", name = "maxY" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(SSBBLjavax/microedition/lcdui/Image;)V", name = "<init>" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "ak"
+internal = "ak"
+descriptor = "Lak;"
+package = ""
+name = "GebHandRight"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "v", descriptor = "B", name = "ticksSinceHit" },
+  { obf = "w", descriptor = "B", name = "swingSide" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lae;BBBB)V", name = "<init>" },
+  { obf = "d", descriptor = "()V", name = "update" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+  { obf = "i", descriptor = "()V", name = "tryAttack" },
+  { obf = "j", descriptor = "()V", name = "resolveAttack" },
+  { obf = "m", descriptor = "()V", name = "onDeath" },
+]
+
+[[class]]
+obf = "al"
+internal = "al"
+descriptor = "Lal;"
+package = ""
+name = "Enemy"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "m", descriptor = "B", name = "kind" },
+  { obf = "n", descriptor = "B", name = "statRow" },
+  { obf = "a", descriptor = "I", name = "homeTileX" },
+  { obf = "b", descriptor = "I", name = "homeTileY" },
+  { obf = "a", descriptor = "Lj;", name = "stats" },
+  { obf = "a", descriptor = "S", name = "hp" },
+  { obf = "r", descriptor = "B", name = "attackCharge" },
+  { obf = "o", descriptor = "B", name = "attackCooldown" },
+  { obf = "p", descriptor = "B", name = "hurtCooldown" },
+  { obf = "q", descriptor = "B", name = "deathTimer" },
+  { obf = "s", descriptor = "B", name = "recoilTimer" },
+  { obf = "t", descriptor = "B", name = "recoilDir" },
+  { obf = "d", descriptor = "Z", name = "aggroed" },
+  { obf = "e", descriptor = "Z", name = "hidden" },
+  { obf = "b", descriptor = "[Z", name = "statusFlags" },
+  { obf = "c", descriptor = "Lck;", name = "target" },
+  { obf = "u", descriptor = "B", name = "summonTimer" },
+  { obf = "f", descriptor = "Z", name = "onScreen" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(SSBB)V", name = "<init>" },
+  { obf = "a", descriptor = "(SS)V", name = "setPixelPos" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+  { obf = "a", descriptor = "(B)V", name = "setState" },
+  { obf = "d", descriptor = "()V", name = "update" },
+  { obf = "s", descriptor = "()V", name = "tickStatuses" },
+  { obf = "n", descriptor = "()V", name = "updateAi" },
+  { obf = "h", descriptor = "()V", name = "chase" },
+  { obf = "i", descriptor = "()V", name = "tryAttack" },
+  { obf = "o", descriptor = "()V", name = "animate" },
+  { obf = "j", descriptor = "()V", name = "resolveAttack" },
+  { obf = "k", descriptor = "()V", name = "stepDeathAnim" },
+  { obf = "a", descriptor = "(BB)V", name = "spawnEffectAt" },
+  { obf = "p", descriptor = "()V", name = "deathEffect" },
+  { obf = "a", descriptor = "(Z)V", name = "enterIdle" },
+  { obf = "q", descriptor = "()V", name = "beginAttack" },
+  { obf = "r", descriptor = "()V", name = "wander" },
+  { obf = "l", descriptor = "()V", name = "die" },
+  { obf = "a", descriptor = "(Lck;)B", name = "tileDistX" },
+  { obf = "b", descriptor = "(Lck;)B", name = "tileDistY" },
+  { obf = "a", descriptor = "(IB)V", name = "takeGuardianHit" },
+  { obf = "a", descriptor = "(IZBZBBLao;)V", name = "takeHeroHit" },
+  { obf = "t", descriptor = "()V", name = "clearStun" },
+  { obf = "b", descriptor = "(I)V", name = "damage" },
+  { obf = "c", descriptor = "(I)V", name = "heal" },
+  { obf = "c", descriptor = "(B)V", name = "slay" },
+  { obf = "a", descriptor = "(Lao;Lp;)Lck;", name = "pickTarget" },
+]
+
+[[class]]
+obf = "am"
+internal = "am"
+descriptor = "Lam;"
+package = ""
+name = "ConfirmDialog"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "[C", name = "line1" },
+  { obf = "b", descriptor = "[C", name = "line2" },
+  { obf = "d", descriptor = "B", name = "lineCount" },
+  { obf = "c", descriptor = "B", name = "resultTag" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lcb;[C[CB)V", name = "<init>" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "an"
+internal = "an"
+descriptor = "Lan;"
+package = ""
+name = "Adler32"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "I", name = "sum" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "()V", name = "<init>" },
+  { obf = "a", descriptor = "([BII)V", name = "update" },
+  { obf = "a", descriptor = "()V", name = "reset" },
+  { obf = "a", descriptor = "()J", name = "getValue" },
+]
+
+[[class]]
+obf = "ao"
+internal = "ao"
+descriptor = "Lao;"
+package = ""
+name = "Hero"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "b", descriptor = "[[B", name = "COMBO_FRAMES_CLASS6" },
+  { obf = "c", descriptor = "[[B", name = "COMBO_FRAMES_CLASS7" },
+  { obf = "d", descriptor = "[[B", name = "COMBO_FRAMES_CLASS8" },
+  { obf = "h", descriptor = "[B", name = "comboSteps" },
+  { obf = "q", descriptor = "B", name = "comboIndex" },
+  { obf = "r", descriptor = "B", name = "recoilTimer" },
+  { obf = "s", descriptor = "B", name = "recoilDir" },
+  { obf = "t", descriptor = "B", name = "comboLockout" },
+  { obf = "u", descriptor = "B", name = "deathTimer" },
+  { obf = "v", descriptor = "B", name = "hpRegenTimer" },
+  { obf = "w", descriptor = "B", name = "mpRegenTimer" },
+  { obf = "x", descriptor = "B", name = "queuedTurn" },
+  { obf = "y", descriptor = "B", name = "lungeSteps" },
+  { obf = "i", descriptor = "Z", name = "triggerChecked" },
+  { obf = "e", descriptor = "[[B", name = "comboFrames" },
+  { obf = "d", descriptor = "Z", name = "attackUp" },
+  { obf = "e", descriptor = "Z", name = "defenseUp" },
+  { obf = "f", descriptor = "Z", name = "invincible" },
+  { obf = "g", descriptor = "Z", name = "reflectDamage" },
+  { obf = "h", descriptor = "Z", name = "regenBoost" },
+  { obf = "z", descriptor = "B", name = "maxCombo" },
+  { obf = "a", descriptor = "S", name = "statPoints" },
+  { obf = "f", descriptor = "B", name = "classId" },
+  { obf = "g", descriptor = "B", name = "level" },
+  { obf = "b", descriptor = "S", name = "strength" },
+  { obf = "e", descriptor = "S", name = "vitality" },
+  { obf = "f", descriptor = "S", name = "agility" },
+  { obf = "g", descriptor = "S", name = "spirit" },
+  { obf = "m", descriptor = "B", name = "strengthBonus" },
+  { obf = "n", descriptor = "B", name = "vitalityBonus" },
+  { obf = "o", descriptor = "B", name = "agilityBonus" },
+  { obf = "p", descriptor = "B", name = "spiritBonus" },
+  { obf = "a", descriptor = "I", name = "hp" },
+  { obf = "b", descriptor = "I", name = "mp" },
+  { obf = "c", descriptor = "I", name = "exp" },
+  { obf = "h", descriptor = "S", name = "attack" },
+  { obf = "i", descriptor = "S", name = "defense" },
+  { obf = "d", descriptor = "I", name = "maxHp" },
+  { obf = "e", descriptor = "I", name = "maxMp" },
+  { obf = "f", descriptor = "I", name = "expToNext" },
+  { obf = "a", descriptor = "Lg;", name = "bag" },
+  { obf = "a", descriptor = "[Le;", name = "equipment" },
+  { obf = "a", descriptor = "[Lp;", name = "guardians" },
+  { obf = "a", descriptor = "Lp;", name = "activeGuardian" },
+  { obf = "b", descriptor = "Lg;", name = "quickItems" },
+  { obf = "i", descriptor = "I", name = "rolledDamage" },
+  { obf = "j", descriptor = "Z", name = "rolledCrit" },
+  { obf = "A", descriptor = "B", name = "rolledProc" },
+  { obf = "g", descriptor = "I", name = "sessionStartSec" },
+  { obf = "h", descriptor = "I", name = "playSeconds" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(SSBBB)V", name = "<init>" },
+  { obf = "c", descriptor = "(B)V", name = "initClass" },
+  { obf = "a", descriptor = "()V", name = "init" },
+  { obf = "h", descriptor = "()V", name = "resetBuffs" },
+  { obf = "a", descriptor = "(SS)V", name = "setPixelPos" },
+  { obf = "i", descriptor = "()V", name = "turnTowardEnemy" },
+  { obf = "a", descriptor = "(BB)V", name = "slide" },
+  { obf = "d", descriptor = "()V", name = "update" },
+  { obf = "o", descriptor = "()V", name = "advanceCombo" },
+  { obf = "p", descriptor = "()V", name = "performAttack" },
+  { obf = "b", descriptor = "()Z", name = "attackClass6" },
+  { obf = "c", descriptor = "()Z", name = "attackClass7" },
+  { obf = "d", descriptor = "()Z", name = "attackClass8" },
+  { obf = "a", descriptor = "()I", name = "rollDamage" },
+  { obf = "e", descriptor = "()Z", name = "rollCrit" },
+  { obf = "a", descriptor = "()B", name = "rollProc" },
+  { obf = "h", descriptor = "(I)V", name = "endCombo" },
+  { obf = "q", descriptor = "()V", name = "onDeath" },
+  { obf = "a", descriptor = "(Z)Z", name = "queueComboStep" },
+  { obf = "j", descriptor = "()V", name = "resetCombo" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+  { obf = "d", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "drawSummonPose" },
+  { obf = "a", descriptor = "(BBLjavax/microedition/lcdui/Graphics;II)V", name = "drawCharacterSprite" },
+  { obf = "e", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "drawAttackSprite" },
+  { obf = "a", descriptor = "(Lal;B)V", name = "takeHit" },
+  { obf = "a", descriptor = "(Lal;SB)V", name = "takeHit" },
+  { obf = "b", descriptor = "(I)V", name = "addHp" },
+  { obf = "c", descriptor = "(I)V", name = "addHpPercent" },
+  { obf = "d", descriptor = "(I)V", name = "addMp" },
+  { obf = "e", descriptor = "(I)V", name = "addMpPercent" },
+  { obf = "f", descriptor = "(I)V", name = "addExp" },
+  { obf = "g", descriptor = "(I)V", name = "addMoney" },
+  { obf = "r", descriptor = "()V", name = "levelUp" },
+  { obf = "d", descriptor = "(B)V", name = "setComboDepth" },
+  { obf = "k", descriptor = "()V", name = "useQuickItem" },
+  { obf = "a", descriptor = "(ZB)[B", name = "serializeItems" },
+  { obf = "a", descriptor = "(Lad;)B", name = "slotOf" },
+  { obf = "b", descriptor = "(BB)V", name = "equipItem" },
+  { obf = "a", descriptor = "(I)Lad;", name = "getEquip" },
+  { obf = "a", descriptor = "()Ll;", name = "getWeapon" },
+  { obf = "a", descriptor = "()Lt;", name = "getArmor" },
+  { obf = "a", descriptor = "()Le;", name = "getAccessory1" },
+  { obf = "b", descriptor = "()Le;", name = "getAccessory2" },
+  { obf = "c", descriptor = "()Le;", name = "getAccessory3" },
+  { obf = "a", descriptor = "(Lad;)V", name = "useItem" },
+  { obf = "e", descriptor = "(B)V", name = "reloadEquipSprite" },
+  { obf = "a", descriptor = "(B)Lp;", name = "findOrCreateGuardian" },
+  { obf = "a", descriptor = "()Lp;", name = "getActiveGuardian" },
+  { obf = "a", descriptor = "(Lp;)Z", name = "setActiveGuardian" },
+  { obf = "l", descriptor = "()V", name = "beginGuardianSummon" },
+  { obf = "a", descriptor = "(Z)V", name = "castGuardianSkill" },
+  { obf = "b", descriptor = "()Lp;", name = "detachGuardian" },
+  { obf = "m", descriptor = "()V", name = "addGuardianToMap" },
+  { obf = "n", descriptor = "()V", name = "recomputeStats" },
+  { obf = "a", descriptor = "()[B", name = "save" },
+  { obf = "a", descriptor = "([B)V", name = "load" },
+]
+
+[[class]]
+obf = "ap"
+internal = "ap"
+descriptor = "Lap;"
+package = ""
+name = "EnchantMenu"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "Lt;", name = "armor" },
+  { obf = "a", descriptor = "Lad;", name = "material" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lcb;)V", name = "<init>" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(BB)V", name = "onPopupResult" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "aq"
+internal = "aq"
+descriptor = "Laq;"
+package = ""
+name = "EntityList"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "I", name = "count" },
+  { obf = "a", descriptor = "Lck;", name = "head" },
+  { obf = "b", descriptor = "Lck;", name = "tail" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "()V", name = "<init>" },
+  { obf = "a", descriptor = "(Lck;)V", name = "addFront" },
+  { obf = "b", descriptor = "(Lck;)V", name = "addBack" },
+  { obf = "a", descriptor = "(Lck;)Lck;", name = "remove" },
+  { obf = "c", descriptor = "(Lck;)V", name = "reorderByDepth" },
+]
+
+[[class]]
+obf = "ar"
+internal = "ar"
+descriptor = "Lar;"
+package = ""
+name = "NordBody1"
+zero_twin = true
+members = [
+  # --- methods ---
+  { obf = "<init>", descriptor = "(BBBB)V", name = "<init>" },
+  { obf = "a", descriptor = "()Z", name = "tryStepForward" },
+  { obf = "i", descriptor = "()V", name = "tryAttack" },
+  { obf = "j", descriptor = "()V", name = "resolveAttack" },
+  { obf = "l", descriptor = "()V", name = "die" },
+  { obf = "m", descriptor = "()V", name = "onDeath" },
+]
+
+[[class]]
+obf = "as"
+internal = "as"
+descriptor = "Las;"
+package = ""
+name = "GameScreen"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "I", name = "width" },
+  { obf = "b", descriptor = "I", name = "worldHeight" },
+  { obf = "c", descriptor = "I", name = "centerX" },
+  { obf = "d", descriptor = "I", name = "centerY" },
+  { obf = "n", descriptor = "I", name = "hudSlots" },
+  { obf = "o", descriptor = "I", name = "barWidth" },
+  { obf = "p", descriptor = "I", name = "expWidth" },
+  { obf = "c", descriptor = "Z", name = "worldVisible" },
+  { obf = "d", descriptor = "Z", name = "redrawAll" },
+  { obf = "e", descriptor = "Z", name = "hpDirty" },
+  { obf = "f", descriptor = "Z", name = "mpDirty" },
+  { obf = "g", descriptor = "Z", name = "expDirty" },
+  { obf = "q", descriptor = "I", name = "lowHpBlink" },
+  { obf = "r", descriptor = "I", name = "messageTtl" },
+  { obf = "h", descriptor = "Z", name = "messageReplaced" },
+  { obf = "s", descriptor = "I", name = "targetTtl" },
+  { obf = "a", descriptor = "Lal;", name = "targetMonster" },
+  { obf = "e", descriptor = "I", name = "fxTimer" },
+  { obf = "a", descriptor = "Lz;", name = "endingText" },
+  { obf = "t", descriptor = "I", name = "creditTop" },
+  { obf = "u", descriptor = "I", name = "creditBottom" },
+  { obf = "a", descriptor = "[Ljavax/microedition/lcdui/Image;", name = "endingImages" },
+  { obf = "a", descriptor = "Ljava/util/Vector;", name = "creditCaptions" },
+  { obf = "i", descriptor = "Z", name = "advanceCredits" },
+  { obf = "a", descriptor = "[C", name = "message" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "()V", name = "<init>" },
+  { obf = "paint", descriptor = "(Ljavax/microedition/lcdui/Graphics;)V", name = "paint" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;Lcb;)V", name = "drawWorldBehindMenu" },
+  { obf = "hideNotify", descriptor = "()V", name = "hideNotify" },
+  { obf = "showNotify", descriptor = "()V", name = "showNotify" },
+  { obf = "keyPressed", descriptor = "(I)V", name = "keyPressed" },
+  { obf = "keyReleased", descriptor = "(I)V", name = "keyReleased" },
+  { obf = "a", descriptor = "(II)V", name = "handlePlayKey" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;IIII)V", name = "clipToWorld" },
+  { obf = "a", descriptor = "()V", name = "activate" },
+  { obf = "b", descriptor = "()V", name = "markRedraw" },
+  { obf = "c", descriptor = "()V", name = "markHpDirty" },
+  { obf = "d", descriptor = "()V", name = "markMpDirty" },
+  { obf = "e", descriptor = "()V", name = "markExpDirty" },
+  { obf = "f", descriptor = "()V", name = "resetHudState" },
+  { obf = "g", descriptor = "()V", name = "loadEnding" },
+  { obf = "h", descriptor = "()V", name = "loadStaffRoll" },
+  { obf = "a", descriptor = "([CI)V", name = "showMessage" },
+  { obf = "a", descriptor = "(Lal;Z)V", name = "setTarget" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;)V", name = "drawHud" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "drawHudFrame" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;[BBII)V", name = "drawFrame" },
+  { obf = "b", descriptor = "(Ljavax/microedition/lcdui/Graphics;[BBII)V", name = "drawFrameGroup" },
+  { obf = "b", descriptor = "(Ljavax/microedition/lcdui/Graphics;IIII)V", name = "drawLoadBox" },
+  { obf = "b", descriptor = "(Ljavax/microedition/lcdui/Graphics;)V", name = "drawGameOver" },
+  { obf = "d", descriptor = "(Ljavax/microedition/lcdui/Graphics;)V", name = "drawCredits" },
+  { obf = "e", descriptor = "(Ljavax/microedition/lcdui/Graphics;)V", name = "drawEndingScroll" },
+  { obf = "f", descriptor = "(Ljavax/microedition/lcdui/Graphics;)V", name = "drawClearMenu" },
+]
+
+[[class]]
+obf = "at"
+internal = "at"
+descriptor = "Lat;"
+package = ""
+name = "UpgradeMenu"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "Le;", name = "equipment" },
+  { obf = "a", descriptor = "I", name = "goldCost" },
+  { obf = "c", descriptor = "B", name = "materialCost" },
+  { obf = "d", descriptor = "B", name = "resultPhase" },
+  { obf = "c", descriptor = "Z", name = "success" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lcb;)V", name = "<init>" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(BB)V", name = "onPopupResult" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "au"
+internal = "au"
+descriptor = "Lau;"
+package = ""
+name = "RmsFile"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "Ljavax/microedition/rms/RecordStore;", name = "store" },
+  { obf = "a", descriptor = "Z", name = "open" },
+  { obf = "a", descriptor = "Ljava/lang/String;", name = "storeName" },
+  { obf = "a", descriptor = "Ljava/io/ByteArrayInputStream;", name = "readBuffer" },
+  { obf = "a", descriptor = "Ljava/io/ByteArrayOutputStream;", name = "writeBuffer" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Ljava/lang/String;I)V", name = "<init>" },
+  { obf = "a", descriptor = "()V", name = "close" },
+  { obf = "a", descriptor = "([BII)V", name = "write" },
+  { obf = "b", descriptor = "([BII)V", name = "read" },
+  { obf = "a", descriptor = "()I", name = "size" },
+  { obf = "a", descriptor = "(Ljava/lang/String;)Z", name = "exists" },
+  { obf = "a", descriptor = "(Ljava/lang/String;)V", name = "delete" },
+]
+
+[[class]]
+obf = "av"
+internal = "av"
+descriptor = "Lav;"
+package = ""
+name = "Boss"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "f", descriptor = "B", name = "heroDistX" },
+  { obf = "g", descriptor = "B", name = "heroDistY" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(BBBBB)V", name = "<init>" },
+  { obf = "d", descriptor = "()V", name = "update" },
+  { obf = "m", descriptor = "()V", name = "onDeath" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+  { obf = "a", descriptor = "(IB)V", name = "takeGuardianHit" },
+  { obf = "a", descriptor = "(IZBZBBLao;)V", name = "takeHeroHit" },
+  { obf = "l", descriptor = "()V", name = "die" },
+]
+
+[[class]]
+obf = "aw"
+internal = "aw"
+descriptor = "Law;"
+package = ""
+name = "Floater"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "h", descriptor = "[B", name = "DEFAULT_LIFETIME" },
+  { obf = "a", descriptor = "[Ljavax/microedition/lcdui/Image;", name = "frames" },
+  { obf = "i", descriptor = "[B", name = "spriteScript" },
+  { obf = "a", descriptor = "B", name = "kind" },
+  { obf = "c", descriptor = "S", name = "value" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(B)V", name = "<init>" },
+  { obf = "<init>", descriptor = "(BSS)V", name = "<init>" },
+  { obf = "a", descriptor = "()V", name = "loadSprites" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "ax"
+internal = "ax"
+descriptor = "Lax;"
+package = ""
+name = "RefineMenu"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "I", name = "panelX" },
+  { obf = "b", descriptor = "I", name = "panelY" },
+  { obf = "a", descriptor = "Lz;", name = "text" },
+  { obf = "a", descriptor = "Lax;", name = "instance" },
+  # --- methods ---
+  { obf = "a", descriptor = "()Lax;", name = "instance" },
+  { obf = "<init>", descriptor = "()V", name = "<init>" },
+  { obf = "d", descriptor = "()V", name = "open" },
+  { obf = "e", descriptor = "()V", name = "closeRefine" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(BB)V", name = "onPopupResult" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;)V", name = "draw" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "ay"
+internal = "ay"
+descriptor = "Lay;"
+package = ""
+name = "ItemsTab"
+zero_twin = true
+members = [
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lcb;)V", name = "<init>" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(BB)V", name = "onPopupResult" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "az"
+internal = "az"
+descriptor = "Laz;"
+package = ""
+name = "BitmapFont"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "Z", name = "forceUppercase" },
+  { obf = "b", descriptor = "Z", name = "hideControls" },
+  { obf = "c", descriptor = "I", name = "bulletColor" },
+  { obf = "a", descriptor = "Ljavax/microedition/lcdui/Image;", name = "glyphSheet" },
+  { obf = "a", descriptor = "I", name = "lineHeight" },
+  { obf = "d", descriptor = "I", name = "ascent" },
+  { obf = "b", descriptor = "I", name = "lineSpacing" },
+  { obf = "e", descriptor = "I", name = "spaceWidth" },
+  { obf = "f", descriptor = "I", name = "kerning" },
+  { obf = "a", descriptor = "[S", name = "glyphOffsets" },
+  { obf = "c", descriptor = "Z", name = "hasAccents" },
+  { obf = "a", descriptor = "[I", name = "crcTable" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Ljava/lang/String;IIZ)V", name = "<init>" },
+  { obf = "a", descriptor = "(Ljava/io/InputStream;II)V", name = "load" },
+  { obf = "a", descriptor = "(Ljava/lang/String;)I", name = "stringWidth" },
+  { obf = "a", descriptor = "([CII)I", name = "stringWidth" },
+  { obf = "a", descriptor = "(C)I", name = "charWidth" },
+  { obf = "b", descriptor = "([CII)I", name = "lineHeightOf" },
+  { obf = "a", descriptor = "(Ljava/util/Vector;)I", name = "blockHeight" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;Ljava/lang/String;III)I", name = "drawString" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;[CIII)I", name = "drawChars" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;Ljava/util/Vector;IIII)I", name = "drawLines" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;Ljava/lang/String;IIIII)I", name = "drawString" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;[CIIIII)I", name = "drawChars" },
+  { obf = "a", descriptor = "(C)Z", name = "isControl" },
+  { obf = "a", descriptor = "([BIIIII)V", name = "patchPng" },
+  { obf = "a", descriptor = "([BII)I", name = "crc32" },
+]
+
+[[class]]
+obf = "ba"
+internal = "ba"
+descriptor = "Lba;"
+package = ""
+name = "GebHandLeft"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "v", descriptor = "B", name = "ticksSinceHit" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lae;BBBB)V", name = "<init>" },
+  { obf = "d", descriptor = "()V", name = "update" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+  { obf = "i", descriptor = "()V", name = "tryAttack" },
+  { obf = "j", descriptor = "()V", name = "resolveAttack" },
+  { obf = "m", descriptor = "()V", name = "onDeath" },
+]
+
+[[class]]
+obf = "bb"
+internal = "bb"
+descriptor = "Lbb;"
+package = ""
+name = "SellList"
+zero_twin = true
+members = [
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lcb;[B)V", name = "<init>" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(BB)V", name = "onPopupResult" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "bc"
+internal = "bc"
+descriptor = "Lbc;"
+package = ""
+name = "ScrollCaption"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "Ljavax/microedition/lcdui/Image;", name = "image" },
+  { obf = "a", descriptor = "I", name = "y" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Ljavax/microedition/lcdui/Image;I)V", name = "<init>" },
+]
+
+[[class]]
+obf = "bd"
+internal = "bd"
+descriptor = "Lbd;"
+package = ""
+name = "NordTentacle"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "v", descriptor = "B", name = "markedTileX" },
+  { obf = "w", descriptor = "B", name = "markedTileY" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(BBBB)V", name = "<init>" },
+  { obf = "d", descriptor = "()V", name = "update" },
+  { obf = "h", descriptor = "()V", name = "chase" },
+  { obf = "i", descriptor = "()V", name = "tryAttack" },
+  { obf = "j", descriptor = "()V", name = "resolveAttack" },
+  { obf = "m", descriptor = "()V", name = "onDeath" },
+]
+
+[[class]]
+obf = "be"
+internal = "be"
+descriptor = "Lbe;"
+package = ""
+name = "OptionsMenu"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "c", descriptor = "Z", name = "inGame" },
+  { obf = "a", descriptor = "Lbs;", name = "gameLoop" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lcb;Z)V", name = "<init>" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "bf"
+internal = "bf"
+descriptor = "Lbf;"
+package = ""
+name = "MainMenu"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "I", name = "panelX" },
+  { obf = "b", descriptor = "I", name = "panelY" },
+  { obf = "e", descriptor = "Z", name = "hasSave" },
+  { obf = "h", descriptor = "[B", name = "saveBlob" },
+  { obf = "c", descriptor = "B", name = "logoFrame" },
+  { obf = "d", descriptor = "B", name = "pendingAction" },
+  { obf = "a", descriptor = "J", name = "demoExpiry" },
+  { obf = "c", descriptor = "I", name = "aboutIndex" },
+  { obf = "d", descriptor = "I", name = "exitIndex" },
+  { obf = "a", descriptor = "Lbf;", name = "singleton" },
+  { obf = "c", descriptor = "Z", name = "pendingBuyPrompt" },
+  { obf = "d", descriptor = "Z", name = "pendingExitPrompt" },
+  # --- methods ---
+  { obf = "a", descriptor = "()Lbf;", name = "instance" },
+  { obf = "<init>", descriptor = "(Z[B)V", name = "<init>" },
+  { obf = "a", descriptor = "(Z[B)V", name = "create" },
+  { obf = "d", descriptor = "()V", name = "dispose" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(BB)V", name = "onPopupResult" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;)V", name = "draw" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+  { obf = "c", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "drawTitlePlate" },
+  { obf = "b", descriptor = "(Ljavax/microedition/lcdui/Graphics;III)V", name = "drawMenuPanel" },
+]
+
+[[class]]
+obf = "bg"
+internal = "bg"
+descriptor = "Lbg;"
+package = ""
+name = "TitleScreen"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "B", name = "state" },
+  { obf = "b", descriptor = "B", name = "loadPhase" },
+  { obf = "a", descriptor = "I", name = "animTick" },
+  { obf = "a", descriptor = "Lbg;", name = "instance" },
+  { obf = "a", descriptor = "S", name = "glyph1X" },
+  { obf = "b", descriptor = "S", name = "glyph1Y" },
+  { obf = "c", descriptor = "S", name = "glyph2X" },
+  { obf = "d", descriptor = "S", name = "glyph2Y" },
+  { obf = "c", descriptor = "B", name = "glyph1Frame" },
+  { obf = "d", descriptor = "B", name = "glyph2Frame" },
+  { obf = "c", descriptor = "Z", name = "skipStoryIntro" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "()V", name = "<init>" },
+  { obf = "a", descriptor = "()V", name = "boot" },
+  { obf = "b", descriptor = "(I)V", name = "loadLanguage" },
+  { obf = "b", descriptor = "()V", name = "startLogo" },
+  { obf = "c", descriptor = "()V", name = "startTitle" },
+  { obf = "a", descriptor = "(ZB)V", name = "enterStoryMode" },
+  { obf = "keyPressed", descriptor = "(I)V", name = "keyPressed" },
+  { obf = "run", descriptor = "()V", name = "run" },
+  { obf = "paint", descriptor = "(Ljavax/microedition/lcdui/Graphics;)V", name = "paint" },
+  { obf = "hideNotify", descriptor = "()V", name = "hideNotify" },
+  { obf = "showNotify", descriptor = "()V", name = "showNotify" },
+]
+
+[[class]]
+obf = "bh"
+internal = "bh"
+descriptor = "Lbh;"
+package = ""
+name = "FontManager"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "Ljava/lang/String;", name = "goldGainPrefix" },       # "Gain " prefix (lang 3902)
+  { obf = "b", descriptor = "Ljava/lang/String;", name = "progressLabel" },        # "Progress:" (lang 3903)
+  { obf = "a", descriptor = "[C", name = "confirmPrompt" },                        # "Are You Sure?" (lang 3904)
+  { obf = "b", descriptor = "[C", name = "websiteText" },                          # "www.HandsOn.com/Heroes" (lang 3906)
+  { obf = "c", descriptor = "[C", name = "labelExit" },                            # "Exit" soft key (lang 3907)
+  { obf = "d", descriptor = "[C", name = "labelOk" },                              # "Ok" soft key (lang 3908)
+  { obf = "e", descriptor = "[C", name = "labelBack" },                            # "Back" soft key (lang 3909)
+  { obf = "f", descriptor = "[C", name = "labelSkip" },                            # "Skip" soft key (lang 3910)
+  { obf = "g", descriptor = "[C", name = "labelNext" },                            # "Next" soft key (lang 3911)
+  { obf = "h", descriptor = "[C", name = "labelSell" },                            # "Sell" soft key (lang 3912)
+  { obf = "i", descriptor = "[C", name = "labelSelect" },                          # "Select" soft key (lang 3913)
+  { obf = "j", descriptor = "[C", name = "labelBuy" },                             # "Buy" soft key (lang 3914)
+  { obf = "k", descriptor = "[C", name = "labelYes" },                             # "Yes" soft key (lang 3915)
+  { obf = "l", descriptor = "[C", name = "labelNo" },                              # "No" soft key (lang 3916)
+  { obf = "a", descriptor = "[[C", name = "mainMenuLabels" },                      # main-menu items (lang 3920..3926)
+  { obf = "m", descriptor = "[C", name = "blankLabel" },                           # 15-space spacer label
+  { obf = "n", descriptor = "[C", name = "pausedLabel" },                          # "Paused" (lang 3946)
+  { obf = "o", descriptor = "[C", name = "loadingSubtitle" },                      # loading subtitle (AssetCache.commonText[38])
+  { obf = "p", descriptor = "[C", name = "loadingTitle" },                         # loading title (AssetCache.commonText[37])
+  { obf = "c", descriptor = "Ljava/lang/String;", name = "levelAbbrev" },          # "LV" (lang 3949)
+  { obf = "q", descriptor = "[C", name = "titleFooter" },                          # title-screen footer (lang 3950)
+  { obf = "r", descriptor = "[C", name = "versionText" },                          # "v.x.y" version line (set by AppConfig)
+  { obf = "s", descriptor = "[C", name = "levelPrefix" },                          # "LEVEL " (lang 3932)
+  { obf = "t", descriptor = "[C", name = "noSpaceLabel" },                         # "no space" (lang 3947)
+  { obf = "d", descriptor = "Ljava/lang/String;", name = "goldAbbrev" },           # "G" gold abbreviation (lang 3948)
+  { obf = "a", descriptor = "Z", name = "bigFontActive" },                         # big-font-selected flag
+  { obf = "g", descriptor = "Lb;", name = "currentFont" },                         # current WrapFont (small or big)
+  { obf = "a", descriptor = "Lb;", name = "smallBlack" },                          # small font, black pen
+  { obf = "b", descriptor = "Lb;", name = "smallWhite" },                          # small font, white pen
+  { obf = "c", descriptor = "Lb;", name = "smallOrange" },                         # small font, orange pen
+  { obf = "d", descriptor = "Lb;", name = "bigBlack" },                            # big font, black fill / white outline
+  { obf = "e", descriptor = "Lb;", name = "bigWhite" },                            # big font, white fill / black outline
+  { obf = "f", descriptor = "Lb;", name = "bigDefault" },                          # big font default (alias of bigBlack)
+  { obf = "a", descriptor = "Ljava/util/Vector;", name = "wrapCache" },            # cached wrapped lines
+  { obf = "e", descriptor = "Ljava/lang/String;", name = "wrapCacheKey" },         # wrapCache key (stays "")
+  # --- methods ---
+  { obf = "<init>", descriptor = "()V", name = "<init>" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;[C[C)V", name = "drawSoftKeys" },       # bottom left/right soft-key bar
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;)V", name = "clearScreen" },            # fill canvas black
+  { obf = "a", descriptor = "(Ljava/lang/String;)V", name = "requestBuyAndExit" },                       # open buy URL, then exit (arg ignored)
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;III)V", name = "drawMenuItem" },        # centred big-font menu item
+  { obf = "a", descriptor = "(Z)V", name = "setBigFont" },                                                # select small/big font family
+  { obf = "a", descriptor = "(II)I", name = "percentOf" },                                                # value * percent / 100
+  { obf = "a", descriptor = "(Lcj;)V", name = "loadLabels" },                                             # load UI labels from StringTable
+  { obf = "a", descriptor = "(I)Ljava/lang/String;", name = "getString" },                               # lang id -> String (';'->'\n')
+  { obf = "a", descriptor = "(Ljava/lang/String;)[C", name = "getStringChars" },                         # ASCII-decimal id -> glyph char[]
+  { obf = "a", descriptor = "()V", name = "initFonts" },                                                  # build the six font instances
+  { obf = "a", descriptor = "()I", name = "lineHeight" },                                                 # currentFont line height
+  { obf = "a", descriptor = "([C)I", name = "stringWidth" },                                              # rendered width of char[]
+  { obf = "a", descriptor = "(C)Z", name = "isSeparator" },                                               # c == ';'
+  { obf = "a", descriptor = "([CII)I", name = "advanceWord" },                                            # typewriter: reveal next word
+  { obf = "a", descriptor = "([CIII)I", name = "charsInLine" },                                           # chars fitting one line width
+  { obf = "a", descriptor = "([CI)I", name = "lineCount" },                                               # wrapped line count
+  { obf = "a", descriptor = "(II[CIII)I", name = "measureBlockHeight" },                                  # wrapped block height (width,chars used)
+  { obf = "b", descriptor = "()I", name = "lineSpacing" },                                                # currentFont line spacing
+  { obf = "a", descriptor = "(Ljava/lang/String;III)I", name = "blockHeightPx" },                         # wrapped block height minus one spacing
+  { obf = "a", descriptor = "(Ljava/lang/String;I)Ljava/util/Vector;", name = "wrapLines" },              # wrap into wrapCache
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II[CI)I", name = "drawChars" },          # draw chars top-left
+  { obf = "a", descriptor = "(I)Laz;", name = "fontForColor" },                                           # BitmapFont for pen colour+size
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II[CI)V", name = "drawCharsCentered" },  # draw chars h-centred
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;IIII[CIII)V", name = "drawWrappedBlock" },          # wrapped block, top-left
+  { obf = "b", descriptor = "(Ljavax/microedition/lcdui/Graphics;IIII[CIII)V", name = "drawWrappedBlockCentered" },  # wrapped block, centred
+  { obf = "c", descriptor = "(Ljavax/microedition/lcdui/Graphics;IIII[CIII)V", name = "drawWrappedBlockPartial" },   # first 3 lines, typewriter reveal
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;IIII[CI)I", name = "drawWrappedText" },  # all wrapped lines, given anchor
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;IIII[C)I", name = "drawWrappedText" },   # overload, top-left anchor
+  { obf = "a", descriptor = "([C)Ljava/lang/String;", name = "charsToString" },                          # new String(char[])
+  { obf = "a", descriptor = "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", name = "replaceAll" },  # replace all occurrences
+  { obf = "a", descriptor = "(Ljava/lang/String;)Ljavax/microedition/lcdui/Image;", name = "loadLocaleImage" },  # load "/<locale>/<path>" image
+]
+
+[[class]]
+obf = "bi"
+internal = "bi"
+descriptor = "Lbi;"
+package = ""
+name = "StatAllocMenu"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "S", name = "remainingPoints" },
+  { obf = "a", descriptor = "[S", name = "pending" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lq;)V", name = "<init>" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+  { obf = "a", descriptor = "(BB)V", name = "onPopupResult" },
+  { obf = "b", descriptor = "(B)V", name = "adjustStat" },
+]
+
+[[class]]
+obf = "bj"
+internal = "bj"
+descriptor = "Lbj;"
+package = ""
+name = "GuardianCastFx"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "B", name = "skillSlot" },
+  { obf = "b", descriptor = "B", name = "guardianType" },
+  { obf = "c", descriptor = "S", name = "startDelay" },
+  { obf = "a", descriptor = "[Ljavax/microedition/lcdui/Image;", name = "beamFrames" },
+  { obf = "b", descriptor = "[Ljavax/microedition/lcdui/Image;", name = "elementSprites" },
+  { obf = "a", descriptor = "[Ljava/lang/Object;", name = "guardianFrames" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(SSBB)V", name = "<init>" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "bk"
+internal = "bk"
+descriptor = "Lbk;"
+package = ""
+name = "StartTraitMenu"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "c", descriptor = "Z", name = "confirming" },
+  { obf = "d", descriptor = "Z", name = "confirmYes" },
+  { obf = "c", descriptor = "B", name = "classId" },
+  { obf = "b", descriptor = "[Z", name = "guardianSelected" },
+  { obf = "e", descriptor = "Z", name = "bounceUp" },
+  { obf = "d", descriptor = "B", name = "bounceOffset" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lby;B)V", name = "<init>" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+  { obf = "d", descriptor = "()V", name = "startGame" },
+]
+
+[[class]]
+obf = "bl"
+internal = "bl"
+descriptor = "Lbl;"
+package = ""
+name = "AboutScreen"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "[C", name = "body" },
+  { obf = "a", descriptor = "[S", name = "lineOffsets" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lcb;Z)V", name = "<init>" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "bm"
+internal = "bm"
+descriptor = "Lbm;"
+package = ""
+name = "GuardianTab"
+zero_twin = true
+members = [
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lcb;)V", name = "<init>" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(BB)V", name = "onPopupResult" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "bn"
+internal = "bn"
+descriptor = "Lbn;"
+package = ""
+name = "GuardianSkillPanel"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "c", descriptor = "Z", name = "editingFirstSlot" },
+  { obf = "a", descriptor = "Lp;", name = "guardian" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lbm;Lp;)V", name = "<init>" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "bo"
+internal = "bo"
+descriptor = "Lbo;"
+package = ""
+name = "CostConfirmDialog"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "[C", name = "title" },
+  { obf = "a", descriptor = "[Ljava/lang/Object;", name = "itemLines" },
+  { obf = "b", descriptor = "[C", name = "costLabel" },
+  { obf = "a", descriptor = "I", name = "cost" },
+  { obf = "c", descriptor = "B", name = "resultTag" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lcb;[C[Ljava/lang/Object;[CIB)V", name = "<init>" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "bp"
+internal = "bp"
+descriptor = "Lbp;"
+package = ""
+name = "ShopMenu"
+# renamed from InventoryMenu: bytecode reads shop stock (Item.m3a from
+# AssetCache.m70a, all pre-identified) and children buy/sell; the real carried
+# bag is ay(ItemsTab), which reads/writes Hero.bag. Confirmed slice-4 flag.
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "[Ljava/util/Vector;", name = "shopStock" },
+  { obf = "a", descriptor = "I", name = "panelX" },
+  { obf = "b", descriptor = "I", name = "panelY" },
+  { obf = "a", descriptor = "Lz;", name = "text" },
+  { obf = "a", descriptor = "Lbp;", name = "singleton" },
+  # --- methods ---
+  { obf = "a", descriptor = "()Lbp;", name = "instance" },
+  { obf = "<init>", descriptor = "()V", name = "<init>" },
+  { obf = "d", descriptor = "()V", name = "loadStrings" },
+  { obf = "e", descriptor = "()V", name = "closeShop" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(B)V", name = "moveCursor" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;)V", name = "draw" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "bq"
+internal = "bq"
+descriptor = "Lbq;"
+package = ""
+name = "SaveCipher"
+zero_twin = true
+members = [
+  # --- methods ---
+  { obf = "<init>", descriptor = "()V", name = "<init>" },
+  { obf = "a", descriptor = "([B[B)[B", name = "encrypt" },
+  { obf = "b", descriptor = "([B[B)[B", name = "decrypt" },
+]
+
+[[class]]
+obf = "br"
+internal = "br"
+descriptor = "Lbr;"
+package = ""
+name = "PngMerger"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "[Ljava/lang/String;", name = "CHUNK_TYPES" },
+  { obf = "a", descriptor = "[B", name = "PNG_SIGNATURE" },
+  { obf = "b", descriptor = "[B", name = "IEND_CHUNK" },
+  { obf = "a", descriptor = "Ljava/lang/String;", name = "basePath" },
+  { obf = "b", descriptor = "Z", name = "mergePalette" },
+  { obf = "c", descriptor = "Z", name = "paletteRemap" },
+  { obf = "a", descriptor = "I", name = "mpdCount" },
+  { obf = "a", descriptor = "[I", name = "framesPerMpd" },
+  { obf = "c", descriptor = "[B", name = "mphData" },
+  { obf = "a", descriptor = "[Ljava/lang/Object;", name = "mpdData" },
+  { obf = "a", descriptor = "[C", name = "chunkMasks" },
+  { obf = "b", descriptor = "I", name = "pltePos" },
+  { obf = "c", descriptor = "I", name = "trnsPos" },
+  { obf = "a", descriptor = "Z", name = "preloadAll" },
+  { obf = "a", descriptor = "Lca;", name = "crc" },
+  { obf = "a", descriptor = "Lan;", name = "adler" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "()V", name = "<init>" },
+  { obf = "<init>", descriptor = "(Ljava/lang/String;)V", name = "<init>" },
+  { obf = "a", descriptor = "(Ljava/lang/String;)V", name = "load" },
+  { obf = "b", descriptor = "()V", name = "readIndex" },
+  { obf = "a", descriptor = "(I)V", name = "loadMpd" },
+  { obf = "b", descriptor = "(I)V", name = "unloadMpd" },
+  { obf = "a", descriptor = "()V", name = "unloadAllMpd" },
+  { obf = "c", descriptor = "()V", name = "parseHeader" },
+  { obf = "a", descriptor = "()I", name = "frameCount" },
+  { obf = "a", descriptor = "(I)Ljavax/microedition/lcdui/Image;", name = "image" },
+  { obf = "a", descriptor = "()[Ljavax/microedition/lcdui/Image;", name = "allImages" },
+  { obf = "b", descriptor = "(I)Ljavax/microedition/lcdui/Image;", name = "imageMirrored" },
+  { obf = "c", descriptor = "(I)Ljavax/microedition/lcdui/Image;", name = "imageGray" },
+  { obf = "a", descriptor = "(II)V", name = "remapPalette" },
+  { obf = "a", descriptor = "(I)[B", name = "mpdBytes" },
+  { obf = "a", descriptor = "(I)I", name = "mpdIndexOf" },
+  { obf = "b", descriptor = "(I)[B", name = "assembleFrame" },
+  { obf = "c", descriptor = "(I)[B", name = "assembleSimple" },
+  { obf = "d", descriptor = "(I)[B", name = "assembleMerged" },
+  { obf = "b", descriptor = "(I)I", name = "frameLength" },
+  { obf = "a", descriptor = "([BIII)I", name = "findChunk" },
+  { obf = "a", descriptor = "([BI)I", name = "readU32" },
+  { obf = "a", descriptor = "([BI)C", name = "readU16" },
+  { obf = "a", descriptor = "(II)Z", name = "frameHasChunk" },
+  { obf = "b", descriptor = "([BI)I", name = "locateChunk" },
+  { obf = "a", descriptor = "([B)V", name = "mirror" },
+  { obf = "a", descriptor = "([BIIII)V", name = "mirrorScanlines" },
+  { obf = "a", descriptor = "([BI)V", name = "applyEffect" },
+  { obf = "a", descriptor = "([BII)V", name = "applyEffect" },
+  { obf = "b", descriptor = "([BIIII)V", name = "transformPixels" },
+  { obf = "e", descriptor = "(I)[B", name = "toBE32" },
+]
+
+[[class]]
+obf = "bs"
+internal = "bs"
+descriptor = "Lbs;"
+package = ""
+name = "GameLoop"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "[I", name = "frameDelayTable" },
+  { obf = "a", descriptor = "Ljavax/microedition/lcdui/Display;", name = "display" },
+  { obf = "a", descriptor = "Lr;", name = "current" },
+  { obf = "a", descriptor = "Las;", name = "gameScreen" },
+  { obf = "c", descriptor = "I", name = "frameDelay" },
+  { obf = "d", descriptor = "I", name = "frameTargetMs" },
+  { obf = "a", descriptor = "I", name = "volume" },
+  { obf = "a", descriptor = "Z", name = "soundEnabled" },
+  { obf = "b", descriptor = "Z", name = "hasCreatedCharacter" },  # option byte bit4: set on character creation (GameState), gates ClassSelect warning
+  { obf = "c", descriptor = "Z", name = "autoTextAdvance" },  # option byte bit2: dialogue auto-advance (EventScript.step)
+  { obf = "d", descriptor = "Z", name = "cameraFollow" },
+  { obf = "a", descriptor = "B", name = "difficulty" },
+  { obf = "b", descriptor = "B", name = "progressFlags" },
+  { obf = "b", descriptor = "I", name = "progressData" },
+  { obf = "a", descriptor = "J", name = "frameStartMs" },
+  { obf = "e", descriptor = "Z", name = "stopped" },
+  { obf = "f", descriptor = "Z", name = "bootPending" },
+  { obf = "a", descriptor = "Ljava/lang/Object;", name = "lock" },
+  { obf = "a", descriptor = "Lbs;", name = "instance" },
+  # --- methods ---
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Display;)V", name = "create" },
+  { obf = "<init>", descriptor = "(Ljavax/microedition/lcdui/Display;)V", name = "<init>" },
+  { obf = "run", descriptor = "()V", name = "run" },
+  { obf = "a", descriptor = "()V", name = "markFrameStart" },
+  { obf = "b", descriptor = "()V", name = "throttle" },
+  { obf = "a", descriptor = "(JJ)V", name = "sleepFor" },
+  { obf = "c", descriptor = "()V", name = "start" },
+  { obf = "d", descriptor = "()V", name = "showGameScreen" },
+  { obf = "e", descriptor = "()V", name = "returnToTitle" },
+  { obf = "a", descriptor = "(I)V", name = "setFps" },
+  { obf = "f", descriptor = "()V", name = "applyDifficultyFps" },
+  { obf = "g", descriptor = "()V", name = "setLoadingFps" },
+  { obf = "h", descriptor = "()V", name = "setFastFps" },
+  { obf = "a", descriptor = "(B)V", name = "setDifficulty" },
+  { obf = "a", descriptor = "()[B", name = "packOptions" },
+  { obf = "a", descriptor = "([B)V", name = "unpackOptions" },
+  { obf = "i", descriptor = "()V", name = "saveOptions" },
+  { obf = "j", descriptor = "()V", name = "loadOptions" },
+]
+
+[[class]]
+obf = "bt"
+internal = "bt"
+descriptor = "Lbt;"
+package = ""
+name = "HelpMenu"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "c", descriptor = "Z", name = "inGame" },
+  { obf = "a", descriptor = "[[C", name = "topicLabels" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lcb;Z)V", name = "<init>" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "bu"
+internal = "bu"
+descriptor = "Lbu;"
+package = ""
+name = "AssetLoader"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "B", name = "phase" },
+  { obf = "g", descriptor = "[Ljava/lang/String;", name = "scriptSuffixes" },
+  { obf = "a", descriptor = "[Ljava/lang/String;", name = "scriptDirs" },
+  { obf = "b", descriptor = "[Ljava/lang/String;", name = "atlasDirs" },
+  { obf = "c", descriptor = "[Ljava/lang/String;", name = "armorFiles" },
+  { obf = "d", descriptor = "[Ljava/lang/String;", name = "headFiles" },
+  { obf = "e", descriptor = "[Ljava/lang/String;", name = "weaponFiles" },
+  { obf = "f", descriptor = "[Ljava/lang/String;", name = "shieldFiles" },
+  { obf = "a", descriptor = "[[B", name = "weaponAnim" },
+  { obf = "b", descriptor = "[[B", name = "armorAnim" },
+  { obf = "a", descriptor = "[B", name = "headAnim" },
+  { obf = "b", descriptor = "[B", name = "shieldAnim" },
+  { obf = "a", descriptor = "Z", name = "commonLoaded" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "()V", name = "<init>" },
+  { obf = "a", descriptor = "()V", name = "loadResources" },
+  { obf = "b", descriptor = "()V", name = "loadMap" },
+  { obf = "c", descriptor = "()V", name = "loadGuardian" },
+  { obf = "d", descriptor = "()V", name = "loadMainMenu" },
+  { obf = "run", descriptor = "()V", name = "run" },
+  { obf = "a", descriptor = "()Lae;", name = "swapMap" },
+  { obf = "e", descriptor = "()V", name = "loadStringTables" },
+  { obf = "i", descriptor = "()V", name = "loadCommonAssets" },
+  { obf = "f", descriptor = "()V", name = "unloadInGame" },
+  { obf = "j", descriptor = "()V", name = "loadHeroEquipSprites" },
+  { obf = "g", descriptor = "()V", name = "unloadHeroSprites" },
+  { obf = "k", descriptor = "()V", name = "loadGuardianSprites" },
+  { obf = "h", descriptor = "()V", name = "unloadGuardianSprites" },
+  { obf = "a", descriptor = "(BLl;ZB)V", name = "loadWeaponSprite" },
+  { obf = "a", descriptor = "(BB)V", name = "loadArmorSprite" },
+  { obf = "b", descriptor = "(BB)V", name = "loadHeadSprite" },
+  { obf = "c", descriptor = "(BB)V", name = "loadShieldSprite" },
+  { obf = "d", descriptor = "(BB)V", name = "loadAuraSprite" },
+  { obf = "a", descriptor = "(BBBZB)V", name = "loadSpriteBank" },
+  { obf = "a", descriptor = "(I)V", name = "unloadSpriteBank" },
+  { obf = "a", descriptor = "(Lbr;BB)V", name = "loadMageShieldFrames" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;)V", name = "drawLoadingOverlay" },
+]
+
+[[class]]
+obf = "bv"
+internal = "bv"
+descriptor = "Lbv;"
+package = ""
+name = "GebCore"
+zero_twin = true
+members = [
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lae;BBBB)V", name = "<init>" },
+  { obf = "i", descriptor = "()V", name = "tryAttack" },
+  { obf = "l", descriptor = "()V", name = "die" },
+  { obf = "m", descriptor = "()V", name = "onDeath" },
+]
+
+[[class]]
+obf = "bw"
+internal = "bw"
+descriptor = "Lbw;"
+package = ""
+name = "AudioManager"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "I", name = "maxVolume" },
+  { obf = "b", descriptor = "I", name = "scaledVolume" },
+  { obf = "a", descriptor = "Lci;", name = "bgm" },
+  { obf = "b", descriptor = "Lci;", name = "bgm2" },
+  { obf = "c", descriptor = "Lci;", name = "sfx" },
+  { obf = "a", descriptor = "[Lci;", name = "clips" },
+  { obf = "a", descriptor = "[Ljava/lang/String;", name = "fileTable" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "()V", name = "<init>" },
+  { obf = "a", descriptor = "()V", name = "pause" },
+  { obf = "b", descriptor = "()V", name = "resume" },
+  { obf = "c", descriptor = "()V", name = "stopBgm2" },
+  { obf = "d", descriptor = "()V", name = "stopSfx" },
+  { obf = "e", descriptor = "()V", name = "stopBgm1" },
+  { obf = "f", descriptor = "()V", name = "stopBgm" },
+  { obf = "a", descriptor = "(BZ)V", name = "playSfx" },
+  { obf = "a", descriptor = "(I)V", name = "setVolume" },
+  { obf = "g", descriptor = "()V", name = "readySound" },
+  { obf = "a", descriptor = "(B)V", name = "loadClip" },
+  { obf = "b", descriptor = "(B)V", name = "unloadClip" },
+  { obf = "b", descriptor = "(I)V", name = "playBgm" },
+  { obf = "c", descriptor = "(I)V", name = "playBgm2" },
+]
+
+[[class]]
+obf = "bx"
+internal = "bx"
+descriptor = "Lbx;"
+package = ""
+name = "HelpPage"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "[C", name = "body" },
+  { obf = "b", descriptor = "[C", name = "title" },
+  { obf = "c", descriptor = "Z", name = "inGame" },
+  { obf = "a", descriptor = "[S", name = "lineOffsets" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lbt;[CZ[C)V", name = "<init>" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "by"
+internal = "by"
+descriptor = "Lby;"
+package = ""
+name = "ClassConfirmMenu"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "c", descriptor = "B", name = "classId" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lc;B)V", name = "<init>" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "bz"
+internal = "bz"
+descriptor = "Lbz;"
+package = ""
+name = "EquipTab"
+zero_twin = true
+members = [
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lcb;)V", name = "<init>" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(BB)V", name = "onPopupResult" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "ca"
+internal = "ca"
+descriptor = "Lca;"
+package = ""
+name = "Crc32"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "[I", name = "TABLE" },
+  { obf = "a", descriptor = "I", name = "crc" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "()V", name = "<init>" },
+  { obf = "a", descriptor = "()V", name = "reset" },
+  { obf = "a", descriptor = "([BII)V", name = "update" },
+  { obf = "a", descriptor = "()I", name = "getValue" },
+]
+
+[[class]]
+obf = "cb"
+internal = "cb"
+descriptor = "Lcb;"
+package = ""
+name = "Menu"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "Lcb;", name = "parent" },
+  { obf = "b", descriptor = "Lcb;", name = "child" },
+  { obf = "b", descriptor = "Z", name = "pendingInitialPaint" },
+  { obf = "a", descriptor = "Z", name = "needsRepaint" },
+  { obf = "a", descriptor = "B", name = "itemCount" },
+  { obf = "b", descriptor = "B", name = "cursorIndex" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lcb;B)V", name = "<init>" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "b", descriptor = "(II)Z", name = "passKeyToChild" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+  { obf = "b", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "render" },
+  { obf = "a", descriptor = "(IIZ)Z", name = "moveCursorVertical" },
+  { obf = "c", descriptor = "(II)Z", name = "moveCursorVerticalNoWrap" },
+  { obf = "d", descriptor = "(II)Z", name = "moveCursorHorizontal" },
+  { obf = "a", descriptor = "(B)V", name = "moveCursor" },
+  { obf = "a", descriptor = "(BZ)V", name = "stepCursor" },
+  { obf = "a", descriptor = "(BB)V", name = "onPopupResult" },
+  { obf = "a", descriptor = "()V", name = "close" },
+  { obf = "a", descriptor = "(BB[Ljava/lang/Object;)V", name = "showPopup" },
+  { obf = "a", descriptor = "(BB[Ljava/lang/Object;[C[C)V", name = "showPopup" },
+  { obf = "a", descriptor = "([Ljava/lang/Object;)V", name = "showMessage" },
+  { obf = "b", descriptor = "()V", name = "invalidateUp" },
+  { obf = "c", descriptor = "()V", name = "invalidateDown" },
+  { obf = "a", descriptor = "()I", name = "currentPage" },
+  { obf = "b", descriptor = "()I", name = "pageCount" },
+  { obf = "c", descriptor = "()I", name = "pageFirstIndex" },
+  { obf = "d", descriptor = "()I", name = "pageLastIndex" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;IIZ)V", name = "drawListPage" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;IIIIII)V", name = "drawBevelOutline" },
+  { obf = "c", descriptor = "(Ljavax/microedition/lcdui/Graphics;IIIII)V", name = "fillInset1" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;IIIIIII)V", name = "drawBevelBox" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;IIIII)V", name = "fillInset2" },
+  { obf = "b", descriptor = "(Ljavax/microedition/lcdui/Graphics;IIIII)V", name = "fillOutlinedRect" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;IIII)V", name = "drawPanelFrame" },
+  { obf = "b", descriptor = "(Ljavax/microedition/lcdui/Graphics;IIII)V", name = "fillPanelInterior" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;IIBZ)V", name = "drawTabButton" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;III)V", name = "drawGold" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;IILad;Z)V", name = "drawItemIcon" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;IILad;)V", name = "drawItemInfo" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;IILad;B[CZ)V", name = "drawQuickSlotRow" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;III[CZ)V", name = "drawButton" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;IIIIZ)V", name = "drawSelectableBox" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;IIII[CIIII)V", name = "drawTextField" },
+  { obf = "c", descriptor = "(Ljavax/microedition/lcdui/Graphics;IIII)V", name = "drawInsetPanel" },
+]
+
+[[class]]
+obf = "cc"
+internal = "cc"
+descriptor = "Lcc;"
+package = ""
+name = "RockyBoss"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "h", descriptor = "[B", name = "patternSequence" },
+  { obf = "i", descriptor = "[B", name = "patternCooldowns" },
+  { obf = "v", descriptor = "B", name = "patternIndex" },
+  { obf = "w", descriptor = "B", name = "attackPattern" },
+  { obf = "x", descriptor = "B", name = "attackFrameCount" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(BBBB)V", name = "<init>" },
+  { obf = "d", descriptor = "()V", name = "update" },
+  { obf = "n", descriptor = "()V", name = "updateAi" },
+  { obf = "i", descriptor = "()V", name = "tryAttack" },
+  { obf = "o", descriptor = "()V", name = "animate" },
+  { obf = "j", descriptor = "()V", name = "resolveAttack" },
+  { obf = "k", descriptor = "()V", name = "stepDeathAnim" },
+  { obf = "d", descriptor = "(B)V", name = "selectAttackPattern" },
+  { obf = "l", descriptor = "()V", name = "die" },
+  { obf = "m", descriptor = "()V", name = "onDeath" },
+]
+
+[[class]]
+obf = "cd"
+internal = "cd"
+descriptor = "Lcd;"
+package = ""
+name = "NordHealer"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "Lag;", name = "body" },
+  { obf = "a", descriptor = "Lbd;", name = "striker" },
+  { obf = "v", descriptor = "B", name = "healRotation" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(BBBB)V", name = "<init>" },
+  { obf = "a", descriptor = "(Lag;Lbd;)V", name = "setParts" },
+  { obf = "d", descriptor = "()V", name = "update" },
+  { obf = "h", descriptor = "()V", name = "chase" },
+  { obf = "i", descriptor = "()V", name = "tryAttack" },
+  { obf = "j", descriptor = "()V", name = "resolveAttack" },
+  { obf = "a", descriptor = "(Lal;)V", name = "healTarget" },
+  { obf = "m", descriptor = "()V", name = "onDeath" },
+]
+
+[[class]]
+obf = "ce"
+internal = "ce"
+descriptor = "Lce;"
+package = ""
+name = "AssetCache"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "[Ljava/lang/Object;", name = "heroFrames" },
+  { obf = "b", descriptor = "[Ljava/lang/Object;", name = "mageAuraScripts" },
+  { obf = "c", descriptor = "[Ljava/lang/Object;", name = "weaponPreviewFrames" },
+  { obf = "d", descriptor = "[Ljava/lang/Object;", name = "guardianFrames" },
+  { obf = "h", descriptor = "[B", name = "levelUpScript" },
+  { obf = "e", descriptor = "[Ljava/lang/Object;", name = "enemyFrames" },
+  { obf = "f", descriptor = "[Ljava/lang/Object;", name = "attackEffectScripts" },
+  { obf = "g", descriptor = "[Ljava/lang/Object;", name = "deathFxScripts" },
+  { obf = "h", descriptor = "[Ljava/lang/Object;", name = "bossFrames" },
+  { obf = "i", descriptor = "[Ljava/lang/Object;", name = "bossExtraFrames" },
+  { obf = "j", descriptor = "[Ljava/lang/Object;", name = "npcFrames" },
+  { obf = "i", descriptor = "[B", name = "npcAnimFrames0" },
+  { obf = "j", descriptor = "[B", name = "npcAnimFrames1" },
+  { obf = "k", descriptor = "[B", name = "bossSpriteIds" },
+  { obf = "l", descriptor = "[B", name = "enemySpriteIds" },
+  { obf = "a", descriptor = "[[Ljavax/microedition/lcdui/Image;", name = "spriteBanks" },
+  { obf = "a", descriptor = "Lz;", name = "heroText" },
+  { obf = "a", descriptor = "[Ljavax/microedition/lcdui/Image;", name = "guardianBeam" },
+  { obf = "b", descriptor = "[Ljavax/microedition/lcdui/Image;", name = "guardianIcons" },
+  { obf = "c", descriptor = "[Ljavax/microedition/lcdui/Image;", name = "guardianSkillIcons" },
+  { obf = "b", descriptor = "Lz;", name = "guardianText" },
+  { obf = "c", descriptor = "Lz;", name = "guardianSkillText" },
+  { obf = "d", descriptor = "[Ljavax/microedition/lcdui/Image;", name = "itemIcons" },
+  { obf = "e", descriptor = "[Ljavax/microedition/lcdui/Image;", name = "mapTiles" },
+  { obf = "f", descriptor = "[Ljavax/microedition/lcdui/Image;", name = "mapObjects" },
+  { obf = "g", descriptor = "[Ljavax/microedition/lcdui/Image;", name = "mapNpcImages" },
+  { obf = "h", descriptor = "[Ljavax/microedition/lcdui/Image;", name = "dialoguePortraits" },
+  { obf = "d", descriptor = "Lz;", name = "mapNameText" },
+  { obf = "i", descriptor = "[Ljavax/microedition/lcdui/Image;", name = "logoFrames" },
+  { obf = "j", descriptor = "[Ljavax/microedition/lcdui/Image;", name = "titleBgFrames" },
+  { obf = "k", descriptor = "[Ljavax/microedition/lcdui/Image;", name = "titleMenuFrames" },
+  { obf = "l", descriptor = "[Ljavax/microedition/lcdui/Image;", name = "menuFrames" },
+  { obf = "m", descriptor = "[Ljavax/microedition/lcdui/Image;", name = "classFaces" },
+  { obf = "b", descriptor = "[[Ljavax/microedition/lcdui/Image;", name = "menuGuardianPreview" },
+  { obf = "n", descriptor = "[Ljavax/microedition/lcdui/Image;", name = "menuTabIcons" },
+  { obf = "o", descriptor = "[Ljavax/microedition/lcdui/Image;", name = "equipSlotIcons" },
+  { obf = "a", descriptor = "Ljavax/microedition/lcdui/Image;", name = "statusPanelIcon" },
+  { obf = "b", descriptor = "Ljavax/microedition/lcdui/Image;", name = "shopBuyIcon" },
+  { obf = "c", descriptor = "Ljavax/microedition/lcdui/Image;", name = "shopSellIcon" },
+  { obf = "d", descriptor = "Ljavax/microedition/lcdui/Image;", name = "cursorArrow" },
+  { obf = "e", descriptor = "Ljavax/microedition/lcdui/Image;", name = "statLabel1" },
+  { obf = "f", descriptor = "Ljavax/microedition/lcdui/Image;", name = "statLabel2" },
+  { obf = "g", descriptor = "Ljavax/microedition/lcdui/Image;", name = "statLabel3" },
+  { obf = "h", descriptor = "Ljavax/microedition/lcdui/Image;", name = "statLabel4" },
+  { obf = "i", descriptor = "Ljavax/microedition/lcdui/Image;", name = "fractionSlash" },
+  { obf = "j", descriptor = "Ljavax/microedition/lcdui/Image;", name = "statLabel5" },
+  { obf = "k", descriptor = "Ljavax/microedition/lcdui/Image;", name = "scrollUpArrow" },
+  { obf = "l", descriptor = "Ljavax/microedition/lcdui/Image;", name = "portraitFrame" },
+  { obf = "m", descriptor = "Ljavax/microedition/lcdui/Image;", name = "goldIcon" },
+  { obf = "n", descriptor = "Ljavax/microedition/lcdui/Image;", name = "scrollDownArrow" },
+  { obf = "o", descriptor = "Ljavax/microedition/lcdui/Image;", name = "slotFrame" },
+  { obf = "p", descriptor = "[Ljavax/microedition/lcdui/Image;", name = "shopCategoryIcons" },
+  { obf = "p", descriptor = "Ljavax/microedition/lcdui/Image;", name = "shopSelectBox" },
+  { obf = "q", descriptor = "Ljavax/microedition/lcdui/Image;", name = "shopCoinIcon" },
+  { obf = "e", descriptor = "Lz;", name = "helpText" },
+  { obf = "q", descriptor = "[Ljavax/microedition/lcdui/Image;", name = "hudFrame" },
+  { obf = "r", descriptor = "Ljavax/microedition/lcdui/Image;", name = "numberFont0" },
+  { obf = "r", descriptor = "[Ljavax/microedition/lcdui/Image;", name = "dialogBorder" },
+  { obf = "f", descriptor = "Lz;", name = "classSkillText" },
+  { obf = "m", descriptor = "[B", name = "guardianSpriteScript" },
+  { obf = "s", descriptor = "[Ljavax/microedition/lcdui/Image;", name = "attackFx1" },
+  { obf = "t", descriptor = "[Ljavax/microedition/lcdui/Image;", name = "attackFx2" },
+  { obf = "u", descriptor = "[Ljavax/microedition/lcdui/Image;", name = "attackFx3" },
+  { obf = "s", descriptor = "Ljavax/microedition/lcdui/Image;", name = "floaterIcon3" },
+  { obf = "t", descriptor = "Ljavax/microedition/lcdui/Image;", name = "floaterIcon2" },
+  { obf = "u", descriptor = "Ljavax/microedition/lcdui/Image;", name = "entityShadow" },
+  { obf = "v", descriptor = "Ljavax/microedition/lcdui/Image;", name = "statPointAlert" },
+  { obf = "w", descriptor = "Ljavax/microedition/lcdui/Image;", name = "numberFont1" },
+  { obf = "x", descriptor = "Ljavax/microedition/lcdui/Image;", name = "numberFont2" },
+  { obf = "y", descriptor = "Ljavax/microedition/lcdui/Image;", name = "numberFont3" },
+  { obf = "z", descriptor = "Ljavax/microedition/lcdui/Image;", name = "numberFont4" },
+  { obf = "A", descriptor = "Ljavax/microedition/lcdui/Image;", name = "dropItemMarker" },
+  { obf = "B", descriptor = "Ljavax/microedition/lcdui/Image;", name = "dropGoldMarker" },
+  { obf = "C", descriptor = "Ljavax/microedition/lcdui/Image;", name = "skillChargeFill" },
+  { obf = "D", descriptor = "Ljavax/microedition/lcdui/Image;", name = "emoticonBubble" },
+  { obf = "v", descriptor = "[Ljavax/microedition/lcdui/Image;", name = "statusIcons" },
+  { obf = "w", descriptor = "[Ljavax/microedition/lcdui/Image;", name = "emoticons" },
+  { obf = "g", descriptor = "Lz;", name = "commonText" },
+  { obf = "n", descriptor = "[B", name = "readBuffer" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "()V", name = "<init>" },
+  { obf = "a", descriptor = "(B)V", name = "loadAttackEffects" },
+  { obf = "a", descriptor = "()V", name = "unloadAttackEffects" },
+  { obf = "a", descriptor = "(Lbr;B)V", name = "tintAttackEffect" },
+  { obf = "b", descriptor = "()V", name = "unloadMapTiles" },
+  { obf = "c", descriptor = "()V", name = "unloadMapObjects" },
+  { obf = "d", descriptor = "()V", name = "unloadMapNpcImages" },
+  { obf = "e", descriptor = "()V", name = "resetEnemyBossBanks" },
+  { obf = "a", descriptor = "(BB)V", name = "loadGuardianSprite" },
+  { obf = "f", descriptor = "()V", name = "unloadGuardianSprites" },
+  { obf = "a", descriptor = "(Z[BIBBLbr;)V", name = "assembleSprites" },
+  { obf = "g", descriptor = "()V", name = "loadInGameUi" },
+  { obf = "h", descriptor = "()V", name = "unloadInGameUi" },
+  { obf = "i", descriptor = "()V", name = "loadStatusEffectIcons" },
+  { obf = "j", descriptor = "()V", name = "unloadStatusEffectIcons" },
+  { obf = "b", descriptor = "(B)V", name = "loadGuardianElement" },
+  { obf = "k", descriptor = "()V", name = "unloadGuardianElement" },
+  { obf = "a", descriptor = "(SBZ)V", name = "loadEnemySprite" },
+  { obf = "c", descriptor = "(B)V", name = "unloadEnemySprite" },
+  { obf = "l", descriptor = "()V", name = "loadDeathEffects" },
+  { obf = "b", descriptor = "(BB)V", name = "loadNpcSprite" },
+  { obf = "d", descriptor = "(B)V", name = "unloadNpcSprite" },
+  { obf = "e", descriptor = "(B)V", name = "loadBossSprite" },
+  { obf = "m", descriptor = "()V", name = "unloadBossSprite" },
+  { obf = "n", descriptor = "()V", name = "loadGameMenuIcons" },
+  { obf = "o", descriptor = "()V", name = "loadGlobalUi" },
+  { obf = "p", descriptor = "()V", name = "loadItemIcons" },
+  { obf = "q", descriptor = "()V", name = "unloadItemIcons" },
+  { obf = "r", descriptor = "()V", name = "loadShopUi" },
+  { obf = "s", descriptor = "()V", name = "unloadShopUi" },
+  { obf = "t", descriptor = "()V", name = "loadGuardianIcons" },
+  { obf = "u", descriptor = "()V", name = "unloadGuardianIcons" },
+  { obf = "a", descriptor = "(BB)[B", name = "loadItemRecord" },
+  { obf = "a", descriptor = "()[B", name = "loadShopItemData" },
+  { obf = "f", descriptor = "(B)V", name = "loadGuardian" },
+  { obf = "v", descriptor = "()V", name = "unloadGuardian" },
+  { obf = "w", descriptor = "()V", name = "loadLogo" },
+  { obf = "x", descriptor = "()V", name = "unloadLogo" },
+  { obf = "y", descriptor = "()V", name = "loadTitleScreen" },
+  { obf = "z", descriptor = "()V", name = "unloadTitleScreen" },
+  { obf = "A", descriptor = "()V", name = "loadMainMenuAssets" },
+  { obf = "B", descriptor = "()V", name = "unloadMainMenuAssets" },
+  { obf = "a", descriptor = "(Ljava/lang/String;)[B", name = "readResource" },
+  { obf = "a", descriptor = "(B)B", name = "bossSlot" },
+]
+
+[[class]]
+obf = "cf"
+internal = "cf"
+descriptor = "Lcf;"
+package = ""
+name = "StatusIcon"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "B", name = "kind" },
+  { obf = "a", descriptor = "[S", name = "DURATION_BY_KIND" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(B)V", name = "<init>" },
+  { obf = "a", descriptor = "()V", name = "tick" },
+  { obf = "b", descriptor = "()V", name = "expire" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+  { obf = "c", descriptor = "()V", name = "reset" },
+  { obf = "a", descriptor = "()S", name = "elapsed" },
+]
+
+[[class]]
+obf = "cg"
+internal = "cg"
+descriptor = "Lcg;"
+package = ""
+name = "GebHead"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "Lba;", name = "leftHand" },
+  { obf = "a", descriptor = "Lak;", name = "rightHand" },
+  { obf = "g", descriptor = "Z", name = "collisionSealed" },
+  { obf = "v", descriptor = "B", name = "attackBurstCount" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(BBBBLba;Lak;)V", name = "<init>" },
+  { obf = "d", descriptor = "()V", name = "update" },
+  { obf = "h", descriptor = "()V", name = "chase" },
+  { obf = "i", descriptor = "()V", name = "tryAttack" },
+  { obf = "j", descriptor = "()V", name = "resolveAttack" },
+  { obf = "k", descriptor = "()V", name = "stepDeathAnim" },
+  { obf = "a", descriptor = "(Lao;Lae;B)V", name = "crushRow" },
+  { obf = "l", descriptor = "()V", name = "die" },
+  { obf = "m", descriptor = "()V", name = "onDeath" },
+]
+
+[[class]]
+obf = "ch"
+internal = "ch"
+descriptor = "Lch;"
+package = ""
+name = "IdentifyMenu"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "Le;", name = "equipment" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Lcb;)V", name = "<init>" },
+  { obf = "a", descriptor = "(II)Z", name = "handleKey" },
+  { obf = "a", descriptor = "(BB)V", name = "onPopupResult" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "ci"
+internal = "ci"
+descriptor = "Lci;"
+package = ""
+name = "SoundPlayer"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "Ljavax/microedition/media/Player;", name = "player" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(Ljava/lang/String;)V", name = "<init>" },
+  { obf = "a", descriptor = "(I)V", name = "setLoopCount" },
+  { obf = "a", descriptor = "()V", name = "play" },
+  { obf = "b", descriptor = "()V", name = "stop" },
+  { obf = "c", descriptor = "()V", name = "dispose" },
+  { obf = "a", descriptor = "()Z", name = "isPlaying" },
+  { obf = "a", descriptor = "(Ljava/lang/String;)Ljava/lang/String;", name = "contentTypeOf" },
+  { obf = "a", descriptor = "(Ljava/lang/String;)V", name = "create" },
+  { obf = "b", descriptor = "(I)V", name = "setVolume" },
+  { obf = "d", descriptor = "()V", name = "start" },
+  { obf = "playerUpdate", descriptor = "(Ljavax/microedition/media/Player;Ljava/lang/String;Ljava/lang/Object;)V", name = "playerUpdate" },
+]
+
+[[class]]
+obf = "cj"
+internal = "cj"
+descriptor = "Lcj;"
+package = ""
+name = "StringTable"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "Lcj;", name = "instance" },
+  { obf = "a", descriptor = "[B", name = "blob" },
+  { obf = "a", descriptor = "B", name = "localeIndex" },
+  { obf = "a", descriptor = "Ljava/io/DataInputStream;", name = "stream" },
+  { obf = "a", descriptor = "[Ljava/lang/String;", name = "locales" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "()V", name = "<init>" },
+  { obf = "a", descriptor = "(Ljava/lang/String;)I", name = "resolveLocale" },
+  { obf = "a", descriptor = "(Ljava/lang/String;Ljava/lang/String;I)V", name = "load" },
+  { obf = "a", descriptor = "(I)Ljava/lang/String;", name = "get" },
+]
+
+[[class]]
+obf = "ck"
+internal = "ck"
+descriptor = "Lck;"
+package = ""
+name = "Entity"
+zero_twin = true
+members = [
+  # --- fields ---
+  { obf = "a", descriptor = "B", name = "tileX" },
+  { obf = "b", descriptor = "B", name = "tileY" },
+  { obf = "a", descriptor = "Z", name = "offGridX" },
+  { obf = "b", descriptor = "Z", name = "offGridY" },
+  { obf = "c", descriptor = "S", name = "pixelX" },
+  { obf = "d", descriptor = "S", name = "pixelY" },
+  { obf = "c", descriptor = "B", name = "halfW" },
+  { obf = "d", descriptor = "B", name = "halfH" },
+  { obf = "e", descriptor = "B", name = "layer" },
+  { obf = "a", descriptor = "Ljava/util/Random;", name = "rng" },
+  { obf = "a", descriptor = "Lck;", name = "next" },
+  { obf = "b", descriptor = "Lck;", name = "prev" },
+  { obf = "c", descriptor = "Z", name = "removed" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(SSBB)V", name = "<init>" },
+  { obf = "a", descriptor = "(SS)V", name = "setPixelPos" },
+  { obf = "b", descriptor = "()V", name = "syncTile" },
+  { obf = "a", descriptor = "(BB)Lck;", name = "neighbor" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+]
+
+[[class]]
+obf = "GameMIDlet"
+internal = "rpg/GameMIDlet"
+descriptor = "Lrpg/GameMIDlet;"
+package = "rpg"
+name = "GameMIDlet"
+zero_twin = false
+members = [
+  # --- fields ---
+  { obf = "b", descriptor = "[[B", name = "COMBO_FRAMES_CLASS6" },
+  { obf = "c", descriptor = "[[B", name = "COMBO_FRAMES_CLASS7" },
+  { obf = "d", descriptor = "[[B", name = "COMBO_FRAMES_CLASS8" },
+  { obf = "h", descriptor = "[B", name = "comboSteps" },
+  { obf = "q", descriptor = "B", name = "comboIndex" },
+  { obf = "r", descriptor = "B", name = "recoilTimer" },
+  { obf = "s", descriptor = "B", name = "recoilDir" },
+  { obf = "t", descriptor = "B", name = "comboLockout" },
+  { obf = "u", descriptor = "B", name = "deathTimer" },
+  { obf = "v", descriptor = "B", name = "hpRegenTimer" },
+  { obf = "w", descriptor = "B", name = "mpRegenTimer" },
+  { obf = "x", descriptor = "B", name = "queuedTurn" },
+  { obf = "y", descriptor = "B", name = "lungeSteps" },
+  { obf = "i", descriptor = "Z", name = "triggerChecked" },
+  { obf = "e", descriptor = "[[B", name = "comboFrames" },
+  { obf = "d", descriptor = "Z", name = "attackUp" },
+  { obf = "e", descriptor = "Z", name = "defenseUp" },
+  { obf = "f", descriptor = "Z", name = "invincible" },
+  { obf = "g", descriptor = "Z", name = "reflectDamage" },
+  { obf = "h", descriptor = "Z", name = "regenBoost" },
+  { obf = "z", descriptor = "B", name = "maxCombo" },
+  { obf = "a", descriptor = "S", name = "statPoints" },
+  { obf = "f", descriptor = "B", name = "classId" },
+  { obf = "g", descriptor = "B", name = "level" },
+  { obf = "b", descriptor = "S", name = "strength" },
+  { obf = "e", descriptor = "S", name = "vitality" },
+  { obf = "f", descriptor = "S", name = "agility" },
+  { obf = "g", descriptor = "S", name = "spirit" },
+  { obf = "m", descriptor = "B", name = "strengthBonus" },
+  { obf = "n", descriptor = "B", name = "vitalityBonus" },
+  { obf = "o", descriptor = "B", name = "agilityBonus" },
+  { obf = "p", descriptor = "B", name = "spiritBonus" },
+  { obf = "a", descriptor = "I", name = "hp" },
+  { obf = "b", descriptor = "I", name = "mp" },
+  { obf = "c", descriptor = "I", name = "exp" },
+  { obf = "h", descriptor = "S", name = "attack" },
+  { obf = "i", descriptor = "S", name = "defense" },
+  { obf = "d", descriptor = "I", name = "maxHp" },
+  { obf = "e", descriptor = "I", name = "maxMp" },
+  { obf = "f", descriptor = "I", name = "expToNext" },
+  { obf = "a", descriptor = "Lg;", name = "bag" },
+  { obf = "a", descriptor = "[Le;", name = "equipment" },
+  { obf = "a", descriptor = "[Lp;", name = "guardians" },
+  { obf = "a", descriptor = "Lp;", name = "activeGuardian" },
+  { obf = "b", descriptor = "Lg;", name = "quickItems" },
+  { obf = "i", descriptor = "I", name = "rolledDamage" },
+  { obf = "j", descriptor = "Z", name = "rolledCrit" },
+  { obf = "A", descriptor = "B", name = "rolledProc" },
+  { obf = "g", descriptor = "I", name = "sessionStartSec" },
+  { obf = "h", descriptor = "I", name = "playSeconds" },
+  # --- methods ---
+  { obf = "<init>", descriptor = "(SSBBB)V", name = "<init>" },
+  { obf = "c", descriptor = "(B)V", name = "initClass" },
+  { obf = "a", descriptor = "()V", name = "init" },
+  { obf = "h", descriptor = "()V", name = "resetBuffs" },
+  { obf = "a", descriptor = "(SS)V", name = "setPixelPos" },
+  { obf = "i", descriptor = "()V", name = "turnTowardEnemy" },
+  { obf = "a", descriptor = "(BB)V", name = "slide" },
+  { obf = "d", descriptor = "()V", name = "update" },
+  { obf = "o", descriptor = "()V", name = "advanceCombo" },
+  { obf = "p", descriptor = "()V", name = "performAttack" },
+  { obf = "b", descriptor = "()Z", name = "attackClass6" },
+  { obf = "c", descriptor = "()Z", name = "attackClass7" },
+  { obf = "d", descriptor = "()Z", name = "attackClass8" },
+  { obf = "a", descriptor = "()I", name = "rollDamage" },
+  { obf = "e", descriptor = "()Z", name = "rollCrit" },
+  { obf = "a", descriptor = "()B", name = "rollProc" },
+  { obf = "h", descriptor = "(I)V", name = "endCombo" },
+  { obf = "q", descriptor = "()V", name = "onDeath" },
+  { obf = "a", descriptor = "(Z)Z", name = "queueComboStep" },
+  { obf = "j", descriptor = "()V", name = "resetCombo" },
+  { obf = "a", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "paint" },
+  { obf = "d", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "drawSummonPose" },
+  { obf = "a", descriptor = "(BBLjavax/microedition/lcdui/Graphics;II)V", name = "drawCharacterSprite" },
+  { obf = "e", descriptor = "(Ljavax/microedition/lcdui/Graphics;II)V", name = "drawAttackSprite" },
+  { obf = "a", descriptor = "(Lal;B)V", name = "takeHit" },
+  { obf = "a", descriptor = "(Lal;SB)V", name = "takeHit" },
+  { obf = "b", descriptor = "(I)V", name = "addHp" },
+  { obf = "c", descriptor = "(I)V", name = "addHpPercent" },
+  { obf = "d", descriptor = "(I)V", name = "addMp" },
+  { obf = "e", descriptor = "(I)V", name = "addMpPercent" },
+  { obf = "f", descriptor = "(I)V", name = "addExp" },
+  { obf = "g", descriptor = "(I)V", name = "addMoney" },
+  { obf = "r", descriptor = "()V", name = "levelUp" },
+  { obf = "d", descriptor = "(B)V", name = "setComboDepth" },
+  { obf = "k", descriptor = "()V", name = "useQuickItem" },
+  { obf = "a", descriptor = "(ZB)[B", name = "serializeItems" },
+  { obf = "a", descriptor = "(Lad;)B", name = "slotOf" },
+  { obf = "b", descriptor = "(BB)V", name = "equipItem" },
+  { obf = "a", descriptor = "(I)Lad;", name = "getEquip" },
+  { obf = "a", descriptor = "()Ll;", name = "getWeapon" },
+  { obf = "a", descriptor = "()Lt;", name = "getArmor" },
+  { obf = "a", descriptor = "()Le;", name = "getAccessory1" },
+  { obf = "b", descriptor = "()Le;", name = "getAccessory2" },
+  { obf = "c", descriptor = "()Le;", name = "getAccessory3" },
+  { obf = "a", descriptor = "(Lad;)V", name = "useItem" },
+  { obf = "e", descriptor = "(B)V", name = "reloadEquipSprite" },
+  { obf = "a", descriptor = "(B)Lp;", name = "findOrCreateGuardian" },
+  { obf = "a", descriptor = "()Lp;", name = "getActiveGuardian" },
+  { obf = "a", descriptor = "(Lp;)Z", name = "setActiveGuardian" },
+  { obf = "l", descriptor = "()V", name = "beginGuardianSummon" },
+  { obf = "a", descriptor = "(Z)V", name = "castGuardianSkill" },
+  { obf = "b", descriptor = "()Lp;", name = "detachGuardian" },
+  { obf = "m", descriptor = "()V", name = "addGuardianToMap" },
+  { obf = "n", descriptor = "()V", name = "recomputeStats" },
+  { obf = "a", descriptor = "()[B", name = "save" },
+  { obf = "a", descriptor = "([B)V", name = "load" },
+]
+
