@@ -89,6 +89,52 @@ java-me-frames-check:
       python3 tools/oracle/compare_frames.py --self-test; \
     fi
 
+# --- Per-node Java/Rust AST crosswalk (the operator-realization rigor gate) ---
+
+# The generic gate under tools/ast/ (adopted verbatim from the j2me home
+# _template) enforces that EVERY Java node and EVERY Rust node carries its own
+# explicit decision + comment; no op may blanket a whole body; a Java DIVIDE /
+# REMAINDER / shift must be realized on the Rust side; and the bytecode / AST /
+# node-inventory digests are all hash-locked. This is the rigor gate that rejects
+# the coarse-blanket `paint_radio_row` failure mode.
+#
+# `crosswalk` wires it for WoS: it drives BOTH live emitters (JavaAstAuditDump
+# over the named-Java oracle, j2me-ast-audit over the transliterated Rust) plus
+# `javap` over the compiled oracle bytecode, writes the live evidence + a schema-2
+# manifest into git-ignored _reference/ast/, and prints the per-body node-level
+# coverage. It is RED (nonzero) until per-node op/adapt decisions are authored —
+# that is the honest baseline, so it is intentionally NOT part of `check` yet.
+crosswalk: build-java
+    cargo build -p j2me-ast-audit
+    python3 tools/ast/wos_crosswalk.py --coverage
+
+# Live "how much is still unchecked" burn-down: decided/total nodes per body plus
+# the overall number. Informational (always exits 0) — the report, not the gate.
+crosswalk-coverage: build-java
+    cargo build -p j2me-ast-audit
+    python3 tools/ast/wos_crosswalk.py --coverage || true
+
+# Prove the crosswalk gate can fail (playbook R3), generic proof: dropped
+# decision, coarse blanket, and bytecode/Java-AST/Rust-AST digest perturbations
+# each go red, and a one-node evidence drift breaks the node-inventory lock over
+# the shipped paint_radio_row fixture. Must exit 0.
+crosswalk-canfail:
+    python3 tools/ast/validate_crosswalk.py --self-test
+
+# Prove the gate bites on a REAL WoS body: coarse-blanket, operator-realization
+# parity (Adler32's `sumB % 65521` vs a non-dividing Rust node), and hash-lock
+# each go red against live WoS evidence. Regenerates the baseline first. Exit 0.
+crosswalk-wos-canfail: build-java
+    cargo build -p j2me-ast-audit
+    python3 tools/ast/wos_crosswalk.py --emit-only
+    python3 tools/ast/wos_crosswalk_canfail.py
+
+# Prove the fixture's coarse-blanket and div-vs-call bug rows go red as recorded.
+crosswalk-fixture-canfail:
+    python3 -m unittest \
+        tools.tests.test_crosswalk_validator.CrosswalkValidatorTests.test_coarse_blanket_is_rejected \
+        tools.tests.test_crosswalk_validator.CrosswalkValidatorTests.test_operator_parity_catches_div_vs_call
+
 # --- Test batteries ----------------------------------------------------------
 
 test:
@@ -103,6 +149,9 @@ check:
     just numeric-shape
     just numeric-shape-canfail
     just build-java
+    just crosswalk-canfail
+    just crosswalk-fixture-canfail
+    just crosswalk-wos-canfail
     if [ -d tools/tests ]; then python3 -m unittest discover -s tools/tests; fi
     if [ -f Cargo.toml ]; then cargo fmt --all --check; fi
     if [ -f Cargo.toml ]; then cargo clippy --workspace --all-targets -- -D warnings; fi

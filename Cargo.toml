@@ -18,6 +18,10 @@ members = [
     "transliteration/game-xlat",
     "crates/formats",
     "apps/heroes-lore-wind-of-soltia-linux",
+    # Audit tooling: the formatting-independent `syn` AST emitter for the
+    # per-node Java/Rust crosswalk gate (tools/ast). Game-agnostic; adopted from
+    # the j2me home `_template/tools/ast/`.
+    "tools/ast/j2me-ast-audit",
 ]
 resolver = "2"
 
@@ -42,6 +46,11 @@ png = "0.17"
 # the host builds on a bare Linux box via dlopen'd X11/Wayland.
 winit = "0.30"
 softbuffer = "0.4"
+# `quote` + `syn` back the `j2me-ast-audit` crate (tools/ast), the
+# formatting-independent Rust AST emitter for the per-node crosswalk audit. The
+# `full` + `visit` features give it the whole item/expr grammar and the visitor.
+quote = "1"
+syn = { version = "2", features = ["full", "visit"] }
 
 [profile.release]
 opt-level = 3

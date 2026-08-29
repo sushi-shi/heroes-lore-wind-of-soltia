@@ -1,0 +1,123 @@
+#!/usr/bin/env python3
+"""Prove the per-node crosswalk gate BITES on a real WoS body (playbook R3).
+
+The shipped `validate_crosswalk.py --self-test` already proves every tooth on the
+generic `paint_radio_row` fixture. This proof does the same against an actual
+transliterated Wind-of-Soltia body — `defpackage.Adler32` — so the gate is shown
+to react to WoS's own live-emitted evidence, not only the fixture.
+
+It reads the baseline evidence + manifest that `wos_crosswalk.py` wrote under
+`_reference/ast/`, then perturbs the Adler32 body three ways and requires each
+expected red:
+
+1. coarse blanket   — one op over the whole 124-node Java body is REJECTED;
+2. operator parity  — pairing Adler32's Java `%` (`sumB % 65521`, a REMAINDER)
+                      against a Rust node that is not `%`/`java_rem`/… goes red;
+3. hash lock        — a one-hex flip of the locked bytecode Code-attr digest
+                      breaks the lock.
+
+Exits 0 when all three failures were caught (like the other `*-canfail` gates:
+success means the gate detected the planted fault).
+"""
+
+from __future__ import annotations
+
+import copy
+import sys
+import tomllib
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+ROOT = HERE.parent.parent
+sys.path.insert(0, str(HERE))
+import validate_crosswalk as vc  # noqa: E402
+
+EVIDENCE_TOML = ROOT / "_reference" / "ast" / "wos.evidence.toml"
+MANIFEST_TOML = ROOT / "_reference" / "ast" / "wos.manifest.toml"
+TARGET = "defpackage.Adler32"
+MUST_REALIZE_KINDS = set(vc.DEFAULT_MUST_REALIZE)
+
+
+def _single_body_manifest(body: dict) -> dict:
+    return {
+        "schema_version": 2,
+        "total_body_count": 1,
+        "reviewed_body_count": 1,
+        "crosswalked_body_count": 0,
+        "policy": {"blanket_max_span": 48},
+        "body": [body],
+    }
+
+
+def _validate(body: dict, evidence: dict) -> list[str]:
+    report = vc.validate(_single_body_manifest(body), vc.load_evidence(evidence))
+    return report.errors
+
+
+def main() -> int:
+    if not MANIFEST_TOML.exists() or not EVIDENCE_TOML.exists():
+        raise SystemExit(
+            f"missing {MANIFEST_TOML} / {EVIDENCE_TOML} — run `just crosswalk` first"
+        )
+    manifest = tomllib.loads(MANIFEST_TOML.read_text(encoding="utf-8"))
+    evidence_data = tomllib.loads(EVIDENCE_TOML.read_text(encoding="utf-8"))
+
+    base_body = next(b for b in manifest["body"] if b["java_item"] == TARGET)
+    ev_body = next(b for b in evidence_data["body"] if b["java_item"] == TARGET)
+    java_nodes = ev_body["java_nodes"]
+    java_count = base_body["java_node_count"]
+    rust0_count = base_body["rust"][0]["node_count"]
+
+    # Locate a real must-realize Java operator node (Adler32's `sumB % 65521`).
+    remainder_index = next(
+        i for i, node in enumerate(java_nodes) if node.split("\t", 1)[0] == "REMAINDER"
+    )
+
+    failures: list[tuple[str, str]] = []
+
+    # --- 1. coarse blanket ---------------------------------------------------
+    coarse = copy.deepcopy(base_body)
+    coarse["op"] = [
+        {
+            "semantic": "map the whole Adler32 body in one blanket",
+            "java_range": [[0, java_count - 1]],
+            "rust_range": [{"target": 0, "start": 0, "end": rust0_count - 1}],
+        }
+    ]
+    coarse_errors = _validate(coarse, evidence_data)
+    failures.append(("coarse blanket", next(e for e in coarse_errors if "coarse blanket" in e)))
+
+    # --- 2. operator-realization parity --------------------------------------
+    parity = copy.deepcopy(base_body)
+    parity["op"] = [
+        {
+            "semantic": "sumB % 65521 paired against a non-dividing Rust node",
+            "java": [remainder_index],
+            "rust": ["0:0"],  # FIELD_DECL — carries no `%` / java_rem realization
+        }
+    ]
+    parity_errors = _validate(parity, evidence_data)
+    failures.append(
+        ("operator parity", next(e for e in parity_errors if "no Rust realization" in e))
+    )
+
+    # --- 3. hash lock --------------------------------------------------------
+    locked = copy.deepcopy(base_body)
+    locked["code_sha256"] = "0" * 64
+    lock_errors = _validate(locked, evidence_data)
+    failures.append(
+        ("hash lock", next(e for e in lock_errors if "Code-attr digest changed" in e))
+    )
+
+    print(f"WoS-body can-fail proof — target {TARGET} (a real transliterated body):")
+    for name, red in failures:
+        print(f"  RED [{name}]  {red}")
+    print(
+        "crosswalk WoS-body proof ok: coarse-blanket, operator-parity, and hash-lock "
+        "each went red against live WoS evidence"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

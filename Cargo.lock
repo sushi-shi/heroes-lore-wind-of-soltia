@@ -553,6 +553,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "j2me-ast-audit"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
 name = "j2me-canvas"
 version = "0.1.0"
 
