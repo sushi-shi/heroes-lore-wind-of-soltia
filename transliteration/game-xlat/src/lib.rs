@@ -21,6 +21,7 @@ pub mod crc32;
 pub mod png_merger;
 
 pub mod asset_cache;
+pub mod audio_manager;
 pub mod base_canvas;
 pub mod bitmap_font;
 pub mod font_manager;
@@ -29,6 +30,7 @@ pub mod game_loop;
 pub mod game_midlet;
 pub mod game_state;
 pub mod resources;
+pub mod sound_player;
 pub mod string_table;
 pub mod title_screen;
 pub mod wrap_font;

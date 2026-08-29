@@ -28,6 +28,14 @@
 #   PngMerger   -> br.class   (no rows: its `crc`/`adler` statics are the shared-
 #                              engine deviation, constructed locally — see
 #                              docs/TRANSLITERATION.md, accepted deviations)
+#   AudioManager-> bw.class
+#   SoundPlayer -> ci.class   (no rows: no static state. Its one INSTANCE field
+#                              `player` (`a:Ljavax/microedition/media/Player;`)
+#                              lives on the per-instance SoundPlayerState the
+#                              AudioManager pool owns — like BitmapFont's per-font
+#                              data. The `pool` arena that owns the wrappers is not
+#                              a Java static; it is the concrete Rust owner for the
+#                              heap objects `clips`/`bgm`/`bgm2`/`sfx` reference.)
 #
 # Singleton note (extends the GameMIDlet/GameLoop instance-field note above):
 # StringTable's one static `a:Lcj;` (`instance`) is eagerly `new StringTable()` at
@@ -101,3 +109,10 @@ FontManager	q	titleFooter	[C	FontManagerState	title_footer
 FontManager	r	versionText	[C	FontManagerState	version_text
 StringTable	a	instance	Lcj;	StringTableData	string_table
 ByteUtil	a	rng	Ljava/util/Random;	ByteUtilState	rng
+AudioManager	a	maxVolume	I	AudioManagerState	max_volume
+AudioManager	b	scaledVolume	I	AudioManagerState	scaled_volume
+AudioManager	a	bgm	Lci;	AudioManagerState	bgm
+AudioManager	b	bgm2	Lci;	AudioManagerState	bgm2
+AudioManager	c	sfx	Lci;	AudioManagerState	sfx
+AudioManager	a	clips	[Lci;	AudioManagerState	clips
+AudioManager	a	fileTable	[Ljava/lang/String;	AudioManagerState	file_table
