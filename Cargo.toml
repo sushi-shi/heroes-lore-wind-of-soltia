@@ -1,0 +1,19 @@
+# Workspace root for the Heroes Lore: Wind of Soltia native (Rust) port.
+#
+# Phase 1 delivers `crates/formats` (`hlws-formats`): malformed-input-rejecting
+# parsers for the game's custom J2ME resource formats. Later phases (rendering,
+# the event VM, the app shell) will join as further workspace members.
+[workspace]
+members = ["crates/formats"]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+license = "CC0-1.0"
+
+# Pinned dev-dependencies shared across the workspace. `zip` is used only by the
+# `hlws-formats` tests to extract resource blobs from the baseline JAR at test
+# time. Deflate-only (no bzip2/zstd/aes) keeps the build pure-Rust and offline
+# friendly — JAR entries are STORE or DEFLATE.
+[workspace.dependencies]
+zip = { version = "0.6.6", default-features = false, features = ["deflate"] }
