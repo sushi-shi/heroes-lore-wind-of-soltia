@@ -35,6 +35,13 @@
 #   PngMerger   -> br.class   (no rows: its `crc`/`adler` statics are the shared-
 #                              engine deviation, constructed locally — see
 #                              docs/TRANSLITERATION.md, accepted deviations)
+#   Directions  -> u.class    (interface of static-final constant tables → module
+#                              consts; owner token is the `directions` module)
+#   AppConfig   -> w.class
+#   Debug       -> x.class
+#   SaveCipher  -> bq.class   (no rows: pure static utility, no fields)
+#   RmsFile     -> au.class   (no rows: instance class, no static fields)
+#   EntityList  -> aq.class   (no rows: instance class, no static fields)
 #
 # Singleton note (extends the GameMIDlet/GameLoop instance-field note above):
 # StringTable's one static `a:Lcj;` (`instance`) is eagerly `new StringTable()` at
@@ -127,3 +134,20 @@ FontManager	c	labelExit	[C	FontManagerState	label_exit
 FontManager	d	labelOk	[C	FontManagerState	label_ok
 StringTable	a	instance	Lcj;	StringTableData	string_table
 ByteUtil	a	rng	Ljava/util/Random;	ByteUtilState	rng
+Directions	a	elementDamageMultiplier	[[B	directions	ELEMENT_DAMAGE_MULTIPLIER
+Directions	a	dirDx	[B	directions	DIR_DX
+Directions	b	dirDy	[B	directions	DIR_DY
+Directions	a	facingIsHorizontal	[Z	directions	FACING_IS_HORIZONTAL
+Directions	c	diagCW	[B	directions	DIAG_CW
+Directions	d	diagCCW	[B	directions	DIAG_CCW
+Directions	e	rotateCW	[B	directions	ROTATE_CW
+Directions	f	rotateCCW	[B	directions	ROTATE_CCW
+Directions	g	reverse	[B	directions	REVERSE
+AppConfig	a	midlet	Ljavax/microedition/midlet/MIDlet;	AppConfigState	app_properties
+AppConfig	a	locales	[Ljava/lang/String;	AppConfigState	locales
+AppConfig	a	buyUrl	Ljava/lang/String;	AppConfigState	buy_url
+AppConfig	a	menuBuyEnabled	Z	AppConfigState	menu_buy_enabled
+AppConfig	b	exitBuyEnabled	Z	AppConfigState	exit_buy_enabled
+AppConfig	c	fullVersion	Z	AppConfigState	full_version
+AppConfig	a	localeEnabled	[Z	AppConfigState	locale_enabled
+Debug	a	fullVersion	Z	DebugState	full_version

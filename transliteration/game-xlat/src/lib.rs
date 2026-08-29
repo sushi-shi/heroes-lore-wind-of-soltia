@@ -20,6 +20,17 @@ pub mod byte_util;
 pub mod crc32;
 pub mod png_merger;
 
+// Independent leaf/util/save classes (this increment): the save cipher, the RMS
+// "XFile" wrapper, the direction/element constant tables, the JAD app-property
+// config, the assertion/build-flag helper, and the z-ordered entity linked-list.
+// None sit on the title/render path. See `docs/TRANSLITERATION.md`.
+pub mod app_config;
+pub mod debug;
+pub mod directions;
+pub mod entity_list;
+pub mod rms_file;
+pub mod save_cipher;
+
 pub mod asset_cache;
 pub mod base_canvas;
 pub mod bitmap_font;

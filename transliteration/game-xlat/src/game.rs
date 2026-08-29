@@ -21,9 +21,11 @@
 //! static `create()` call); `GameState`'s is not reached until a later
 //! menu/world use, exactly as the JVM would defer it.
 
+use crate::app_config::AppConfigState;
 use crate::asset_cache::AssetCacheState;
 use crate::base_canvas::BaseCanvasState;
 use crate::byte_util::ByteUtilState;
+use crate::debug::DebugState;
 use crate::font_manager::FontManagerState;
 use crate::game_loop::GameLoopState;
 use crate::game_midlet::ApplicationState;
@@ -102,6 +104,16 @@ pub struct Game {
     /// seam — `randRange` is not exercised on the single first-frame drive).
     pub byte_util: ByteUtilState,
 
+    // --- Independent leaf/util/save classes increment (parallel lane: merge these
+    //     three fields into the aggregator). ---
+    /// The host-owned MIDP record-store namespace behind `au`/`RmsFile` (a host
+    /// seam like `display`; no `ownership.tsv` row — not a Java static).
+    pub rms: j2me_me::RmsRuntime,
+    /// `w` / `AppConfig` state (the JAD app-property/demo config).
+    pub app_config: AppConfigState,
+    /// `x` / `Debug` state (the mirrored full-version flag).
+    pub debug: DebugState,
+
     /// One-shot guard: has `bs.<clinit>` fired on the executed path?
     pub game_loop_class_initialized: bool,
     /// One-shot guard: has `n.<clinit>` fired on the executed path?
@@ -131,6 +143,9 @@ impl Game {
             font_manager: FontManagerState::default(),
             string_table: StringTableData::default(),
             byte_util: ByteUtilState::seeded(0),
+            rms: j2me_me::RmsRuntime::new(),
+            app_config: AppConfigState::default(),
+            debug: DebugState::default(),
             game_loop_class_initialized: false,
             game_state_class_initialized: false,
         }
