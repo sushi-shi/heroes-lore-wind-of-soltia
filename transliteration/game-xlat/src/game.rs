@@ -27,10 +27,27 @@ use crate::byte_util::ByteUtilState;
 use crate::font_manager::FontManagerState;
 use crate::game_loop::GameLoopState;
 use crate::game_midlet::ApplicationState;
+use crate::game_screen::GameScreenState;
 use crate::game_state::GameStateData;
+use crate::main_menu::MainMenuState;
 use crate::resources::ResourceBank;
 use crate::string_table::StringTableData;
 use crate::title_screen::TitleScreenState;
+
+/// Which `BaseCanvas` is currently shown — the concrete type of `GameLoop.current`.
+/// The transliteration models the two reachable screens (`TitleScreen`,
+/// `GameScreen`) with one shared `j2me-me` [`Canvas`](j2me_me::Canvas) +
+/// framebuffer; this discriminator selects which screen's `paint` / `keyPressed`
+/// the frame loop dispatches. `Title` until `GameLoop.showGameScreen` swaps
+/// `current` to a `GameScreen`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum CurrentScreen {
+    /// `GameLoop.current instanceof TitleScreen`.
+    #[default]
+    Title,
+    /// `GameLoop.current instanceof GameScreen`.
+    Game,
+}
 
 /// The whole transliterated program's state: the ported classes' `*State`s, the
 /// device runtime they reference, and the JVM class-init trigger guards.
@@ -43,6 +60,9 @@ pub struct Game {
     /// The current MIDP surface (a `BaseCanvas`). `None` until
     /// `TitleScreen`'s constructor materialises it on the render path.
     pub canvas: Option<j2me_me::Canvas>,
+    /// Which screen `GameLoop.current` points at (see [`CurrentScreen`]) — selects
+    /// the frame loop's `paint`/`keyPressed` dispatch target.
+    pub current_screen: CurrentScreen,
     /// The ARGB framebuffer that IS the rendered frame — the `Image` the paint
     /// `Graphics` rasterises into. `None` until the `TitleScreen`/`Canvas` exists.
     pub screen: Option<j2me_me::Image>,
@@ -64,6 +84,11 @@ pub struct Game {
     pub base_canvas: BaseCanvasState,
     /// `bg` / `TitleScreen` state.
     pub title_screen: TitleScreenState,
+    /// `as` / `GameScreen` state (PARTIAL — only the geometry + `case 9` main-menu
+    /// dispatch; see `game_screen`).
+    pub game_screen: GameScreenState,
+    /// `bf` / `MainMenu` state (the front menu + its `cb`/`Menu` base fields).
+    pub main_menu: MainMenuState,
     /// `ce` / `AssetCache` state (PARTIAL — only the title/logo render-path banks
     /// are modelled; see `asset_cache`).
     pub asset_cache: AssetCacheState,
@@ -91,6 +116,7 @@ impl Game {
         Game {
             display: j2me_me::Display::default(),
             canvas: None,
+            current_screen: CurrentScreen::default(),
             screen: None,
             clock: j2me_jvm::VirtualClock::new(0),
             resources: ResourceBank::new(),
@@ -99,6 +125,8 @@ impl Game {
             game_state: GameStateData::default(),
             base_canvas: BaseCanvasState::default(),
             title_screen: TitleScreenState::default(),
+            game_screen: GameScreenState::default(),
+            main_menu: MainMenuState::default(),
             asset_cache: AssetCacheState::new(),
             font_manager: FontManagerState::default(),
             string_table: StringTableData::default(),

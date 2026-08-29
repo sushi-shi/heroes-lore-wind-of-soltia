@@ -48,6 +48,10 @@ pub struct AssetCacheState {
     /// sprites (`/img/title2`, 10 = 5 base + 5 mirrored), filled by
     /// [`load_title_screen`]. `None` == Java null.
     pub title_menu_frames: Option<Vec<Image>>,
+    /// `public static Image[] menuFrames;` (obf `ce.l`) — the main-menu frame/border
+    /// atlas (`/sgui/mm/etc`), filled by [`load_main_menu_assets`] and drawn by
+    /// `MainMenu.paint`/`drawMenuPanel`. `None` == Java null.
+    pub menu_frames: Option<Vec<Image>>,
     /// `public static byte[] readBuffer = new byte[512];` (obf `ce.n`) — the
     /// shared 512-byte scratch [`read_resource`] slurps through.
     pub read_buffer: Vec<i8>,
@@ -61,6 +65,7 @@ impl AssetCacheState {
             logo_frames: None,
             title_bg_frames: None,
             title_menu_frames: None,
+            menu_frames: None,
             // static byte[] readBuffer = new byte[512];
             read_buffer: vec![0i8; 512],
         }
@@ -150,4 +155,39 @@ pub fn load_title_screen(g: &mut Game) {
     // AudioManager.loadClip((byte) 22);   — DEFERRED (audio not ported).
     g.asset_cache.title_menu_frames =
         Some(menu.into_iter().map(|o| o.expect("title2 frame")).collect());
+}
+
+/// `public static final void unloadLogo()` (`ce.x:()V => []`): `logoFrames = null`.
+/// Called by `TitleScreen.keyPressed` (state 1) on the title → main-menu key.
+pub fn unload_logo(g: &mut Game) {
+    // logoFrames = null;
+    g.asset_cache.logo_frames = None;
+}
+
+/// `public static final void unloadTitleScreen()` (`ce.z:()V => []`): drops the
+/// title frames. `AudioManager.unloadClip((byte) 22)` is DEFERRED (audio not
+/// ported). Called by `TitleScreen.keyPressed` (state 1).
+pub fn unload_title_screen(g: &mut Game) {
+    // titleBgFrames = null;
+    g.asset_cache.title_bg_frames = None;
+    // titleMenuFrames = null;
+    g.asset_cache.title_menu_frames = None;
+    // AudioManager.unloadClip((byte) 22);   — DEFERRED (audio not ported).
+}
+
+/// `public static final void loadMainMenuAssets()` (`ce.A:()V => []`).
+///
+/// ANTI-BOG: only `menuFrames = new PngMerger("/sgui/mm/etc").allImages()` — the
+/// frame/border atlas the main-menu render (`MainMenu.paint` / `drawMenuPanel` /
+/// the selection sprite) draws — is ported. The class-portrait faces (`classFaces`,
+/// `/sgui/mm/face` + gray variants) and the guardian previews (`menuGuardianPreview`,
+/// `/grd/0..2`) are read only by the class-select / preview screens (not the
+/// main-menu render) and are DEFERRED.
+pub fn load_main_menu_assets(g: &mut Game) {
+    // (DEFERRED: classFaces = new PngMerger("/sgui/mm/face") ... image/imageGray)
+    // menuFrames = new PngMerger("/sgui/mm/etc").allImages();
+    let mut etc = png_merger::construct(g, "/sgui/mm/etc");
+    let frames = png_merger::all_images(g, &mut etc);
+    g.asset_cache.menu_frames = Some(frames);
+    // (DEFERRED: menuGuardianPreview = new Image[3][2] ... /grd/0..2)
 }

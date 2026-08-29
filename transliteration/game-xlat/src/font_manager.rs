@@ -67,6 +67,16 @@ pub struct FontManagerState {
     pub version_text: Option<Vec<u16>>,
     /// `titleFooter` (lang 3950 = "PRESS ANY KEY"), filled by `loadLabels`.
     pub title_footer: Option<Vec<u16>>,
+    /// `mainMenuLabels` (`char[7][]`, obf `bh.a:[[C`) — the main-menu item labels
+    /// (lang 3920..3926: New Game / Load Game / Options / Help / About / (buy) /
+    /// Exit), filled by [`load_title_labels`] (the boot's `loadLabels` subset). Each
+    /// entry is `None` until filled. `mainMenuLabels[5]` is overwritten by
+    /// `AppConfig.apply` (see [`load_title_labels`]).
+    pub main_menu_labels: Vec<Option<Vec<u16>>>,
+    /// `labelOk` (lang 3908 = "Ok") — the main-menu left soft-key label.
+    pub label_ok: Option<Vec<u16>>,
+    /// `labelExit` (lang 3907 = "Exit") — the main-menu right soft-key label.
+    pub label_exit: Option<Vec<u16>>,
 }
 
 /// `public static final void initFonts()` (`bh.a:()V => []`): builds the six fonts,
@@ -207,4 +217,152 @@ pub fn load_title_labels(g: &mut Game) {
     g.font_manager.title_footer = Some(footer);
     // versionText = "2.0.7".toCharArray();  (from MIDlet-Version; fullVersion=false)
     g.font_manager.version_text = Some("2.0.7".encode_utf16().collect());
+
+    // --- The main-menu label subset of `loadLabels(StringTable)` (bh.a:(Lcj;)V) ---
+    // The boot's `loadLanguage` runs the full `loadLabels(3902..3950)`; ANTI-BOG,
+    // only the labels the main-menu render reads are filled here:
+    //   labelExit = getString(3907); labelOk = getString(3908);
+    //   mainMenuLabels[0..6] = getString(3920,3921,3922,3923,3924,3924,3926)
+    // (the `[4]` and `[5]` are BOTH `getString(3924)` in the shipped bytecode —
+    // verified by `javap -c` on `bh.class`, aastore indices 4 and 5).
+    g.font_manager.label_exit = Some(get_string(g, 3907));
+    g.font_manager.label_ok = Some(get_string(g, 3908));
+    let l0 = get_string(g, 3920);
+    let l1 = get_string(g, 3921);
+    let l2 = get_string(g, 3922);
+    let l3 = get_string(g, 3923);
+    let l4 = get_string(g, 3924);
+    let l5 = get_string(g, 3924);
+    let l6 = get_string(g, 3926);
+    g.font_manager.main_menu_labels = vec![
+        Some(l0),
+        Some(l1),
+        Some(l2),
+        Some(l3),
+        Some(l4),
+        Some(l5),
+        Some(l6),
+    ];
+
+    // --- `AppConfig.apply()` (deferred; see game_loop's cross-owner snapshot
+    // convention): when `menuBuyEnabled` is false it overwrites
+    //   mainMenuLabels[5] = mainMenuLabels[6];
+    // so the 6-item fresh-install menu's last row is "Exit" (getString(3926)),
+    // NOT the second `getString(3924)`. On the EN v207 build `menuBuyEnabled` is
+    // false (the reference main-menu has 6 rows ending in Exit, no buy row).
+    if !APP_CONFIG_MENU_BUY_ENABLED {
+        g.font_manager.main_menu_labels[5] = g.font_manager.main_menu_labels[6].clone();
+    }
+    // (menuBuyEnabled == true would set mainMenuLabels[5] = resolveBuyLabel() — DEFERRED.)
+}
+
+/// Deferred cross-class static `AppConfig.menuBuyEnabled` (obf `...:Z`), read by
+/// `AppConfig.apply` and `MainMenu`. On the EN v207 build it is `false` (`HO-Demo`
+/// marks a demo, but no in-menu buy row is configured — the captured main-menu has
+/// exactly six rows ending in "Exit"). AppConfig is not ported in this increment;
+/// snapshotted per the contract's cross-owner-read convention.
+pub const APP_CONFIG_MENU_BUY_ENABLED: bool = false;
+
+/// `public static final void setBigFont(boolean active)` (`bh.a:(Z)V => []`):
+/// selects the small/big family as `currentFont`.
+pub fn set_big_font(s: &mut FontManagerState, active: bool) {
+    // bigFontActive = active;
+    s.big_font_active = active;
+    // currentFont = bigFontActive ? bigBlack : smallBlack;
+    s.current_font = if s.big_font_active {
+        CurrentFont::BigBlack
+    } else {
+        CurrentFont::SmallBlack
+    };
+}
+
+/// `public static final int lineHeight()` (`bh.a:()I => []`):
+/// `((BitmapFont) currentFont).lineHeight`.
+pub fn line_height(s: &FontManagerState) -> i32 {
+    current_font(s).line_height
+}
+
+/// `public static final void drawMenuItem(Graphics graphics, int itemState, int unused, int y)`
+/// (`bh.a:(…Graphics;III)V => [ishr, ishr, irem, iadd]`): draws one centred
+/// main-menu item in the big font. An even `itemState` renders it white
+/// (highlighted), an odd one black; the item is `mainMenuLabels[itemState >> 1]`.
+pub fn draw_menu_item(
+    s: &mut FontManagerState,
+    graphics: &mut j2me_me::Graphics,
+    base_canvas: &crate::base_canvas::BaseCanvasState,
+    item_state: i32,
+    _unused: i32,
+    y: i32,
+) {
+    // int centerX = BaseCanvas.width >> 1;
+    let center_x: i32 = j2me_jvm::ishr(base_canvas.width, 1);
+    // setBigFont(true);
+    set_big_font(s, true);
+    // int index = itemState >> 1;
+    let index: i32 = j2me_jvm::ishr(item_state, 1);
+    // if (itemState % 2 == 0) setColor(16777215); else setColor(0);
+    if j2me_jvm::java_rem(item_state, 2).expect("itemState % 2") == 0 {
+        graphics.set_color(16777215);
+    } else {
+        graphics.set_color(0);
+    }
+    // drawCharsCentered(graphics, centerX, y + 4, mainMenuLabels[index], 1);
+    let label = s.main_menu_labels[index as usize]
+        .clone()
+        .expect("mainMenuLabels[index] null");
+    draw_chars_centered(s, graphics, center_x, y.wrapping_add(4), &label, 1);
+    // setBigFont(false);
+    set_big_font(s, false);
+}
+
+/// `public static final void drawSoftKeys(Graphics graphics, char[] leftLabel, char[] rightLabel)`
+/// (`bh.a:(…Graphics;[C[C)V => [iadd,iadd,isub,iadd,iadd,iadd,isub,isub,iadd,iadd,iadd]`):
+/// the bottom soft-key command bar — a black box + white label bottom-left for
+/// `leftLabel`, bottom-right for `rightLabel`. Either may be `null`.
+pub fn draw_soft_keys(
+    s: &FontManagerState,
+    graphics: &mut j2me_me::Graphics,
+    base_canvas: &crate::base_canvas::BaseCanvasState,
+    left_label: Option<&[u16]>,
+    right_label: Option<&[u16]>,
+) {
+    // graphics.setClip(0, 0, BaseCanvas.width, BaseCanvas.height);
+    graphics.set_clip(0, 0, base_canvas.width, base_canvas.height);
+    // int barHeight = lineHeight() + 5;
+    let bar_height: i32 = line_height(s).wrapping_add(5);
+    // if (leftLabel != null) { ... }
+    if let Some(left) = left_label {
+        // int boxWidth = stringWidth(leftLabel) + 2;
+        let box_width: i32 = string_width(s, left).wrapping_add(2);
+        // int boxY = (BaseCanvas.height - barHeight) + 3;
+        let box_y: i32 = base_canvas.height.wrapping_sub(bar_height).wrapping_add(3);
+        // graphics.setColor(0); graphics.fillRect(0, boxY, boxWidth, barHeight);
+        graphics.set_color(0);
+        graphics.fill_rect(0, box_y, box_width, bar_height);
+        // graphics.setColor(16777215); drawChars(graphics, 1, boxY + 1, leftLabel, 1);
+        graphics.set_color(16777215);
+        draw_chars(s, graphics, 1, box_y.wrapping_add(1), left, 1);
+    }
+    // if (rightLabel != null) { ... }
+    if let Some(right) = right_label {
+        // int boxWidth = stringWidth(rightLabel) + 2;
+        let box_width: i32 = string_width(s, right).wrapping_add(2);
+        // int boxX = BaseCanvas.width - boxWidth;
+        let box_x: i32 = base_canvas.width.wrapping_sub(box_width);
+        // int boxY = (BaseCanvas.height - barHeight) + 3;
+        let box_y: i32 = base_canvas.height.wrapping_sub(bar_height).wrapping_add(3);
+        // graphics.setColor(0); graphics.fillRect(boxX, boxY, boxWidth, barHeight);
+        graphics.set_color(0);
+        graphics.fill_rect(box_x, box_y, box_width, bar_height);
+        // graphics.setColor(16777215); drawChars(graphics, boxX + 1, boxY + 1, rightLabel, 1);
+        graphics.set_color(16777215);
+        draw_chars(
+            s,
+            graphics,
+            box_x.wrapping_add(1),
+            box_y.wrapping_add(1),
+            right,
+            1,
+        );
+    }
 }

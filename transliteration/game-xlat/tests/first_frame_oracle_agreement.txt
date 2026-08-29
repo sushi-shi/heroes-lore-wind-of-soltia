@@ -34,3 +34,44 @@ publisher-splash = 0
 # correct-per-MIDP and this 136 is recorded honestly. Everything else — art,
 # version text, both birds, footer POSITION/GLYPHS — is pixel-exact (0 diff).
 title-logo = 136
+
+# =====================================================================
+# MAIN MENU (tests/menu_oracle.rs) — the boot → title → any-key → parchment
+# main menu, then DOWN-navigation. Driven through the REAL path:
+# TitleScreen.keyPressed (state 1) → enterStoryMode → run() loadPhase-2 →
+# GameLoop.showGameScreen → GameState.buildLoadMenu → GameScreen.paint (screen 9)
+# → MainMenu.draw → MainMenu.paint. The port was PREVIOUSLY stuck on the
+# title/publisher, so these parchment-menu references diffed at ~99% (~75865 px).
+#
+# Now the whole menu renders: the dark-violet ground (4136767), the parchment
+# panel (drawMenuPanel over menuFrames[3..13] + the 16763769 fill), the red
+# selection sprite (menuFrames[18]), the six big-font item labels, and the
+# soft keys. Navigation is exact: DOWN from NEW GAME (cursorIndex 0) SKIPS the
+# disabled LOAD row (index 1) straight to OPTIONS (2) → HELP (3) → ABOUT (4) →
+# EXIT (5) — the fresh-install no-save order.
+#
+# THE RESIDUAL IS 100% THE FreeJ2ME getColor/setColor COLOUR-LATCH — the SAME
+# emulator artifact as the title-footer 136 above, now on the WHITE-fill text:
+#   * the HIGHLIGHTED item (drawMenuItem: itemState even → setColor(16777215) →
+#     fontForColor → bigWhite) is rendered by the faithful port as bright WHITE
+#     (white fill / black outline); FreeJ2ME's stale getColor picks bigBlack, so
+#     the capture shows the selected label DARK. (~370 px on NEW GAME, less on
+#     shorter labels.)
+#   * the soft keys "Ok"/"Exit" (drawSoftKeys: setColor(16777215) → smallWhite)
+#     are drawn WHITE by the port; FreeJ2ME renders them #ff8800 (smallOrange) —
+#     the ~57 px present in every menu frame.
+# The (port_rgb -> ref_rgb) histogram is ONLY black<->white and white->#ff8800
+# pairs — there is NO positional/shape/geometry diff. Everything else (panel,
+# sprite, ALL the black unhighlighted labels, layout) is pixel-EXACT (0 diff).
+# Matching the capture would require reproducing the emulator's colour bug (an
+# unfaithful hack, forbidden by docs/TRANSLITERATION.md), so the port stays
+# correct-per-MIDP and these residuals are recorded honestly.
+#
+# 00-boot/main-menu-new-game and 01-menu/menu-new-game are the SAME captured
+# frame (one SOFT1 from the title), so both pin the same port framebuffer = 427.
+main-menu-new-game = 427
+menu-new-game = 427
+menu-options = 376
+menu-help = 240
+menu-about = 297
+menu-exit = 232

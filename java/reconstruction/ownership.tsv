@@ -16,8 +16,15 @@
 #   GameState   -> n.class
 #   BaseCanvas  -> r.class
 #   TitleScreen -> bg.class
-#   AssetCache  -> ce.class   (PARTIAL: only the title/logo render-path statics)
-#   FontManager -> bh.class   (PARTIAL: only the title text path's fonts + labels)
+#   GameScreen  -> as.class   (PARTIAL: the geometry statics + the case-9 main-menu
+#                              dispatch; the world/HUD/other-screen statics deferred)
+#   Menu        -> cb.class   (no rows: the abstract menu base has NO static fields —
+#                              every field is per-instance, carried by MainMenuState.base)
+#   MainMenu    -> bf.class
+#   AssetCache  -> ce.class   (PARTIAL: the title/logo render-path statics + the
+#                              main-menu frame atlas `menuFrames`)
+#   FontManager -> bh.class   (PARTIAL: the title text path's fonts + labels, plus the
+#                              main-menu item labels + Ok/Exit soft-key labels)
 #   StringTable -> cj.class
 #   BitmapFont  -> az.class   (no rows: no static mutable state — its `crcTable`
 #                              is a `static final` constant, reproduced by a fn;
@@ -85,9 +92,25 @@ BaseCanvas	k	loadProgress	I	BaseCanvasState	load_progress
 BaseCanvas	l	loadTotal	I	BaseCanvasState	load_total
 BaseCanvas	m	loadPhase	I	BaseCanvasState	load_phase
 TitleScreen	a	instance	Lbg;	TitleScreenState	instance
+GameScreen	a	width	I	GameScreenState	width
+GameScreen	b	worldHeight	I	GameScreenState	world_height
+GameScreen	c	centerX	I	GameScreenState	center_x
+GameScreen	d	centerY	I	GameScreenState	center_y
+GameScreen	n	hudSlots	I	GameScreenState	hud_slots
+GameScreen	o	barWidth	I	GameScreenState	bar_width
+GameScreen	p	expWidth	I	GameScreenState	exp_width
+GameScreen	e	fxTimer	I	GameScreenState	fx_timer
+MainMenu	a	panelX	I	MainMenuState	panel_x
+MainMenu	b	panelY	I	MainMenuState	panel_y
+MainMenu	c	aboutIndex	I	MainMenuState	about_index
+MainMenu	d	exitIndex	I	MainMenuState	exit_index
+MainMenu	a	singleton	Lbf;	MainMenuState	singleton
+MainMenu	c	pendingBuyPrompt	Z	MainMenuState	pending_buy_prompt
+MainMenu	d	pendingExitPrompt	Z	MainMenuState	pending_exit_prompt
 AssetCache	i	logoFrames	[Ljavax/microedition/lcdui/Image;	AssetCacheState	logo_frames
 AssetCache	j	titleBgFrames	[Ljavax/microedition/lcdui/Image;	AssetCacheState	title_bg_frames
 AssetCache	k	titleMenuFrames	[Ljavax/microedition/lcdui/Image;	AssetCacheState	title_menu_frames
+AssetCache	l	menuFrames	[Ljavax/microedition/lcdui/Image;	AssetCacheState	menu_frames
 AssetCache	n	readBuffer	[B	AssetCacheState	read_buffer
 FontManager	a	smallBlack	Lb;	FontManagerState	small_black
 FontManager	b	smallWhite	Lb;	FontManagerState	small_white
@@ -99,5 +122,8 @@ FontManager	g	currentFont	Lb;	FontManagerState	current_font
 FontManager	a	bigFontActive	Z	FontManagerState	big_font_active
 FontManager	q	titleFooter	[C	FontManagerState	title_footer
 FontManager	r	versionText	[C	FontManagerState	version_text
+FontManager	a	mainMenuLabels	[[C	FontManagerState	main_menu_labels
+FontManager	c	labelExit	[C	FontManagerState	label_exit
+FontManager	d	labelOk	[C	FontManagerState	label_ok
 StringTable	a	instance	Lcj;	StringTableData	string_table
 ByteUtil	a	rng	Ljava/util/Random;	ByteUtilState	rng

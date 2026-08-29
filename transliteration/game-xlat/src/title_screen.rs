@@ -24,6 +24,7 @@
 //! (`imul`/`i2s` for the glyph position updates, `idiv` for `width / 2`, `irem`
 //! for `animTick % 4`, `iadd`/`i2b` for the frame counters).
 
+use crate::asset_cache;
 use crate::base_canvas;
 use crate::byte_util;
 use crate::font_manager;
@@ -408,4 +409,113 @@ fn start_title(g: &mut Game) {
     // this.glyph2Frame = (byte) ByteUtil.randRange(0, 7);
     g.title_screen.glyph2_frame = byte_util::rand_range(&mut g.byte_util, 0, 7) as i8;
     // AudioManager.playBgm(22);   — DEFERRED (audio not ported).
+}
+
+/// `public final void keyPressed(int keyCode)` (`bg.keyPressed:(I)V => []`): the
+/// title's key handler. On the state-1 title, ANY key leaves the title into
+/// `enterStoryMode` (→ the main menu on a fresh install). `AudioManager.stopBgm()`
+/// is DEFERRED (audio not ported).
+pub fn key_pressed(g: &mut Game, key_code: i32) {
+    // getGameAction(keyCode);   — the return value is discarded (no side effect).
+    let _ = j2me_me::Canvas::common_game_action(key_code);
+    // if (GameLoop.instance == null || GameLoop.instance.stopped) return;
+    if !g.game_loop.instance || g.game_loop.stopped {
+        return;
+    }
+    // switch (this.state)
+    match g.title_screen.state {
+        1 => {
+            // AudioManager.stopBgm();   — DEFERRED (audio not ported).
+            // AssetCache.unloadLogo();
+            asset_cache::unload_logo(g);
+            // AssetCache.unloadTitleScreen();
+            asset_cache::unload_title_screen(g);
+            // enterStoryMode(false, (byte) 1);
+            enter_story_mode(g, false, 1);
+        }
+        2 => {
+            // this.state = (byte) 3; this.animTick = 0; setLoadingFps(); instance = this; new Thread(instance).start();
+            //   NOT reached on the fresh boot→menu route (enterStoryMode goes 1 → 0/loadPhase-2,
+            //   never 2, because progressFlags bit 8 makes `resume` true). The async loader
+            //   thread is DEFERRED.
+            g.title_screen.state = 3;
+            g.title_screen.anim_tick = 0;
+            game_loop::set_loading_fps(g);
+            g.title_screen.instance = true;
+            // new Thread(instance).start();   — DEFERRED (async run() loader).
+        }
+        6 => {
+            // GameMIDlet.instance.destroyApp(true);   — DEFERRED (lifecycle terminator).
+        }
+        10 => {
+            // startTitle();
+            start_title(g);
+        }
+        _ => {}
+    }
+}
+
+/// `public final void enterStoryMode(boolean resume, byte mode)`: on a fresh
+/// install `progressFlags` carries bit 8 (set by the `GameLoop` constructor), so
+/// `resume` becomes true and control takes the loader path (state 0, loadPhase 2),
+/// which loads the main-menu assets and shows the `GameScreen`. `AudioManager.stopSfx()`
+/// and `BaseCanvas.beginLoading(...)` are DEFERRED.
+pub fn enter_story_mode(g: &mut Game, resume: bool, mode: i8) {
+    // AudioManager.stopSfx();   — DEFERRED (audio not ported).
+    let mut resume = resume;
+    // if (!resume) { if ((progressFlags & (mode==1 ? 8 : 2)) != 0) resume = true; }
+    if !resume {
+        let mask: i8 = if mode == 1 { 8 } else { 2 };
+        // byte & byte promotes to int in Java; bit 8 is positive so no sign issue.
+        if ((g.game_loop.progress_flags as i32) & (mask as i32)) != 0 {
+            resume = true;
+        }
+    }
+    // if (!resume || this.skipStoryIntro) { this.state = (byte) 2; return; }
+    if !resume || g.title_screen.skip_story_intro {
+        g.title_screen.state = 2;
+        return;
+    }
+    // this.state = (byte) 0; this.loadPhase = (byte) 2;
+    g.title_screen.state = 0;
+    g.title_screen.load_phase = 2;
+    // BaseCanvas.beginLoading("- STORY MODE", 52);   — DEFERRED (loading-overlay
+    //   counters; the state-0 loading screen is not captured — the route settles
+    //   straight to the main menu).
+    // GameLoop.instance.setLoadingFps();
+    game_loop::set_loading_fps(g);
+    // new Thread(this).start();   — the async loader thread. Executed synchronously
+    //   here (single-threaded transliteration convention; the intermediate loading
+    //   frames are not captured, and this reaches the same settled main-menu state).
+    run(g);
+}
+
+/// One activation of `public final void run()` (`bg.run:()V => []`) — the ported
+/// state-0 / loadPhase-2 branch: load the main-menu assets, show the `GameScreen`,
+/// then mark the loader done (`state = -1`, `loadPhase = 0`). `AssetLoader.loadStringTables()`
+/// is DEFERRED (the menu labels are already loaded by `loadLabels` at boot;
+/// `commonText` is not read by the main-menu render). The loadPhase-1 first-boot
+/// loader is DEFERRED (driven by the caller — see the module header).
+pub fn run(g: &mut Game) {
+    // switch (this.state) { case 0: switch (this.loadPhase) { ... } }
+    if g.title_screen.state == 0 {
+        // switch (loadPhase)  — only `case 2` (the main-menu loader) is ported;
+        // `case 1` is DEFERRED to the default arm (hence single_match).
+        #[allow(clippy::single_match)]
+        match g.title_screen.load_phase {
+            2 => {
+                // AssetLoader.loadStringTables();   — DEFERRED (see above).
+                // AssetCache.loadMainMenuAssets();
+                asset_cache::load_main_menu_assets(g);
+                // GameLoop.instance.showGameScreen();
+                game_loop::show_game_screen(g);
+                // this.state = (byte) -1;
+                g.title_screen.state = -1;
+                // this.loadPhase = (byte) 0;
+                g.title_screen.load_phase = 0;
+            }
+            // (DEFERRED: case 1 — the first-boot global-UI / options loader.)
+            _ => {}
+        }
+    }
 }

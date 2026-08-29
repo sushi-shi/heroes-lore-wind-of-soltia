@@ -16,7 +16,9 @@
 //! `bs.c:()V => []` (start).
 
 use crate::base_canvas;
-use crate::game::Game;
+use crate::game::{CurrentScreen, Game};
+use crate::game_screen;
+use crate::game_state;
 use crate::title_screen;
 use j2me_jvm::{java_div, Clock};
 
@@ -243,15 +245,39 @@ pub fn run_one_frame(g: &mut Game) {
     base_canvas::request_repaint(g);
     //   this.display.callSerially(this);   — re-arm for the next frame (host concern).
     // }
-    // MIDP serializes the owed repaint into a paint callback; dispatch it so one
-    // run_one_frame yields one rendered frame.
-    let owed = g
-        .canvas
-        .as_mut()
-        .map(|c| c.service_repaints())
-        .unwrap_or(false);
-    if owed {
-        title_screen::paint(g);
+    // MIDP serializes the paint/input callbacks: an owed repaint is dispatched
+    // BEFORE the next queued key (R9, `j2me_me::Canvas::poll_event`). Drain the
+    // queue in that order, dispatching each event to the current screen. A key that
+    // swaps the current screen (title → GameScreen) re-arms a repaint, so the next
+    // drained event paints the new screen — matching MIDP's serialized dispatch.
+    while let Some(event) = poll_event(g) {
+        match event {
+            j2me_me::CanvasEvent::Paint => dispatch_paint(g),
+            j2me_me::CanvasEvent::KeyPressed(code) => dispatch_key(g, code),
+            // keyReleased / keyRepeated are not delivered on the title/menu route.
+            j2me_me::CanvasEvent::KeyReleased(_) | j2me_me::CanvasEvent::KeyRepeated(_) => {}
+        }
+    }
+}
+
+/// Pops the next serialized Canvas event (an owed paint before any queued key).
+fn poll_event(g: &mut Game) -> Option<j2me_me::CanvasEvent> {
+    g.canvas.as_mut().and_then(|c| c.poll_event())
+}
+
+/// Dispatches a `paint` to the current screen (`GameLoop.current.paint`).
+fn dispatch_paint(g: &mut Game) {
+    match g.current_screen {
+        CurrentScreen::Title => title_screen::paint(g),
+        CurrentScreen::Game => game_screen::paint(g),
+    }
+}
+
+/// Dispatches a `keyPressed` to the current screen (`GameLoop.current.keyPressed`).
+fn dispatch_key(g: &mut Game, code: i32) {
+    match g.current_screen {
+        CurrentScreen::Title => title_screen::key_pressed(g, code),
+        CurrentScreen::Game => game_screen::key_pressed(g, code),
     }
 }
 
@@ -295,4 +321,29 @@ pub fn sleep_for(g: &mut Game, start_ms: i64, target_ms: i64) {
 pub fn set_loading_fps(g: &mut Game) {
     // setFps(5);
     set_fps(g, 5);
+}
+
+/// `public final void setFastFps()` (`bs.e:()V => []`) — 20 FPS for fast sequences.
+pub fn set_fast_fps(g: &mut Game) {
+    // setFps(20);
+    set_fps(g, 20);
+}
+
+/// `public final void showGameScreen()` (`bs.h:()V`): swaps the shown screen to a
+/// fresh `GameScreen` and builds the load/main menu.
+///
+/// The transliteration models the two screens (`TitleScreen`/`GameScreen`) with one
+/// shared `j2me-me` Canvas + framebuffer, so the `display.setCurrent(...)` swap is
+/// the [`CurrentScreen`] discriminator plus the `showNotify`-scheduled repaint the
+/// swap arms (`base_canvas::request_repaint`).
+pub fn show_game_screen(g: &mut Game) {
+    // this.current = new GameScreen();
+    game_screen::construct(g);
+    // gameScreen = (GameScreen) this.current;
+    g.game_loop.game_screen = true;
+    // this.display.setCurrent(this.current);
+    g.current_screen = CurrentScreen::Game;
+    base_canvas::request_repaint(g);
+    // GameState.buildLoadMenu();
+    game_state::build_load_menu(g);
 }
