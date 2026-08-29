@@ -17,7 +17,7 @@
 mod common;
 
 use common::{basename, fixtures, is_extensionless};
-use hlws_formats::*;
+use heroes_lore_wind_of_soltia_formats::*;
 
 /// Parse `blobs` with `f`, panicking with the blob name on the first failure;
 /// assert the count meets `floor`; print the count for the run log.

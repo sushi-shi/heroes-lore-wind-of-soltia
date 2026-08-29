@@ -1,4 +1,4 @@
-//! `hlws-formats` — parsers for the custom J2ME resource formats used by
+//! `heroes-lore-wind-of-soltia-formats` — parsers for the custom J2ME resource formats used by
 //! *Heroes Lore: Wind of Soltia* (Qplaze, 2007).
 //!
 //! Every parser is total on arbitrary input: it returns [`Result<_, FormatError>`]

@@ -1,0 +1,27 @@
+[package]
+name = "hlws-linux"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Native desktop host that plays the strict Heroes Lore: Wind of Soltia transliteration."
+publish = false
+
+# The NATIVE HOST: a desktop window that plays the strict transliteration.
+# Deliberately thin — all game behavior lives in the transliteration
+# (`heroes-lore-wind-of-soltia-game-xlat`) driven through the `j2me-me` device
+# runtime; this crate constructs the game, runs the frame loop, and presents the
+# ARGB framebuffer. `winit` + `softbuffer` (CPU blit — no wgpu/shaders) are the
+# only windowing deps. (Phase-3 skeleton.)
+[dependencies]
+heroes-lore-wind-of-soltia-game-xlat = { path = "../../transliteration/game-xlat" }
+j2me-me = { path = "../../crates/j2me-me" }
+# The injectable `Clock` the game loop threads through (a `WallClock` for the
+# window; a `VirtualClock` for the deterministic smoke).
+j2me-jvm = { path = "../../crates/j2me-jvm" }
+# Windowing + CPU framebuffer presentation.
+winit = { workspace = true }
+softbuffer = { workspace = true }
+
+[[bin]]
+name = "hlws-linux"
+path = "src/main.rs"

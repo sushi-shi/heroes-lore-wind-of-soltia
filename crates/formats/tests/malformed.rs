@@ -5,7 +5,7 @@
 //! so these tests prove the `Err`s come from real validation rather than a
 //! parser that rejects everything.
 
-use hlws_formats::*;
+use heroes_lore_wind_of_soltia_formats::*;
 
 /// PNG chunk helper: `[u32 len BE][type][data][u32 crc]`.
 fn chunk(ty: &[u8; 4], data: &[u8]) -> Vec<u8> {
@@ -340,7 +340,7 @@ fn minimal_evt() -> Vec<u8> {
 
 #[test]
 fn evt_rejects_malformed() {
-    use hlws_formats::evt::OpCode;
+    use heroes_lore_wind_of_soltia_formats::evt::OpCode;
 
     // Empty input.
     assert!(evt::parse(&[], 0, 0).is_err(), "empty");
