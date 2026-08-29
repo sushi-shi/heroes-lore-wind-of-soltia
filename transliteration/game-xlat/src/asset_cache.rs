@@ -191,3 +191,39 @@ pub fn load_main_menu_assets(g: &mut Game) {
     g.asset_cache.menu_frames = Some(frames);
     // (DEFERRED: menuGuardianPreview = new Image[3][2] ... /grd/0..2)
 }
+
+/// `public static final byte[] loadItemRecord(byte itemId, byte record)`. Opens
+/// `/itm/<zero-padded itemId>`, skips `record` length-framed records, and returns
+/// the `record`-th record's content (the `[u8 recLen][recLen bytes]` framing read
+/// through `InputStream.read`/`skip`). `null` (`None`) when the resource is absent
+/// (the `catch (IOException)` path). Drives `Item.load` (see `crate::item`).
+pub fn load_item_record(g: &mut Game, item_id: i8, record: i8) -> Option<Vec<i8>> {
+    // String idText = String.valueOf((int) itemId);
+    let mut id_text = format!("{}", item_id as i32);
+    // if (itemId < 10) idText = "0" + idText;
+    if item_id < 10 {
+        id_text = format!("0{id_text}");
+    }
+    // InputStream in = getResourceAsStream("/itm/" + idText);
+    let src: Vec<i8> = g.resources.get(&format!("/itm/{id_text}"))?.to_vec();
+    let mut pos: usize = 0;
+    // for (int i = 0; i < record; i++) in.skip(in.read());   (in.read() = unsigned recLen)
+    let mut i: i32 = 0;
+    while i < record as i32 {
+        let len = (src[pos] as i32) & 255;
+        pos += 1;
+        pos = pos.wrapping_add(len as usize);
+        i = i.wrapping_add(1);
+    }
+    // result = new byte[in.read()]; in.read(result);
+    let rec_len = ((src[pos] as i32) & 255) as usize;
+    pos += 1;
+    let mut result = vec![0i8; rec_len];
+    result.copy_from_slice(&src[pos..pos + rec_len]);
+    Some(result)
+}
+
+/// `public static final byte[] loadShopItemData()` — `readResource("/itm/forshop")`.
+pub fn load_shop_item_data(g: &mut Game) -> Option<Vec<i8>> {
+    read_resource(g, "/itm/forshop")
+}
