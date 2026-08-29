@@ -1,0 +1,25 @@
+# Local EXACT-pixel agreement ratchet for the first-frame differential oracle
+# (tests/first_frame_oracle.rs). Distinct from tools/oracle/agreement.toml, the
+# Python route comparator's ratchet — this one is the Rust test's own, read at
+# runtime. `differing_pixels` is counted over RGB only (alpha masked, & 0x00FFFFFF),
+# matching tools/oracle/compare_frames.py::compare_exact.
+#
+# A recorded number can only move DELIBERATELY: the test asserts equality, so it
+# fails on a regression AND on an unrecorded improvement (stalker's ratchet
+# pattern). Never edit a number just to make a change pass — look at the diff
+# image the run writes to _temp/oracle/first_frame/ first.
+#
+# key = recorded differing_pixels for the port's seated state-10 frame vs each
+#       captured reference label (pass-1/00-boot/<label>.png).
+
+# The port's FIRST RENDERED FRAME is the HANDS-ON MOBILE publisher splash
+# (state-10 logo animation, logoFrames[4]). It is PIXEL-EXACT to the real v2.0.7
+# game's captured publisher-splash frame: 0 differing pixels. This is the proof.
+publisher-splash = 0
+
+# The `title-logo` reference is a DIFFERENT, later screen: the state-1 HEROES LORE
+# title (title art + fluttering birds + "PRESS ANY KEY" + "2.0.7"), which this
+# increment DEFERS (TitleScreen.paint's state-1 branch is a stub). Diffing the
+# port's publisher-splash frame against it is a screen-MISALIGNMENT, not a
+# rasteriser defect — the gap closes when the state-1 title draw is ported.
+title-logo = 13677
