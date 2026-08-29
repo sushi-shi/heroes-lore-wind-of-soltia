@@ -33,4 +33,14 @@ pub mod string_table;
 pub mod title_screen;
 pub mod wrap_font;
 
+// The item hierarchy (`Item -> Equipment -> Armor -> Weapon`, `ad -> e -> t -> l`)
+// plus the carried-inventory store (`ItemBag`, `g`). Flattened onto one `Item`
+// struct with an `ItemClass` discriminant (see `item`); gated by
+// `tests/item_oracle.rs` (record cross-check) and `tests/item_bag.rs`.
+pub mod armor;
+pub mod equipment;
+pub mod item;
+pub mod item_bag;
+pub mod weapon;
+
 pub use game::Game;

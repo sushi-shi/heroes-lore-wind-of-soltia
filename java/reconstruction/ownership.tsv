@@ -28,6 +28,21 @@
 #   PngMerger   -> br.class   (no rows: its `crc`/`adler` statics are the shared-
 #                              engine deviation, constructed locally — see
 #                              docs/TRANSLITERATION.md, accepted deviations)
+#   Item        -> ad.class   (no rows: item data is per-INSTANCE on the flattened
+#                              `item::Item` struct — like the singleton instance
+#                              fields above, NOT static. `STACKABLE`/`QUICK_USABLE`
+#                              are `static final` consts reproduced as `const`
+#                              (crcTable precedent); `typeNames` (`b`, `Lz;` TextTable,
+#                              `itm/itmtp`) is a DEFERRED cross-class static —
+#                              TextTable (`z`) is unported.)
+#   Equipment   -> e.class    (no rows: instance-only, no statics)
+#   Armor       -> t.class    (no rows: `PROC_STATUS`/`PROC_CHANCE` are `static final`
+#                              consts; `attributeNames` (`a`, `Lz;`) is a DEFERRED
+#                              TextTable static like Item.typeNames)
+#   Weapon      -> l.class    (no rows: instance-only, no statics)
+#   ItemBag     -> g.class    (no rows: bag data is per-INSTANCE on `item_bag::ItemBag`
+#                              (`slots`/`quickSlot`/`quickTypeCursor`/`gold`); its
+#                              private `QUICK_TYPES` is a `static final` const)
 #
 # Singleton note (extends the GameMIDlet/GameLoop instance-field note above):
 # StringTable's one static `a:Lcj;` (`instance`) is eagerly `new StringTable()` at
