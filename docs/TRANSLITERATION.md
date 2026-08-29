@@ -2,7 +2,7 @@
 
 This is the binding guide for **implementation #1** of the Rust game: a strict,
 mechanical transliteration of `java/src/main/java/defpackage/` into the crate
-`hlws-game-xlat`.
+`heroes-lore-wind-of-soltia-game-xlat`.
 
 Implementation #1 exists to be *provably the same program*, not to be good Rust.
 It is the executable specification a later idiomatic implementation (#2) is
@@ -14,7 +14,7 @@ changes behaviour.
 This game is **pure 2D and pure integer**: `javax.microedition.lcdui.Graphics`,
 no M3G, no floats. The numeric authority (`_reference/numeric_shapes.json`) found
 **zero float/double opcodes** across all 90 classes / 944 methods. Consequently
-`hlws-jvm` ships **no** float helpers, and none appear in transliterated code. If
+`j2me-jvm` ships **no** float helpers, and none appear in transliterated code. If
 a `float`/`double` ever surfaces, stop — it is a decompilation error, not a
 licence to invent an `f32`.
 
@@ -22,13 +22,13 @@ licence to invent an `f32`.
 
 | Layer | Crate | Style |
 | --- | --- | --- |
-| Game classes | `hlws-game-xlat` | Transliteration; this document |
-| Device runtime | `hlws-me` | Idiomatic Rust implementing the Java ME contracts |
-| Neutral 2D buffer | `hlws-canvas` | Idiomatic Rust ARGB framebuffer |
-| Java primitives | `hlws-jvm` | Idiomatic Rust implementing JVM integer semantics |
-| Host | `apps/hlws-linux` | Idiomatic Rust |
+| Game classes | `heroes-lore-wind-of-soltia-game-xlat` | Transliteration; this document |
+| Device runtime | `j2me-me` | Idiomatic Rust implementing the Java ME contracts |
+| Neutral 2D buffer | `j2me-canvas` | Idiomatic Rust ARGB framebuffer |
+| Java primitives | `j2me-jvm` | Idiomatic Rust implementing JVM integer semantics |
+| Host | `apps/heroes-lore-wind-of-soltia-linux` | Idiomatic Rust |
 
-Only `hlws-game-xlat` is transliterated. The layers beneath it are ordinary Rust
+Only `heroes-lore-wind-of-soltia-game-xlat` is transliterated. The layers beneath it are ordinary Rust
 whose *observable behaviour* must match the Java ME / JVM specification. The
 independent format parsers in `hlws-formats` (`crates/formats`) are **not** part
 of the port — they are a second, separately-derived implementation used only as
@@ -78,7 +78,7 @@ sign-extends into an `int`; `data[i] & 255` then re-zero-extends. Convert to `u8
 ## Arithmetic
 
 **Never a bare operator on an integer.** Route every integer op through
-`hlws-jvm`:
+`j2me-jvm`:
 
 | Java op | Rust |
 | --- | --- |

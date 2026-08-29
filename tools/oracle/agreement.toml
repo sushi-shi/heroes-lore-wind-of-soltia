@@ -11,32 +11,40 @@
 
 [shots."00-boot/main-menu-new-game"]
 layer = "2d"
-verdict = "port-missing"
+verdict = "compared"
+differing_pixels = 75865
 
 [shots."00-boot/publisher-splash"]
 layer = "2d"
-verdict = "port-missing"
+verdict = "compared"
+differing_pixels = 0
 
 [shots."00-boot/title-logo"]
 layer = "2d"
-verdict = "port-missing"
+verdict = "compared"
+differing_pixels = 10760
 
 [shots."01-menu/menu-about"]
 layer = "2d"
-verdict = "port-missing"
+verdict = "compared"
+differing_pixels = 75865
 
 [shots."01-menu/menu-exit"]
 layer = "2d"
-verdict = "port-missing"
+verdict = "compared"
+differing_pixels = 75865
 
 [shots."01-menu/menu-help"]
 layer = "2d"
-verdict = "port-missing"
+verdict = "compared"
+differing_pixels = 75865
 
 [shots."01-menu/menu-new-game"]
 layer = "2d"
-verdict = "port-missing"
+verdict = "compared"
+differing_pixels = 75865
 
 [shots."01-menu/menu-options"]
 layer = "2d"
-verdict = "port-missing"
+verdict = "compared"
+differing_pixels = 75865

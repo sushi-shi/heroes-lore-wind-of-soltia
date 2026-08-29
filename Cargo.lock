@@ -530,14 +530,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "hlws-linux"
+name = "heroes-lore-wind-of-soltia-linux"
 version = "0.1.0"
 dependencies = [
  "heroes-lore-wind-of-soltia-game-xlat",
  "j2me-jvm",
  "j2me-me",
+ "png",
  "softbuffer",
  "winit",
+ "zip",
 ]
 
 [[package]]

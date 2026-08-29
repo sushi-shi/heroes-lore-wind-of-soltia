@@ -8,7 +8,7 @@
 # (`heroes-lore-wind-of-soltia-formats`, malformed-input-rejecting parsers for the
 # game's custom resource formats) and `transliteration/game-xlat`
 # (`heroes-lore-wind-of-soltia-game-xlat`, the strict transliteration), plus the
-# native host (`apps/hlws-linux`).
+# native host (`apps/heroes-lore-wind-of-soltia-linux`).
 [workspace]
 members = [
     "crates/j2me-canvas",
@@ -17,7 +17,7 @@ members = [
     "crates/j2me-me",
     "transliteration/game-xlat",
     "crates/formats",
-    "apps/hlws-linux",
+    "apps/heroes-lore-wind-of-soltia-linux",
 ]
 resolver = "2"
 
@@ -36,7 +36,7 @@ zip = { version = "0.6.6", default-features = false, features = ["deflate"] }
 # `png` decodes the sprite PNGs to ARGB inside the device runtime's MIDP
 # `Image.createImage(byte[])` factory (`j2me-me`). Pure-Rust, no C codec.
 png = "0.17"
-# Native host (apps/hlws-linux). `winit` owns the OS window + keyboard event
+# Native host (apps/heroes-lore-wind-of-soltia-linux). `winit` owns the OS window + keyboard event
 # loop; `softbuffer` blits our CPU ARGB framebuffer straight to the window (2D
 # only — no wgpu/shaders). Default features are kept as upstream ships them so
 # the host builds on a bare Linux box via dlopen'd X11/Wayland.

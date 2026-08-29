@@ -1,0 +1,48 @@
+[package]
+name = "heroes-lore-wind-of-soltia-linux"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Native desktop host that plays the strict Heroes Lore: Wind of Soltia transliteration."
+publish = false
+
+# The NATIVE HOST: a desktop window that plays the strict transliteration.
+#
+# Deliberately thin. All game behavior lives in the transliteration
+# (`heroes-lore-wind-of-soltia-game-xlat`) driven through the `j2me-me` device
+# runtime; this crate only (1) constructs the game from a real `_originals` JAR,
+# (2) runs its frame loop (`game_loop::run_one_frame`) and routes input through
+# the `j2me-me` serial paint/input queue (R9), and (3) presents the resulting
+# ARGB framebuffer.
+#
+# The game-driving core (`host::GameHost`) carries NO windowing so it is unit-
+# testable headless (the smoke drives it with no display). `winit` + `softbuffer`
+# (CPU blit — no wgpu/shaders) are the only windowing deps and are used solely by
+# the `shell` module.
+[dependencies]
+# The game and its device runtime (consumed as public APIs; never edited here —
+# the other lane owns heroes-lore-wind-of-soltia-game-xlat).
+heroes-lore-wind-of-soltia-game-xlat = { path = "../../transliteration/game-xlat" }
+j2me-me = { path = "../../crates/j2me-me" }
+# The `Clock`/`VirtualClock` the game loop reads through `Game::clock`. The host
+# seeds it deterministically for reproducible captures (a `VirtualClock` seed
+# stands in for gothic's injected `Box<dyn Clock>`: here the `Game` owns the
+# clock, so the host injects its starting value rather than the clock object).
+j2me-jvm = { path = "../../crates/j2me-jvm" }
+
+# Read the JAR members in-process (no `unzip` subprocess at runtime); deflate is
+# the only codec the JARs use (matches the content importer / test corpus reader).
+zip = { workspace = true }
+
+# Encode captured framebuffers to PNG for the `--script`/`--out` frame oracle
+# (the reference side is FreeJ2ME-Plus; `compare_frames.py` reads both as 8-bit
+# RGB). Same encoder the workspace already pins.
+png = { workspace = true }
+
+# Windowing + CPU framebuffer presentation (the `shell` module only).
+winit = { workspace = true }
+softbuffer = { workspace = true }
+
+[[bin]]
+name = "heroes-lore-wind-of-soltia-linux"
+path = "src/main.rs"
