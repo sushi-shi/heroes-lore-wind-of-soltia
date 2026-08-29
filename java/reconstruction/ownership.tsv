@@ -1,0 +1,54 @@
+# ownership.tsv — the one-owner-per-datum ledger for the strict transliteration.
+#
+# TRACKED, R1-CLEAN. Like symbols.toml, this holds ONLY obfuscated identifiers
+# and JVM type descriptors (structural facts) — never decompiled source.
+#
+# One row per Java STATIC field of a ported class. Static-ness is read from the
+# `static` flag in `javap -p` on the baseline bytecode; reviewed field names come
+# from java/reconstruction/symbols.toml. A Java static has exactly one persistent
+# Rust owner (no second copy, no copy-in/copy-out): the *State struct + rust_name
+# named here is that sole home. Instance fields of the singletons (GameMIDlet,
+# GameLoop) are NOT static and are not listed here, but live on the same *State.
+#
+# obf class map (the obfuscated .class each java_class was recovered from):
+#   GameMIDlet -> rpg/GameMIDlet.class   (the only class outside the default package)
+#   GameLoop   -> bs.class
+#   GameState  -> n.class
+#
+# Columns (tab-separated):
+#   java_class          reviewed class name
+#   obf                 obfuscated field simple name (as in the bytecode)
+#   field               reviewed field name (symbols.toml)
+#   descriptor          JVM field type descriptor
+#   rust_owner_struct   the *State struct that owns it
+#   rust_name           the Rust field name on that struct
+#
+java_class	obf	field	descriptor	rust_owner_struct	rust_name
+GameMIDlet	a	instance	Lrpg/GameMIDlet;	ApplicationState	instance
+GameLoop	a	gameScreen	Las;	GameLoopState	game_screen
+GameLoop	a	instance	Lbs;	GameLoopState	instance
+GameLoop	a	frameDelayTable	[I	GameLoopState	frame_delay_table
+GameLoop	a	lock	Ljava/lang/Object;	GameLoopState	lock
+GameState	a	map	Lae;	GameStateData	map
+GameState	a	camTargetX	I	GameStateData	cam_target_x
+GameState	b	camTargetY	I	GameStateData	cam_target_y
+GameState	c	camX	I	GameStateData	cam_x
+GameState	d	camY	I	GameStateData	cam_y
+GameState	a	hero	Lao;	GameStateData	hero
+GameState	a	classId	B	GameStateData	class_id
+GameState	c	arg0	B	GameStateData	arg0
+GameState	d	arg1	B	GameStateData	arg1
+GameState	e	arg2	B	GameStateData	arg2
+GameState	f	storyMapId	B	GameStateData	story_map_id
+GameState	g	clearCount	B	GameStateData	clear_count
+GameState	h	clearBonusTable	[B	GameStateData	clear_bonus_table
+GameState	i	saveKey	[B	GameStateData	save_key
+GameState	j	classStartTable	[B	GameStateData	class_start_table
+GameState	a	saveSlots	[Ljava/lang/String;	GameStateData	save_slots
+GameState	e	screen	I	GameStateData	screen
+GameState	b	nextState	B	GameStateData	next_state
+GameState	h	pendingHeroState	B	GameStateData	pending_hero_state
+GameState	i	pendingHeroFacing	B	GameStateData	pending_hero_facing
+GameState	k	switches	[B	GameStateData	switches
+GameState	l	flags	[B	GameStateData	flags
+GameState	a	classStartFlags	[[Z	GameStateData	class_start_flags
