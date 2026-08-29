@@ -20,9 +20,13 @@ pub mod byte_util;
 pub mod crc32;
 pub mod png_merger;
 
+pub mod asset_cache;
+pub mod base_canvas;
 pub mod game;
 pub mod game_loop;
 pub mod game_midlet;
 pub mod game_state;
+pub mod resources;
+pub mod title_screen;
 
 pub use game::Game;

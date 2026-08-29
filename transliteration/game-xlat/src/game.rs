@@ -21,9 +21,14 @@
 //! static `create()` call); `GameState`'s is not reached until a later
 //! menu/world use, exactly as the JVM would defer it.
 
+use crate::asset_cache::AssetCacheState;
+use crate::base_canvas::BaseCanvasState;
+use crate::byte_util::ByteUtilState;
 use crate::game_loop::GameLoopState;
 use crate::game_midlet::ApplicationState;
 use crate::game_state::GameStateData;
+use crate::resources::ResourceBank;
+use crate::title_screen::TitleScreenState;
 
 /// The whole transliterated program's state: the ported classes' `*State`s, the
 /// device runtime they reference, and the JVM class-init trigger guards.
@@ -33,12 +38,18 @@ pub struct Game {
     /// are references to it). Acquired by `GameMIDlet.startApp` via
     /// `Display.getDisplay(this)`.
     pub display: j2me_me::Display,
-    /// The current MIDP surface. `None` until `GameLoop.run()` constructs the
-    /// `TitleScreen` (a `BaseCanvas`) — DEFERRED to the render increment.
+    /// The current MIDP surface (a `BaseCanvas`). `None` until
+    /// `TitleScreen`'s constructor materialises it on the render path.
     pub canvas: Option<j2me_me::Canvas>,
+    /// The ARGB framebuffer that IS the rendered frame — the `Image` the paint
+    /// `Graphics` rasterises into. `None` until the `TitleScreen`/`Canvas` exists.
+    pub screen: Option<j2me_me::Image>,
     /// `System.currentTimeMillis()` source. Read by `GameLoop.markFrameStart` /
-    /// `throttle` in the deferred run-loop; deterministic for tests.
+    /// `throttle` / `sleepFor`; deterministic for tests.
     pub clock: j2me_jvm::VirtualClock,
+    /// The JAR classpath seam behind `AssetCache.readResource` /
+    /// `getResourceAsStream` (a host boundary; see [`ResourceBank`]).
+    pub resources: ResourceBank,
 
     /// `rpg.GameMIDlet` state.
     pub application: ApplicationState,
@@ -46,6 +57,18 @@ pub struct Game {
     pub game_loop: GameLoopState,
     /// `n` / `GameState` state.
     pub game_state: GameStateData,
+    /// `r` / `BaseCanvas` state (geometry + loading counters + shown-canvas
+    /// instance fields).
+    pub base_canvas: BaseCanvasState,
+    /// `bg` / `TitleScreen` state.
+    pub title_screen: TitleScreenState,
+    /// `ce` / `AssetCache` state (PARTIAL — only the title/logo render-path banks
+    /// are modelled; see `asset_cache`).
+    pub asset_cache: AssetCacheState,
+    /// `h` / `ByteUtil` state (the shared `Random`). `new Random()` is time-seeded
+    /// on device; a fixed seed is used here for reproducibility (a determinism
+    /// seam — `randRange` is not exercised on the single first-frame drive).
+    pub byte_util: ByteUtilState,
 
     /// One-shot guard: has `bs.<clinit>` fired on the executed path?
     pub game_loop_class_initialized: bool,
@@ -61,10 +84,16 @@ impl Game {
         Game {
             display: j2me_me::Display::default(),
             canvas: None,
+            screen: None,
             clock: j2me_jvm::VirtualClock::new(0),
+            resources: ResourceBank::new(),
             application: ApplicationState::default(),
             game_loop: GameLoopState::default(),
             game_state: GameStateData::default(),
+            base_canvas: BaseCanvasState::default(),
+            title_screen: TitleScreenState::default(),
+            asset_cache: AssetCacheState::new(),
+            byte_util: ByteUtilState::seeded(0),
             game_loop_class_initialized: false,
             game_state_class_initialized: false,
         }

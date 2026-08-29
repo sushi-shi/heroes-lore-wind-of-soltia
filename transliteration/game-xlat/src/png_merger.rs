@@ -26,7 +26,10 @@
 //! before every use, so the transforms construct a fresh (== reset) local engine.
 
 use crate::adler32;
+use crate::asset_cache;
+use crate::base_canvas;
 use crate::crc32;
+use crate::game::Game;
 use j2me_jvm::{ishl, ishr, java_div, java_rem};
 
 /// PNG chunk-type names, indexed the way `find_chunk` / `locate_chunk` use them.
@@ -739,4 +742,120 @@ fn to_be32(i: i32) -> [i8; 4] {
         (ishr(i, 8) & 255) as i8,
         (i & 255) as i8,
     ]
+}
+
+// ===========================================================================
+// The previously-DEFERRED resource / `Image` boundary (docs/TRANSLITERATION.md,
+// accepted deviations). These wrap the oracle-tested decoder core above with the
+// `AssetCache.readResource` reads and the `javax.microedition.lcdui.Image`
+// decode + `BaseCanvas.yieldTick`, driving the title (logo) render path. They
+// take `&mut Game` (for `readResource` + the device `Image` factory) alongside
+// the `PngMergerState`, per the transliteration's free-function convention.
+// ===========================================================================
+
+/// `public PngMerger(String str) throws IOException`
+/// (`br.<init>:(Ljava/lang/String;)V`) — constructs and loads the atlas.
+pub fn construct(g: &mut Game, str: &str) -> PngMergerState {
+    // this(); load(str);   — the no-arg <init> leaves every field at its default.
+    let mut s = PngMergerState::new();
+    load(g, &mut s, str);
+    s
+}
+
+/// `public final void load(String str) throws IOException`
+/// (`br.a:(Ljava/lang/String;)V => []`): resets state, records the base path,
+/// reads the `.mph` index.
+pub fn load(g: &mut Game, s: &mut PngMergerState, str: &str) {
+    // this.framesPerMpd = null; this.mphData = null; this.mpdData = null; this.chunkMasks = null;
+    s.frames_per_mpd = Vec::new();
+    s.mph_data = Vec::new();
+    s.mpd_data = Vec::new();
+    s.chunk_masks = Vec::new();
+    // this.basePath = str;
+    s.base_path = str.to_string();
+    // readIndex();
+    read_index(g, s);
+}
+
+/// `private void readIndex() throws IOException` (`br.b:()V => []`): reads the
+/// `.mph` blob into `mphData` and parses its header.
+pub fn read_index(g: &mut Game, s: &mut PngMergerState) {
+    // this.mphData = AssetCache.readResource(this.basePath + ".mph");
+    let path = format!("{}.mph", s.base_path);
+    // A null return here is a missing index (NPE in parseHeader on the real
+    // device); the atlas exists on the classpath, so it is unwrapped.
+    s.mph_data = asset_cache::read_resource(g, &path).expect("readResource(.mph) returned null");
+    // parseHeader();
+    parse_header(s);
+}
+
+/// `public final void loadMpd(int i) throws IOException` (`br.a:(I)V => []`):
+/// loads `_<i>.mpd` into `mpdData[i]` (Java stores the possibly-null `byte[]`).
+pub fn load_mpd(g: &mut Game, s: &mut PngMergerState, i: i32) {
+    // this.mpdData[i] = AssetCache.readResource(this.basePath + "_" + i + ".mpd");
+    let path = format!("{}_{}.mpd", s.base_path, i);
+    s.mpd_data[i as usize] = asset_cache::read_resource(g, &path);
+}
+
+/// The reload decision Java performs lazily inside `mpdBytes` — hoisted to just
+/// before assembly so the oracle-tested `mpd_bytes`/`assemble_frame` core stays
+/// untouched. `if (preloadAll && mpdData[k] == null) { unloadAllMpd(); loadMpd(k); }`.
+/// Net-identical to the in-`mpdBytes` reload (same `unloadAllMpd`+`loadMpd(k)`).
+fn ensure_mpd(g: &mut Game, s: &mut PngMergerState, i: i32) {
+    let k: i32 = read_u16(&s.mph_data, 8i32.wrapping_add(8i32.wrapping_mul(i))) as i32; // mpdIndexOf(i)
+    if s.preload_all && s.mpd_data[k as usize].is_none() {
+        unload_all_mpd(s);
+        load_mpd(g, s, k);
+    }
+}
+
+/// `public final Image image(int i)` (`br.a:(I)Ljavax/microedition/lcdui/Image;`):
+/// assembles and decodes frame `i` (base bank).
+pub fn image(g: &mut Game, s: &mut PngMergerState, i: i32) -> j2me_me::Image {
+    // (reload hoisted from mpdBytes) then:
+    ensure_mpd(g, s, i);
+    // byte[] bArrM51b = assembleFrame(i);
+    let b_arr = assemble_frame(s, i).expect("assembleFrame returned null (merged path, no IHDR)");
+    // return Image.createImage(bArrM51b, 0, bArrM51b.length);
+    let len = b_arr.len() as i32;
+    j2me_me::create_image_region(&b_arr, 0, len).expect("Image.createImage(byte[],int,int)")
+}
+
+/// `public final Image[] allImages()`
+/// (`br.a:()[Ljavax/microedition/lcdui/Image; => [iinc]`): extracts every frame,
+/// enabling `preloadAll`, then frees the `.mpd` bytes.
+pub fn all_images(g: &mut Game, s: &mut PngMergerState) -> Vec<j2me_me::Image> {
+    // this.preloadAll = true;
+    s.preload_all = true;
+    // int iM45a = frameCount();
+    let i_m45a: i32 = frame_count(s);
+    // Image[] imageArr = new Image[iM45a];
+    let mut image_arr: Vec<j2me_me::Image> = Vec::with_capacity(i_m45a as usize);
+    // for (int i = 0; i < iM45a; i++) { imageArr[i] = image(i); BaseCanvas.yieldTick(); }
+    let mut i: i32 = 0;
+    while i < i_m45a {
+        image_arr.push(image(g, s, i));
+        base_canvas::yield_tick(g);
+        i = i.wrapping_add(1);
+    }
+    // unloadAllMpd();
+    unload_all_mpd(s);
+    image_arr
+}
+
+/// `public final Image imageMirrored(int i)`
+/// (`br.b:(I)Ljavax/microedition/lcdui/Image;`): frame `i` from the mirrored bank;
+/// falls back to [`image`] when the atlas needs no remap.
+pub fn image_mirrored(g: &mut Game, s: &mut PngMergerState, i: i32) -> j2me_me::Image {
+    // if (!this.paletteRemap) return image(i);
+    if !s.palette_remap {
+        return image(g, s, i);
+    }
+    ensure_mpd(g, s, i);
+    // byte[] bArrM51b = assembleFrame(i); mirror(bArrM51b);
+    let mut b_arr = assemble_frame(s, i).expect("assembleFrame returned null");
+    mirror(&mut b_arr);
+    // return Image.createImage(bArrM51b, 0, bArrM51b.length);
+    let len = b_arr.len() as i32;
+    j2me_me::create_image_region(&b_arr, 0, len).expect("Image.createImage(byte[],int,int)")
 }

@@ -11,9 +11,16 @@
 # GameLoop) are NOT static and are not listed here, but live on the same *State.
 #
 # obf class map (the obfuscated .class each java_class was recovered from):
-#   GameMIDlet -> rpg/GameMIDlet.class   (the only class outside the default package)
-#   GameLoop   -> bs.class
-#   GameState  -> n.class
+#   GameMIDlet  -> rpg/GameMIDlet.class  (the only class outside the default package)
+#   GameLoop    -> bs.class
+#   GameState   -> n.class
+#   BaseCanvas  -> r.class
+#   TitleScreen -> bg.class
+#   AssetCache  -> ce.class   (PARTIAL: only the title/logo render-path statics)
+#   ByteUtil    -> h.class
+#   PngMerger   -> br.class   (no rows: its `crc`/`adler` statics are the shared-
+#                              engine deviation, constructed locally — see
+#                              docs/TRANSLITERATION.md, accepted deviations)
 #
 # Columns (tab-separated):
 #   java_class          reviewed class name
@@ -52,3 +59,17 @@ GameState	i	pendingHeroFacing	B	GameStateData	pending_hero_facing
 GameState	k	switches	[B	GameStateData	switches
 GameState	l	flags	[B	GameStateData	flags
 GameState	a	classStartFlags	[[Z	GameStateData	class_start_flags
+BaseCanvas	g	width	I	BaseCanvasState	width
+BaseCanvas	h	height	I	BaseCanvasState	height
+BaseCanvas	i	halfW	I	BaseCanvasState	half_w
+BaseCanvas	j	halfH	I	BaseCanvasState	half_h
+BaseCanvas	b	keepLoadingProgress	Z	BaseCanvasState	keep_loading_progress
+BaseCanvas	k	loadProgress	I	BaseCanvasState	load_progress
+BaseCanvas	l	loadTotal	I	BaseCanvasState	load_total
+BaseCanvas	m	loadPhase	I	BaseCanvasState	load_phase
+TitleScreen	a	instance	Lbg;	TitleScreenState	instance
+AssetCache	i	logoFrames	[Ljavax/microedition/lcdui/Image;	AssetCacheState	logo_frames
+AssetCache	j	titleBgFrames	[Ljavax/microedition/lcdui/Image;	AssetCacheState	title_bg_frames
+AssetCache	k	titleMenuFrames	[Ljavax/microedition/lcdui/Image;	AssetCacheState	title_menu_frames
+AssetCache	n	readBuffer	[B	AssetCacheState	read_buffer
+ByteUtil	a	rng	Ljava/util/Random;	ByteUtilState	rng

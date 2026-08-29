@@ -22,6 +22,7 @@ use j2me_jvm::{ishl, ishr, java_rem};
 ///
 /// Reproduces the exact 48-bit LCG so a seeded run matches the JVM bit-for-bit;
 /// verified against published `java.util.Random` vectors in the unit tests.
+#[derive(Debug)]
 pub struct JavaRandom {
     seed: i64,
 }
@@ -60,6 +61,7 @@ impl JavaRandom {
 ///
 /// The default (`new Random()`) is time-seeded and therefore non-deterministic;
 /// [`ByteUtilState::seeded`] constructs a reproducible instance for tests/traces.
+#[derive(Debug)]
 pub struct ByteUtilState {
     /// Shared RNG backing [`rand_range`].
     pub rng: JavaRandom,

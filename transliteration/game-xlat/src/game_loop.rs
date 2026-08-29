@@ -15,8 +15,16 @@
 //! `bs.a:(I)V => [idiv]` (setFps), `bs.f:()V => []` (applyDifficultyFps),
 //! `bs.c:()V => []` (start).
 
+use crate::base_canvas;
 use crate::game::Game;
-use j2me_jvm::java_div;
+use crate::title_screen;
+use j2me_jvm::{java_div, Clock};
+
+/// Deferred cross-class static `EventScript.skip` (obf `...:Z`), read by
+/// `throttle` as its fast-forward guard. Defaults to `false` (no cutscene
+/// skip active on the title path). EventScript is not ported in this increment;
+/// snapshotted per the contract's cross-owner-read convention.
+const EVENT_SCRIPT_SKIP: bool = false;
 
 /// Deferred cross-class static `Debug.fullVersion` (obf `x.a:Z`), read by the
 /// GameLoop constructor as `!Debug.fullVersion`. Debug's `<clinit>` sets it to
@@ -208,4 +216,83 @@ pub fn start(g: &mut Game) {
     // this.bootPending = true;
     g.game_loop.boot_pending = true;
     // new Thread(this).start();   — deferred (see above).
+}
+
+/// One iteration of `public final void run()` (`bs.run:()V => []`) — the frame
+/// loop's body, as the single-frame drive the host calls (the loop-wrapper +
+/// `callSerially` re-arm are the host's concern).
+///
+/// The `bootPending` branch of `run()` (construct `TitleScreen`,
+/// `display.setCurrent`, `boot()`, `AudioManager.readySound`, `setLoadingFps`) is
+/// driven by the caller in this increment; `boot()`'s font/config/language setup
+/// and the async asset-loader thread that reaches state 10 are DEFERRED (see
+/// [`title_screen`]). Here we model the `synchronized (lock)` critical section:
+/// `markFrameStart` → `current.flushKey` → `current.requestRepaint`, then MIDP's
+/// serialized dispatch of the owed repaint into one `paint`.
+pub fn run_one_frame(g: &mut Game) {
+    // synchronized (lock) {
+    //   if (this.stopped) return;
+    if g.game_loop.stopped {
+        return;
+    }
+    //   markFrameStart();
+    mark_frame_start(g);
+    //   this.current.flushKey();
+    base_canvas::flush_key(g);
+    //   this.current.requestRepaint();
+    base_canvas::request_repaint(g);
+    //   this.display.callSerially(this);   — re-arm for the next frame (host concern).
+    // }
+    // MIDP serializes the owed repaint into a paint callback; dispatch it so one
+    // run_one_frame yields one rendered frame.
+    let owed = g
+        .canvas
+        .as_mut()
+        .map(|c| c.service_repaints())
+        .unwrap_or(false);
+    if owed {
+        title_screen::paint(g);
+    }
+}
+
+/// `public final void markFrameStart()` (`bs.a:()V => []`).
+pub fn mark_frame_start(g: &mut Game) {
+    // this.frameStartMs = System.currentTimeMillis();
+    g.game_loop.frame_start_ms = g.clock.current_time_millis();
+}
+
+/// `public final void throttle()` (`bs.b:()V`). `EventScript.skip` (snapshot,
+/// false on the title path) fast-forwards; otherwise sleep to the frame's target
+/// duration.
+pub fn throttle(g: &mut Game) {
+    // if (EventScript.skip) return;
+    if EVENT_SCRIPT_SKIP {
+        return;
+    }
+    // sleepFor(this.frameStartMs, this.frameTargetMs);
+    let frame_start_ms = g.game_loop.frame_start_ms;
+    let frame_target_ms = g.game_loop.frame_target_ms as i64; // int -> long (i2l)
+    sleep_for(g, frame_start_ms, frame_target_ms);
+}
+
+/// `public final void sleepFor(long startMs, long targetMs)`
+/// (`bs.a:(JJ)V => [lsub, lsub]`). Sleeps so `targetMs` passes since `startMs`;
+/// yields if already over. `Thread.yield()` / `Thread.sleep(...)` are no-ops here
+/// (no observable state); the two `long` subtractions are preserved.
+pub fn sleep_for(g: &mut Game, start_ms: i64, target_ms: i64) {
+    // long elapsedMs = System.currentTimeMillis() - startMs;
+    let elapsed_ms = g.clock.current_time_millis().wrapping_sub(start_ms);
+    // if (elapsedMs >= targetMs) { Thread.yield(); } else { Thread.sleep(targetMs - elapsedMs); }
+    if elapsed_ms >= target_ms {
+        // Thread.yield() — no-op.
+    } else {
+        let _sleep_ms = target_ms.wrapping_sub(elapsed_ms);
+        // Thread.sleep(targetMs - elapsedMs) — no-op.
+    }
+}
+
+/// `public final void setLoadingFps()` (`bs.g:()V => []`) — 5 FPS for loading.
+pub fn set_loading_fps(g: &mut Game) {
+    // setFps(5);
+    set_fps(g, 5);
 }
