@@ -17,9 +17,20 @@
 # game's captured publisher-splash frame: 0 differing pixels. This is the proof.
 publisher-splash = 0
 
-# The `title-logo` reference is a DIFFERENT, later screen: the state-1 HEROES LORE
-# title (title art + fluttering birds + "PRESS ANY KEY" + "2.0.7"), which this
-# increment DEFERS (TitleScreen.paint's state-1 branch is a stub). Diffing the
-# port's publisher-splash frame against it is a screen-MISALIGNMENT, not a
-# rasteriser defect — the gap closes when the state-1 title draw is ported.
-title-logo = 13677
+# The state-1 HEROES LORE title screen, now RENDERED by the port (TitleScreen.paint
+# case 1: title art `titleBgFrames[2..4]`, version "2.0.7", the two RNG-driven
+# fluttering birds `titleMenuFrames`, and the "PRESS ANY KEY" footer). Driven to
+# the animation moment the capture took — the 42nd state-1 paint (sim k=41), the
+# pixel-diff minimum across the settled sweep (next-best 202 px); the birds match
+# because `Game.byte_util` is seeded to the route's 305419896 before startTitle.
+#
+# The residual 136 px is EXACTLY the "PRESS ANY KEY" footer glyphs, and only their
+# COLOUR: the game bytecode draws the footer with `graphics.setColor(0)` (black) →
+# fontForColor(0) → smallBlack, so the faithful port renders those 136 glyph pixels
+# BLACK. The FreeJ2ME capture renders them ORANGE (255,136,0) — the smallOrange
+# ink left over from the immediately-preceding version-text `setColor(4136767)` —
+# i.e. FreeJ2ME's `setColor(0)`/getColor does not take, an EMULATOR artifact, not
+# game logic. Matching it would require an unfaithful hack, so the port stays
+# correct-per-MIDP and this 136 is recorded honestly. Everything else — art,
+# version text, both birds, footer POSITION/GLYPHS — is pixel-exact (0 diff).
+title-logo = 136

@@ -17,10 +17,27 @@
 #   BaseCanvas  -> r.class
 #   TitleScreen -> bg.class
 #   AssetCache  -> ce.class   (PARTIAL: only the title/logo render-path statics)
+#   FontManager -> bh.class   (PARTIAL: only the title text path's fonts + labels)
+#   StringTable -> cj.class
+#   BitmapFont  -> az.class   (no rows: no static mutable state — its `crcTable`
+#                              is a `static final` constant, reproduced by a fn;
+#                              a BitmapFont's data is per-instance, modelled by the
+#                              per-font BitmapFontState the FontManager rows own)
+#   WrapFont    -> b.class    (no rows: adds no fields — a WrapFont IS a BitmapFont)
 #   ByteUtil    -> h.class
 #   PngMerger   -> br.class   (no rows: its `crc`/`adler` statics are the shared-
 #                              engine deviation, constructed locally — see
 #                              docs/TRANSLITERATION.md, accepted deviations)
+#
+# Singleton note (extends the GameMIDlet/GameLoop instance-field note above):
+# StringTable's one static `a:Lcj;` (`instance`) is eagerly `new StringTable()` at
+# class load — the always-present singleton. Its Rust owner IS the StringTableData
+# struct (Game.string_table); that singleton's instance fields (`blob`,
+# `localeIndex`, and the `locales` final array) live on StringTableData and, like
+# the other singletons' instance fields, are not listed as separate rows.
+# FontManager's six font fields are typed `b` (WrapFont); each is modelled by a
+# per-font BitmapFontState. `bigDefault` (`f`) aliases `bigBlack` (`d`) — the same
+# object — so both map to the one Rust owner `big_black` (no second copy).
 #
 # Columns (tab-separated):
 #   java_class          reviewed class name
@@ -72,4 +89,15 @@ AssetCache	i	logoFrames	[Ljavax/microedition/lcdui/Image;	AssetCacheState	logo_f
 AssetCache	j	titleBgFrames	[Ljavax/microedition/lcdui/Image;	AssetCacheState	title_bg_frames
 AssetCache	k	titleMenuFrames	[Ljavax/microedition/lcdui/Image;	AssetCacheState	title_menu_frames
 AssetCache	n	readBuffer	[B	AssetCacheState	read_buffer
+FontManager	a	smallBlack	Lb;	FontManagerState	small_black
+FontManager	b	smallWhite	Lb;	FontManagerState	small_white
+FontManager	c	smallOrange	Lb;	FontManagerState	small_orange
+FontManager	d	bigBlack	Lb;	FontManagerState	big_black
+FontManager	e	bigWhite	Lb;	FontManagerState	big_white
+FontManager	f	bigDefault	Lb;	FontManagerState	big_black
+FontManager	g	currentFont	Lb;	FontManagerState	current_font
+FontManager	a	bigFontActive	Z	FontManagerState	big_font_active
+FontManager	q	titleFooter	[C	FontManagerState	title_footer
+FontManager	r	versionText	[C	FontManagerState	version_text
+StringTable	a	instance	Lcj;	StringTableData	string_table
 ByteUtil	a	rng	Ljava/util/Random;	ByteUtilState	rng

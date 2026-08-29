@@ -22,11 +22,15 @@ pub mod png_merger;
 
 pub mod asset_cache;
 pub mod base_canvas;
+pub mod bitmap_font;
+pub mod font_manager;
 pub mod game;
 pub mod game_loop;
 pub mod game_midlet;
 pub mod game_state;
 pub mod resources;
+pub mod string_table;
 pub mod title_screen;
+pub mod wrap_font;
 
 pub use game::Game;

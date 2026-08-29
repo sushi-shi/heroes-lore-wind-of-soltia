@@ -24,10 +24,12 @@
 use crate::asset_cache::AssetCacheState;
 use crate::base_canvas::BaseCanvasState;
 use crate::byte_util::ByteUtilState;
+use crate::font_manager::FontManagerState;
 use crate::game_loop::GameLoopState;
 use crate::game_midlet::ApplicationState;
 use crate::game_state::GameStateData;
 use crate::resources::ResourceBank;
+use crate::string_table::StringTableData;
 use crate::title_screen::TitleScreenState;
 
 /// The whole transliterated program's state: the ported classes' `*State`s, the
@@ -65,6 +67,11 @@ pub struct Game {
     /// `ce` / `AssetCache` state (PARTIAL — only the title/logo render-path banks
     /// are modelled; see `asset_cache`).
     pub asset_cache: AssetCacheState,
+    /// `bh` / `FontManager` state (PARTIAL — only the title text path's fonts +
+    /// `versionText`/`titleFooter` labels; see `font_manager`).
+    pub font_manager: FontManagerState,
+    /// `cj` / `StringTable` singleton state (the loaded lang blob + `get`).
+    pub string_table: StringTableData,
     /// `h` / `ByteUtil` state (the shared `Random`). `new Random()` is time-seeded
     /// on device; a fixed seed is used here for reproducibility (a determinism
     /// seam — `randRange` is not exercised on the single first-frame drive).
@@ -93,6 +100,8 @@ impl Game {
             base_canvas: BaseCanvasState::default(),
             title_screen: TitleScreenState::default(),
             asset_cache: AssetCacheState::new(),
+            font_manager: FontManagerState::default(),
+            string_table: StringTableData::default(),
             byte_util: ByteUtilState::seeded(0),
             game_loop_class_initialized: false,
             game_state_class_initialized: false,

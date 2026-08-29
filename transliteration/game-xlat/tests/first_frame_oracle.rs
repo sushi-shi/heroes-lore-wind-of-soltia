@@ -35,11 +35,23 @@ mod common;
 
 use common::{jar, to_i8};
 use heroes_lore_wind_of_soltia_game_xlat::{
-    asset_cache, game_loop, game_midlet, title_screen, Game,
+    asset_cache, byte_util, font_manager, game_loop, game_midlet, title_screen, Game,
 };
 use j2me_me::Image;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
+
+/// The RNG seed the FreeJ2ME capture route (`tools/oracle/routes/00-boot.txt`)
+/// applies with `seed 305419896` before the title animation. See
+/// [`drive_title_frame`] for why seeding once at the start reproduces the captured
+/// `title-logo` frame.
+const GAME_RNG_SEED: i64 = 305419896;
+
+/// Post-transition state-1 paint count at which the port's fluttering birds match
+/// the `title-logo` capture. Derived from the RNG simulation (the reference is the
+/// 42nd state-1 paint, sim index k=41; see the sweep diagnostic below) and
+/// confirmed by [`title_sweep_locates_the_matching_state1_frame`].
+const TITLE_STATE1_FRAMES: u32 = 42;
 
 /// A driven frame inside the settled window (12..=49) — the seated logo. Any
 /// value in that window yields the identical framebuffer (see [`alignment`]).
@@ -138,7 +150,14 @@ fn drive_first_frame(frames: u32) -> Game {
     game_midlet::construct(&mut g);
     game_midlet::start_app(&mut g);
     title_screen::construct(&mut g);
+    // On the real device both loadLogo and loadTitleScreen (plus the fonts/labels)
+    // run before any frame; load them all so a drive that slides past state-10 into
+    // state-1 can render. This leaves the state-10 publisher frame unchanged (its
+    // paint reads only logoFrames), and does not touch the game RNG.
     asset_cache::load_logo(&mut g);
+    asset_cache::load_title_screen(&mut g);
+    font_manager::init_fonts(&mut g);
+    font_manager::load_title_labels(&mut g);
     title_screen::start_logo(&mut g);
     {
         let Game {
@@ -154,6 +173,73 @@ fn drive_first_frame(frames: u32) -> Game {
 
 fn render_port_frame(frames: u32) -> Image {
     drive_first_frame(frames)
+        .screen
+        .as_ref()
+        .expect("framebuffer")
+        .clone()
+}
+
+/// Drive the port to a **state-1 title** frame, mirroring the FreeJ2ME capture
+/// route (`tools/oracle/routes/00-boot.txt`).
+///
+/// RNG DETERMINISM (task requirement #4). The route does `seed 305419896` before
+/// the title shot. Mechanically that reseed lands *after* the last paint of the
+/// preceding `wait` and the `shot` does not repaint, so the captured `title-logo`
+/// frame is fixed by the route's FIRST `seed 305419896` (at route start) run
+/// through the whole boot→logo→title sequence — nothing consumes the game RNG
+/// (`ByteUtil.rng` / `h.a`) until `TitleScreen.startTitle`, so seeding once here,
+/// before any frame, reproduces it. We seed `Game::byte_util` to the same value.
+///
+/// The drive then loads the title assets + fonts + labels (the deferred boot's
+/// prerequisites, at the anti-bog boundary), arms the state-10 logo, runs frames
+/// until the state-10 → state-1 transition (`startTitle`), then runs
+/// `post_transition` more state-1 paints. State-1 paint index k (sim) is drawn by
+/// the (k+1)-th post-transition frame.
+fn drive_title_frame(post_transition: u32) -> Game {
+    let mut g = Game::new();
+    // seed 305419896  — the route's game-RNG seed (see the doc comment).
+    g.byte_util = byte_util::ByteUtilState::seeded(GAME_RNG_SEED);
+    for (name, bytes) in jar().matching(|_| true) {
+        g.resources.insert(name, to_i8(&bytes));
+    }
+    game_midlet::construct(&mut g);
+    game_midlet::start_app(&mut g);
+    title_screen::construct(&mut g);
+    // The boot/run loader's title prerequisites (anti-bog): logo + title atlases,
+    // the six fonts, and the two labels the state-1 paint reads.
+    asset_cache::load_logo(&mut g);
+    asset_cache::load_title_screen(&mut g);
+    font_manager::init_fonts(&mut g);
+    font_manager::load_title_labels(&mut g);
+    title_screen::start_logo(&mut g);
+    {
+        let Game {
+            display, canvas, ..
+        } = &mut g;
+        display.set_current(None, canvas.as_mut().expect("TitleScreen canvas"));
+    }
+    // Run the state-10 logo animation until startTitle flips state to 1.
+    let mut guard = 0u32;
+    loop {
+        game_loop::run_one_frame(&mut g);
+        guard += 1;
+        if g.title_screen.state == 1 {
+            break;
+        }
+        assert!(
+            guard < 10_000,
+            "state-10 never transitioned to state-1 (startTitle not reached)"
+        );
+    }
+    // Then `post_transition` state-1 paints (k = 0 .. post_transition-1).
+    for _ in 0..post_transition {
+        game_loop::run_one_frame(&mut g);
+    }
+    g
+}
+
+fn render_title_frame(post_transition: u32) -> Image {
+    drive_title_frame(post_transition)
         .screen
         .as_ref()
         .expect("framebuffer")
@@ -344,52 +430,6 @@ fn first_rendered_frame_is_pixel_exact_to_the_publisher_splash() {
     );
 }
 
-/// The `title-logo` reference is a DIFFERENT, later screen (state-1 title: art +
-/// fluttering birds + "PRESS ANY KEY" + "2.0.7") whose paint branch this
-/// increment DEFERS. Diffing the port's publisher-splash frame against it is a
-/// screen-MISALIGNMENT gap, recorded in the ratchet so the test passes at the
-/// CURRENT level and fails on regression (or on an unrecorded improvement — e.g.
-/// once the state-1 draw is ported). Writes a diff visualization + region
-/// breakdown to the git-ignored sink and names the most-different region.
-#[test]
-fn title_logo_reference_gap_is_ratcheted_and_diagnosed() {
-    let port = render_port_frame(ALIGNED_FRAME);
-    let reference = load_reference("title-logo");
-    assert_non_blank(&port, "port frame");
-    assert_non_blank(&reference, "reference `title-logo`");
-
-    let differing = differing_pixels(&port, &reference);
-    eprintln!("port@{ALIGNED_FRAME} vs title-logo: differing_pixels = {differing}");
-
-    write_rgb_png(&diag_dir().join("title_logo.png"), &reference);
-    write_diff_png(&diag_dir().join("diff_title_logo.png"), &port, &reference);
-    let regions = region_breakdown(&port, &reference);
-    for ((cx, cy), c) in regions.iter().take(4) {
-        eprintln!("  region col{cx} row{cy}: {c} differing");
-    }
-    let ((mcx, mcy), mcount) = regions[0];
-    eprintln!(
-        "  most-different region: col{mcx} row{mcy} ({mcount} px) — the vertical centre \
-         where the port draws the publisher logo but the title screen is white"
-    );
-
-    // The two screens are genuinely different content (not a subtle rasteriser
-    // wobble): the diff must be substantial — proving the comparator bites.
-    assert!(
-        differing > 1000,
-        "title-logo diff unexpectedly tiny ({differing}) — the port may now be \
-         rendering the title screen; re-diagnose and re-record the ratchet"
-    );
-    assert_eq!(
-        differing,
-        recorded_agreement("title-logo"),
-        "title-logo agreement moved to {differing} (ratchet has {}). If the state-1 \
-         title draw was ported, update tests/first_frame_oracle_agreement.txt \
-         deliberately after viewing _temp/oracle/first_frame/diff_title_logo.png",
-        recorded_agreement("title-logo")
-    );
-}
-
 /// The frame-alignment evidence, asserted (not just narrated): the seated-logo
 /// window is stable — every driven frame in 12..=49 produces the IDENTICAL
 /// framebuffer — so [`ALIGNED_FRAME`] is well-defined and the exact frame index
@@ -414,4 +454,79 @@ fn alignment_the_seated_logo_window_is_stable() {
         0,
         "frame 60 still equals the seated logo — startTitle/slide-off did not happen"
     );
+}
+
+// ==========================================================================
+// State-1 TITLE screen oracle (the milestone target)
+// ==========================================================================
+
+/// Diagnostic sweep: render the state-1 title across a window of post-transition
+/// paint counts and report the differing-pixel count of each against the
+/// `title-logo` reference, naming the minimum. The RNG simulation predicts the
+/// capture is the 42nd state-1 paint (k=41 ⇒ [`TITLE_STATE1_FRAMES`]); this proves
+/// that count is the pixel-diff minimum (the bird animation phase alignment).
+#[test]
+fn title_sweep_locates_the_matching_state1_frame() {
+    let reference = load_reference("title-logo");
+    assert_non_blank(&reference, "reference `title-logo`");
+    let mut best = (u32::MAX, usize::MAX);
+    for k in 36u32..=48 {
+        let port = render_title_frame(k);
+        let d = differing_pixels(&port, &reference);
+        eprintln!("title post-transition={k}: differing_pixels = {d}");
+        if d < best.1 {
+            best = (k, d);
+        }
+    }
+    eprintln!(
+        "MIN title diff at post-transition={} : {} px (TITLE_STATE1_FRAMES = {})",
+        best.0, best.1, TITLE_STATE1_FRAMES
+    );
+    assert_eq!(
+        best.0, TITLE_STATE1_FRAMES,
+        "the pixel-diff-minimum title frame moved to post-transition={} ({} px); \
+         re-derive TITLE_STATE1_FRAMES and re-check the RNG/frame alignment",
+        best.0, best.1
+    );
+}
+
+/// THE MILESTONE. Drive the port to the state-1 HEROES LORE title (the animation
+/// moment the `title-logo` reference captured) and diff RGB against ground truth.
+/// The title art, version text, birds and footer position all reproduce; the
+/// recorded ratchet is the honest residual (see the ratchet file's diagnosis).
+/// Writes the port frame + a diff visualization + region breakdown to the
+/// git-ignored sink. Non-vacuity: both frames asserted non-blank.
+#[test]
+fn title_screen_state1_frame_agrees_to_the_ratchet() {
+    let port = render_title_frame(TITLE_STATE1_FRAMES);
+    let reference = load_reference("title-logo");
+    assert_non_blank(&port, "port title frame");
+    assert_non_blank(&reference, "reference `title-logo`");
+
+    let differing = differing_pixels(&port, &reference);
+    eprintln!("port title@{TITLE_STATE1_FRAMES} vs title-logo: differing_pixels = {differing}");
+
+    write_rgb_png(&diag_dir().join("port_title.png"), &port);
+    write_rgb_png(&diag_dir().join("title_logo.png"), &reference);
+    write_diff_png(&diag_dir().join("diff_title_logo.png"), &port, &reference);
+    let regions = region_breakdown(&port, &reference);
+    for ((cx, cy), c) in regions.iter().take(4) {
+        eprintln!("  region col{cx} row{cy}: {c} differing");
+    }
+
+    let recorded = recorded_agreement("title-logo");
+    if recorded == 0 {
+        assert_eq!(
+            differing, 0,
+            "ratchet asserts pixel-exact title, but {differing} px differ — a \
+             regression; see _temp/oracle/first_frame/diff_title_logo.png"
+        );
+    } else {
+        assert_eq!(
+            differing, recorded,
+            "title-logo agreement moved to {differing} (ratchet has {recorded}). If the \
+             render improved, update tests/first_frame_oracle_agreement.txt deliberately \
+             after viewing _temp/oracle/first_frame/diff_title_logo.png"
+        );
+    }
 }

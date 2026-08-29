@@ -3,31 +3,33 @@
 //!
 //! Implementation #1: strict transliteration. See `docs/TRANSLITERATION.md`.
 //!
-//! The title/intro `BaseCanvas`. This increment ports the FIRST-FRAME render
-//! path: the constructor (materialising the `Canvas` + framebuffer + geometry),
-//! `startLogo` (which arms the state-10 logo animation), and `paint`'s **state-10
-//! (logo)** branch — the genuine first rendered frame after boot (captured as the
-//! reference `title-logo.png`, 240×320). `startTitle` (the state-10 → state-1
-//! transition) is ported too; its `AudioManager.playBgm(22)` is deferred.
+//! The title/intro `BaseCanvas`. This increment ports the title render path: the
+//! constructor (materialising the `Canvas` + framebuffer + geometry), `startLogo`
+//! (which arms the state-10 logo animation), `paint`'s **state-10 (logo)** branch
+//! (the publisher splash), the `startTitle` state-10 → state-1 transition, and
+//! `paint`'s **state-1 (title)** branch — the HEROES LORE title art
+//! (`titleBgFrames`/`titleMenuFrames`), the version ("2.0.7") + "PRESS ANY KEY"
+//! footer text, and the RNG-driven fluttering-bird animation (captured as the
+//! reference `title-logo.png`, 240×320). `AudioManager.playBgm(22)` in
+//! `startTitle` is deferred.
 //!
-//! DEFERRED (anti-bog): `boot()` and the async `run()` loader (FontManager /
-//! AppConfig / StringTable / TextTable / the sprite + string banks), `keyPressed`,
-//! `enterStoryMode`, and `paint`'s **state-1** branch (the falling-glyph title
-//! draw over `titleBgFrames`/`titleMenuFrames` + `FontManager` version/footer
-//! text). On the first-frame path `state == 10`, so state 1 is not reached.
+//! DEFERRED (anti-bog): `boot()` and the async `run()` loader (AppConfig / TextTable
+//! / the sprite + string banks; the font/label/title-asset prerequisites the
+//! state-1 paint needs are driven directly by the caller — see the oracle),
+//! `keyPressed`, and `enterStoryMode`.
 //!
 //! Opcode shapes (R8, `_reference/numeric_shapes.json`): `bg.<init>:()V => []`,
 //! `bg.b:()V => []` (startLogo). `bg.paint:(…Graphics;)V` covers BOTH switch
-//! branches; the transliterated state-10 subset is `imul,i2s` (glyph1X*2),
-//! `isub` (animTick-glyph1X), `isub` (halfH-1), `iadd,i2b` (glyph1Frame+1),
-//! `isub,idiv,iadd` (animTick += (halfH-animTick)/2) — a subset of that shape,
-//! the state-1 remainder deferred.
+//! branches; both are transliterated below, preserving the source arithmetic
+//! (`imul`/`i2s` for the glyph position updates, `idiv` for `width / 2`, `irem`
+//! for `animTick % 4`, `iadd`/`i2b` for the frame counters).
 
 use crate::base_canvas;
 use crate::byte_util;
+use crate::font_manager;
 use crate::game::Game;
 use crate::game_loop;
-use j2me_jvm::java_div;
+use j2me_jvm::{java_div, java_rem};
 
 /// Java `bg` / `TitleScreen` state — the screen's instance fields plus its one
 /// `static` (`instance`, obf `bg.a:Lbg;`), in reviewed declaration order (see
@@ -112,18 +114,204 @@ pub fn paint(g: &mut Game) {
         .map(|s| s.height())
         .unwrap_or(base_canvas::DEVICE_HEIGHT);
     base_canvas::set_view_height(g, clip_height);
-    // switch (this.state) { case 1: <deferred>; case 10: <logo>; }
+    // switch (this.state) { case 1: <title>; case 10: <logo>; }
     match g.title_screen.state {
-        1 => {
-            // DEFERRED: state-1 title draw (titleBgFrames/titleMenuFrames +
-            // FontManager version/footer text). Not reached on the first-frame
-            // (state-10) path.
-        }
+        1 => paint_title(g),
         10 => paint_logo(g),
         _ => {}
     }
     // GameLoop.instance.throttle();
     game_loop::throttle(g);
+}
+
+/// `paint`'s `case 1:` — the HEROES LORE title screen: white clear, the assembled
+/// title art (`titleBgFrames[2..4]`), the orange version text ("2.0.7"), the two
+/// fluttering birds (`titleMenuFrames`, ping-pong sprite + drifting position), the
+/// blinking "PRESS ANY KEY" footer, and the per-frame glyph state machine (which
+/// consumes `ByteUtil.randRange`). The two `drawImage` anchors are `20` (TOP|LEFT)
+/// for the art and `33` (HCENTER|BOTTOM) for the birds.
+fn paint_title(g: &mut Game) {
+    // Disjoint field borrows: the framebuffer (mut, via Graphics), the title banks
+    // (read), the geometry (read), the fonts/labels (read), the anim fields (mut),
+    // and the RNG (mut).
+    let Game {
+        screen,
+        asset_cache,
+        base_canvas,
+        title_screen,
+        font_manager,
+        byte_util,
+        ..
+    } = &mut *g;
+    let target = screen.as_mut().expect("framebuffer");
+    let mut graphics = j2me_me::Graphics::new(target);
+
+    // graphics.setColor(16777215);
+    graphics.set_color(16777215);
+    // graphics.fillRect(0, 0, BaseCanvas.width, BaseCanvas.height);
+    graphics.fill_rect(0, 0, base_canvas.width, base_canvas.height);
+    // int logoTopY = BaseCanvas.halfH - 68;
+    let logo_top_y: i32 = base_canvas.half_h.wrapping_sub(68);
+    // int logoLeftX = BaseCanvas.halfW - 60;
+    let logo_left_x: i32 = base_canvas.half_w.wrapping_sub(60);
+    {
+        let title_bg = asset_cache
+            .title_bg_frames
+            .as_ref()
+            .expect("AssetCache.titleBgFrames null");
+        // graphics.drawImage(titleBgFrames[2], logoLeftX + 0, logoTopY + 25, 20);
+        graphics
+            .draw_image(
+                &title_bg[2],
+                logo_left_x.wrapping_add(0),
+                logo_top_y.wrapping_add(25),
+                20,
+            )
+            .expect("drawImage(titleBgFrames[2])");
+        // graphics.drawImage(titleBgFrames[3], logoLeftX + 52, logoTopY + 25, 20);
+        graphics
+            .draw_image(
+                &title_bg[3],
+                logo_left_x.wrapping_add(52),
+                logo_top_y.wrapping_add(25),
+                20,
+            )
+            .expect("drawImage(titleBgFrames[3])");
+        // graphics.drawImage(titleBgFrames[4], logoLeftX + 93, logoTopY + 2, 20);
+        graphics
+            .draw_image(
+                &title_bg[4],
+                logo_left_x.wrapping_add(93),
+                logo_top_y.wrapping_add(2),
+                20,
+            )
+            .expect("drawImage(titleBgFrames[4])");
+    }
+    // graphics.setColor(4136767);
+    graphics.set_color(4136767);
+    // if (FontManager.versionText != null) FontManager.drawChars(graphics,
+    //     (BaseCanvas.width - 2) - FontManager.stringWidth(versionText), BaseCanvas.height - 31, versionText, 0);
+    if let Some(version_text) = font_manager.version_text.as_ref() {
+        let width_px = font_manager::string_width(font_manager, version_text);
+        let x = base_canvas.width.wrapping_sub(2).wrapping_sub(width_px);
+        let y = base_canvas.height.wrapping_sub(31);
+        font_manager::draw_chars(font_manager, &mut graphics, x, y, version_text, 0);
+    }
+    {
+        let title_menu = asset_cache
+            .title_menu_frames
+            .as_ref()
+            .expect("AssetCache.titleMenuFrames null");
+        // graphics.drawImage(titleMenuFrames[glyph1Frame < 4 ? glyph1Frame : 8 - glyph1Frame], glyph1X, glyph1Y, 33);
+        let idx1: i32 = if (title_screen.glyph1_frame as i32) < 4 {
+            title_screen.glyph1_frame as i32
+        } else {
+            8i32.wrapping_sub(title_screen.glyph1_frame as i32)
+        };
+        graphics
+            .draw_image(
+                &title_menu[idx1 as usize],
+                title_screen.glyph1_x as i32,
+                title_screen.glyph1_y as i32,
+                33,
+            )
+            .expect("drawImage(bird1)");
+        // graphics.drawImage(titleMenuFrames[(glyph2Frame < 4 ? glyph2Frame : 8 - glyph2Frame) + 5], glyph2X, glyph2Y, 33);
+        let idx2: i32 = (if (title_screen.glyph2_frame as i32) < 4 {
+            title_screen.glyph2_frame as i32
+        } else {
+            8i32.wrapping_sub(title_screen.glyph2_frame as i32)
+        })
+        .wrapping_add(5);
+        graphics
+            .draw_image(
+                &title_menu[idx2 as usize],
+                title_screen.glyph2_x as i32,
+                title_screen.glyph2_y as i32,
+                33,
+            )
+            .expect("drawImage(bird2)");
+    }
+    // glyph1X = (short) (glyph1X + (10 * (glyph1Frame < 4 ? 1 : -1)));
+    title_screen.glyph1_x = (title_screen.glyph1_x as i32).wrapping_add(10i32.wrapping_mul(
+        if (title_screen.glyph1_frame as i32) < 4 {
+            1
+        } else {
+            -1
+        },
+    )) as i16;
+    // glyph1Y = (short) (glyph1Y + ByteUtil.randRange(-1, 4));
+    title_screen.glyph1_y =
+        (title_screen.glyph1_y as i32).wrapping_add(byte_util::rand_range(byte_util, -1, 4)) as i16;
+    // glyph2X = (short) (glyph2X + (10 * (glyph2Frame < 4 ? -1 : 1)));
+    title_screen.glyph2_x = (title_screen.glyph2_x as i32).wrapping_add(10i32.wrapping_mul(
+        if (title_screen.glyph2_frame as i32) < 4 {
+            -1
+        } else {
+            1
+        },
+    )) as i16;
+    // glyph2Y = (short) (glyph2Y + ByteUtil.randRange(-1, 4));
+    title_screen.glyph2_y =
+        (title_screen.glyph2_y as i32).wrapping_add(byte_util::rand_range(byte_util, -1, 4)) as i16;
+    // glyph1Frame = (byte) (glyph1Frame + 1);
+    title_screen.glyph1_frame = (title_screen.glyph1_frame as i32).wrapping_add(1) as i8;
+    // glyph2Frame = (byte) (glyph2Frame + 1);
+    title_screen.glyph2_frame = (title_screen.glyph2_frame as i32).wrapping_add(1) as i8;
+    // if (glyph1Frame > 7) glyph1Frame = (byte) 0;
+    if (title_screen.glyph1_frame as i32) > 7 {
+        title_screen.glyph1_frame = 0;
+    }
+    // if (glyph2Frame > 7) glyph2Frame = (byte) 0;
+    if (title_screen.glyph2_frame as i32) > 7 {
+        title_screen.glyph2_frame = 0;
+    }
+    // if (glyph1Y > BaseCanvas.height + 10) { respawn glyph1 }
+    if (title_screen.glyph1_y as i32) > base_canvas.height.wrapping_add(10) {
+        // glyph1X = (short) ByteUtil.randRange(10, (BaseCanvas.width / 2) - 10);
+        let hi = java_div(base_canvas.width, 2)
+            .expect("width / 2")
+            .wrapping_sub(10);
+        title_screen.glyph1_x = byte_util::rand_range(byte_util, 10, hi) as i16;
+        // glyph1Y = (short) ((-10) * ByteUtil.randRange(0, 4));
+        title_screen.glyph1_y =
+            (-10i32).wrapping_mul(byte_util::rand_range(byte_util, 0, 4)) as i16;
+        // glyph1Frame = (byte) ByteUtil.randRange(0, 7);
+        title_screen.glyph1_frame = byte_util::rand_range(byte_util, 0, 7) as i8;
+    }
+    // if (glyph2Y > BaseCanvas.height + 10) { respawn glyph2 }
+    if (title_screen.glyph2_y as i32) > base_canvas.height.wrapping_add(10) {
+        // glyph2X = (short) ByteUtil.randRange((BaseCanvas.width / 2) + 10, BaseCanvas.width - 10);
+        let lo = java_div(base_canvas.width, 2)
+            .expect("width / 2")
+            .wrapping_add(10);
+        let hi = base_canvas.width.wrapping_sub(10);
+        title_screen.glyph2_x = byte_util::rand_range(byte_util, lo, hi) as i16;
+        // glyph2Y = (short) ((-10) * ByteUtil.randRange(3, 7));
+        title_screen.glyph2_y =
+            (-10i32).wrapping_mul(byte_util::rand_range(byte_util, 3, 7)) as i16;
+        // glyph2Frame = (byte) ByteUtil.randRange(0, 7);
+        title_screen.glyph2_frame = byte_util::rand_range(byte_util, 0, 7) as i8;
+    }
+    // if (this.animTick % 4 < 2) { graphics.setColor(0);
+    //   FontManager.drawCharsCentered(graphics, BaseCanvas.halfW, BaseCanvas.height - 45, titleFooter, 1); }
+    if java_rem(title_screen.anim_tick, 4).expect("animTick % 4") < 2 {
+        graphics.set_color(0);
+        let footer = font_manager
+            .title_footer
+            .as_ref()
+            .expect("FontManager.titleFooter null");
+        font_manager::draw_chars_centered(
+            font_manager,
+            &mut graphics,
+            base_canvas.half_w,
+            base_canvas.height.wrapping_sub(45),
+            footer,
+            1,
+        );
+    }
+    // this.animTick++;
+    title_screen.anim_tick = title_screen.anim_tick.wrapping_add(1);
 }
 
 /// `paint`'s `case 10:` — the logo frame. White clear, the logo atlas frame 4
