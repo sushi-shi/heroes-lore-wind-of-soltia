@@ -57,6 +57,14 @@
 #   ItemBag     -> g.class    (no rows: bag data is per-INSTANCE on `item_bag::ItemBag`
 #                              (`slots`/`quickSlot`/`quickTypeCursor`/`gold`); its
 #                              private `QUICK_TYPES` is a `static final` const)
+#   AudioManager-> bw.class
+#   SoundPlayer -> ci.class   (no rows: no static state. Its one INSTANCE field
+#                              `player` (`a:Ljavax/microedition/media/Player;`)
+#                              lives on the per-instance SoundPlayerState the
+#                              AudioManager pool owns — like BitmapFont's per-font
+#                              data. The `pool` arena that owns the wrappers is not
+#                              a Java static; it is the concrete Rust owner for the
+#                              heap objects `clips`/`bgm`/`bgm2`/`sfx` reference.)
 #
 # Singleton note (extends the GameMIDlet/GameLoop instance-field note above):
 # StringTable's one static `a:Lcj;` (`instance`) is eagerly `new StringTable()` at
@@ -166,3 +174,10 @@ AppConfig	b	exitBuyEnabled	Z	AppConfigState	exit_buy_enabled
 AppConfig	c	fullVersion	Z	AppConfigState	full_version
 AppConfig	a	localeEnabled	[Z	AppConfigState	locale_enabled
 Debug	a	fullVersion	Z	DebugState	full_version
+AudioManager	a	maxVolume	I	AudioManagerState	max_volume
+AudioManager	b	scaledVolume	I	AudioManagerState	scaled_volume
+AudioManager	a	bgm	Lci;	AudioManagerState	bgm
+AudioManager	b	bgm2	Lci;	AudioManagerState	bgm2
+AudioManager	c	sfx	Lci;	AudioManagerState	sfx
+AudioManager	a	clips	[Lci;	AudioManagerState	clips
+AudioManager	a	fileTable	[Ljava/lang/String;	AudioManagerState	file_table

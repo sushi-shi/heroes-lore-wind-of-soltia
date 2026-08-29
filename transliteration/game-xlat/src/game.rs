@@ -23,6 +23,7 @@
 
 use crate::app_config::AppConfigState;
 use crate::asset_cache::AssetCacheState;
+use crate::audio_manager::AudioManagerState;
 use crate::base_canvas::BaseCanvasState;
 use crate::byte_util::ByteUtilState;
 use crate::debug::DebugState;
@@ -74,6 +75,10 @@ pub struct Game {
     /// The JAR classpath seam behind `AssetCache.readResource` /
     /// `getResourceAsStream` (a host boundary; see [`ResourceBank`]).
     pub resources: ResourceBank,
+    /// The `javax.microedition.media` (MMAPI) runtime — the `Player` arena +
+    /// ordered host-audio op sink that `SoundPlayer` (`ci`) drives. A device
+    /// runtime owned here, like [`display`](Self::display).
+    pub media: j2me_me::MediaRuntime,
 
     /// `rpg.GameMIDlet` state.
     pub application: ApplicationState,
@@ -91,6 +96,8 @@ pub struct Game {
     pub game_screen: GameScreenState,
     /// `bf` / `MainMenu` state (the front menu + its `cb`/`Menu` base fields).
     pub main_menu: MainMenuState,
+    /// `bw` / `AudioManager` state (the `snd/` clip pool + volume/mixer state).
+    pub audio: AudioManagerState,
     /// `ce` / `AssetCache` state (PARTIAL — only the title/logo render-path banks
     /// are modelled; see `asset_cache`).
     pub asset_cache: AssetCacheState,
@@ -132,9 +139,11 @@ impl Game {
             screen: None,
             clock: j2me_jvm::VirtualClock::new(0),
             resources: ResourceBank::new(),
+            media: j2me_me::MediaRuntime::new(),
             application: ApplicationState::default(),
             game_loop: GameLoopState::default(),
             game_state: GameStateData::default(),
+            audio: AudioManagerState::default(),
             base_canvas: BaseCanvasState::default(),
             title_screen: TitleScreenState::default(),
             game_screen: GameScreenState::default(),

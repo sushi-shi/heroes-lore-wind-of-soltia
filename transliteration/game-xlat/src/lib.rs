@@ -32,6 +32,7 @@ pub mod rms_file;
 pub mod save_cipher;
 
 pub mod asset_cache;
+pub mod audio_manager;
 pub mod base_canvas;
 pub mod bitmap_font;
 pub mod font_manager;
@@ -43,6 +44,7 @@ pub mod game_state;
 pub mod main_menu;
 pub mod menu;
 pub mod resources;
+pub mod sound_player;
 pub mod string_table;
 pub mod title_screen;
 pub mod wrap_font;
