@@ -1,0 +1,36 @@
+# Route: menu -- the main-menu carousel, one shot per selectable entry.
+#
+# The parchment menu lists NEW GAME, LOAD GAME, OPTIONS, HELP, ABOUT, EXIT. On a
+# fresh install there is no saved game, so **LOAD GAME is disabled**: pressing
+# DOWN from NEW GAME skips straight over it to OPTIONS. The selectable order a
+# fresh install walks is therefore NEW GAME -> OPTIONS -> HELP -> ABOUT -> EXIT,
+# which is exactly what these five shots capture. (This is a good witness for the
+# port precisely because the disabled-row skip is a real state decision, not just
+# a highlight moving one row at a time.)
+#
+# Every frame here is static LCDUI -- the whole point of the 2D exact oracle --
+# so each `shot` is compared byte-for-byte.
+#
+# Cost: about 7 s of gated game time.
+
+fps 20
+seed 305419896
+
+wait java_frames=40 java_ms=2000
+wait java_frames=60 java_ms=3000
+seed 305419896
+
+tap SOFT1 60 2500 java_frames=1 java_settle_frames=60
+shot menu-new-game
+
+tap DOWN 60 400 java_frames=1 java_settle_frames=20
+shot menu-options
+
+tap DOWN 60 400 java_frames=1 java_settle_frames=20
+shot menu-help
+
+tap DOWN 60 400 java_frames=1 java_settle_frames=20
+shot menu-about
+
+tap DOWN 60 400 java_frames=1 java_settle_frames=20
+shot menu-exit

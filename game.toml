@@ -6,3 +6,22 @@ fork = "2d"                      # 2d (Graphics2D) or 3d (M3G); see the
                                        # j2me home's docs/FORK_2D_3D.md
 resources_env = "HEROES_LORE_WIND_OF_SOLTIA_RESOURCES"    # env-var fallback for the PRIVATE resources
                                        # location (never a real path in the repo)
+
+# ---------------------------------------------------------------------------
+# [oracle] — the ONLY per-game knobs of the FreeJ2ME-Plus reference oracle
+# (tools/oracle/). The capture script and comparator read every value from here,
+# so the scripts themselves carry no game-specific literal and stamp into a new
+# 2D J2ME port unchanged. See docs/ORACLE.md.
+# ---------------------------------------------------------------------------
+[oracle]
+jar = "_originals/Heroes-Lore-Wind-of-Soltia_J2ME_EN_v207.jar"   # the pinned JAR, relative to repo root
+canvas_w = 240                 # reference canvas geometry the port targets
+canvas_h = 320                 #   (the MIDlet's default; see java/reconstruction/builds.toml)
+sound = 1                      # HeadlessCapture --sound flag. This game's loader deadlocks on a
+                               #   white screen with sound OFF (its audio thread dies); 1 keeps it alive.
+# FreeJ2ME-Plus patches to apply, by descriptive name, resolved under
+# tools/oracle/patches/freej2me-plus-<name>.patch (applied in listed order). Both
+# here are the two non-M3G hooks; a pure-2D game needs no M3G patches. Another
+# game may list a different set, or none.
+patches = ["deterministic-clock", "deterministic-input"]
+freej2me_commit = "373c3636042a5ae80c745647e08d3633d08a95eb"   # pinned emulator revision (bump deliberately)

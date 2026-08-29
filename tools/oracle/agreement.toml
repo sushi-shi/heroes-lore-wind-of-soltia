@@ -1,0 +1,42 @@
+# Per-label EXACT agreement between FreeJ2ME-Plus (reference) and this port.
+#
+# Regenerate with `tools/oracle/compare_frames.py --update-ratchet`, and only
+# after looking at every diff image the run wrote. A run fails on a regression
+# AND on an unrecorded improvement, so a number here can only move deliberately.
+# Never raise one to make a change pass.
+#
+# Every label is `2d`: `differing_pixels = 0` is the only clean state, and any
+# other value is a recorded defect, not a tolerance. `verdict = port-missing`
+# means the port has not been captured for that label yet.
+
+[shots."00-boot/main-menu-new-game"]
+layer = "2d"
+verdict = "port-missing"
+
+[shots."00-boot/publisher-splash"]
+layer = "2d"
+verdict = "port-missing"
+
+[shots."00-boot/title-logo"]
+layer = "2d"
+verdict = "port-missing"
+
+[shots."01-menu/menu-about"]
+layer = "2d"
+verdict = "port-missing"
+
+[shots."01-menu/menu-exit"]
+layer = "2d"
+verdict = "port-missing"
+
+[shots."01-menu/menu-help"]
+layer = "2d"
+verdict = "port-missing"
+
+[shots."01-menu/menu-new-game"]
+layer = "2d"
+verdict = "port-missing"
+
+[shots."01-menu/menu-options"]
+layer = "2d"
+verdict = "port-missing"

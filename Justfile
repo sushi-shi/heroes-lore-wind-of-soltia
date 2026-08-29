@@ -63,6 +63,32 @@ build-java:
         "$(find target/java-classes/defpackage target/java-classes/rpg -name '*.class' | wc -l | tr -d ' ')" \
         "$(find target/java-classes/javax -name '*.class' | wc -l | tr -d ' ')"
 
+# --- Java ME frame oracle (the reference side of the pixel-exact port gate) --
+
+# Build FreeJ2ME-Plus from source (pinned commit + the two non-M3G patches) in a
+# git-ignored scratch dir, then run the ORIGINAL v2.0.7 JAR headless and capture
+# one PNG per labeled `shot` in every route under tools/oracle/routes/. Two
+# passes, so a non-reproducible frame is caught. Writes only to git-ignored
+# _reference/oracle/reference/ (PNGs + a provenance manifest); never the JAR or
+# the built emulator. This is an INDEPENDENT witness for the phone platform, not
+# ground truth (see docs/ORACLE.md).
+java-me-frames:
+    bash tools/oracle/capture_reference.sh
+
+# Check the reference frames. Until the Rust port can be captured, this runs the
+# comparator's inline self-test: it verifies capture provenance (jar + routes +
+# emulator build) fail-closed, proves the in-process pixel diff actually reacts
+# (ref-vs-ref = 0, ref-vs-one-perturbed-pixel > 0, distinct labels differ a lot),
+# and enforces the non-vacuity/liveness floors. Once a port capture exists under
+# _reference/oracle/port/, the same recipe runs the full EXACT per-label compare
+# against tools/oracle/agreement.toml (0 differing pixels is the only clean state).
+java-me-frames-check:
+    if [ -d _reference/oracle/port/pass-1 ]; then \
+      python3 tools/oracle/compare_frames.py; \
+    else \
+      python3 tools/oracle/compare_frames.py --self-test; \
+    fi
+
 # --- Test batteries ----------------------------------------------------------
 
 test:

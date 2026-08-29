@@ -1,0 +1,31 @@
+# Route: boot -- the fresh-install boot sequence, publisher splash to main menu.
+#
+# Every run starts with no RMS record store (a fresh install). The MIDlet shows
+# the Hands-On Mobile publisher splash, then the "Heroes Lore: Wind of Soltia"
+# title logo, then -- on the first key -- the parchment main menu with NEW GAME
+# selected.
+#
+# Determinism (why the two seeds and the fps directive):
+#   * `fps` switches the driver to gated frame stepping on FreeJ2ME's substituted
+#     clock, so the game's currentTimeMillis()/nanoTime() advance by exactly the
+#     route's per-command budget rather than by host wall time. This also loads
+#     the game's utility classes, so the RNGs `ck.a`/`h.a` exist by the next line.
+#   * `seed` reseeds every loaded game java.util.Random in place. The title logo
+#     has an animated element (fluttering birds) driven by `h.a`; without a fixed
+#     seed the captured frame varies run to run. Reseeding just before the title
+#     shot pins that animation, and the boot/menu frames are RNG-free anyway.
+#
+# Cost: about 8 s of gated game time.
+
+fps 20
+seed 305419896
+
+wait java_frames=40 java_ms=2000
+shot publisher-splash
+
+wait java_frames=60 java_ms=3000
+seed 305419896
+shot title-logo
+
+tap SOFT1 60 2500 java_frames=1 java_settle_frames=60
+shot main-menu-new-game

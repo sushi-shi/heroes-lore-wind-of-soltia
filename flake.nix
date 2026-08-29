@@ -76,6 +76,14 @@
               clang cmake gdb lld mold pkg-config
               # Java ME bytecode inspection and decompilation.
               cfr jadx jdk17_headless
+              # A non-headless JDK (openjdk 21) for the FreeJ2ME-Plus frame
+              # oracle: tools/oracle/capture_reference.sh builds the emulator and
+              # runs it headless, and FreeJ2ME's PlatformFont needs AWT font
+              # metrics that jdk17_headless lacks (no libfontmanager). Listed
+              # after jdk17_headless so it does not shadow the headless `javac`
+              # the other Java recipes use; the capture script probes for this one
+              # by store path. `javac` compiles the emulator directly, so no ant.
+              jdk
               # In-process audio output (cpal -> libasound via pkg-config).
               alsa-lib
               # Archive, binary, image, and resource inspection.
