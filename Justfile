@@ -100,19 +100,32 @@ java-me-frames-check:
 #
 # `crosswalk` wires it for WoS: it drives BOTH live emitters (JavaAstAuditDump
 # over the named-Java oracle, j2me-ast-audit over the transliterated Rust) plus
-# `javap` over the compiled oracle bytecode, writes the live evidence + a schema-2
-# manifest into git-ignored _reference/ast/, and prints the per-body node-level
-# coverage. It is RED (nonzero) until per-node op/adapt decisions are authored —
-# that is the honest baseline, so it is intentionally NOT part of `check` yet.
+# `javap` over the compiled oracle bytecode, regenerates the live EVIDENCE into
+# git-ignored _reference/ast/, and validates the TRACKED, hand-maintained schema-2
+# manifest (tools/ast/wos.manifest.toml — the authored op/adapt decisions, like
+# the shipped fixture) against that fresh evidence under --strict. It is RED
+# (nonzero) until EVERY node of EVERY reviewed body is decided — the honest
+# baseline — so it is intentionally NOT part of `check` yet. Authored decisions
+# persist: this path regenerates evidence only and never rewrites the manifest.
 crosswalk: build-java
     cargo build -p j2me-ast-audit
-    python3 tools/ast/wos_crosswalk.py --coverage
+    python3 tools/ast/wos_crosswalk.py --strict --coverage
 
 # Live "how much is still unchecked" burn-down: decided/total nodes per body plus
 # the overall number. Informational (always exits 0) — the report, not the gate.
 crosswalk-coverage: build-java
     cargo build -p j2me-ast-audit
     python3 tools/ast/wos_crosswalk.py --coverage || true
+
+# Recompute every lock (bytecode/AST/node-inventory digests + node counts) from
+# fresh live evidence and (re)write the TRACKED manifest, PRESERVING every
+# authored op/adapt/review/semantic_status decision. This is the ONLY recipe that
+# writes tools/ast/wos.manifest.toml: locks are regenerated here, never
+# hand-typed, and re-compared by the gate above. Run it to bootstrap the manifest
+# or after a legitimate change to a named-Java or transliterated Rust body.
+crosswalk-refresh: build-java
+    cargo build -p j2me-ast-audit
+    python3 tools/ast/wos_crosswalk.py --refresh-locks --coverage || true
 
 # Prove the crosswalk gate can fail (playbook R3), generic proof: dropped
 # decision, coarse blanket, and bytecode/Java-AST/Rust-AST digest perturbations

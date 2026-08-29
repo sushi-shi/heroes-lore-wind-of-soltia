@@ -1,0 +1,1001 @@
+# TRACKED, hand-maintained per-node crosswalk manifest (schema 2).
+#
+# op/adapt/review/semantic_status are the reviewer's AUTHORED decisions
+# and persist across runs — the default `wos_crosswalk.py` (validate) path
+# regenerates EVIDENCE only and never rewrites this file.
+#
+# The locks (code/opcode/AST/node-inventory digests + node counts) are
+# RECOMPUTED from live evidence by `wos_crosswalk.py --refresh-locks` (which
+# preserves every decision) and never hand-typed; the generic verifier
+# re-compares them against fresh evidence on every run, so a one-node drift
+# in either body breaks a lock.
+schema_version = 2
+build = "heroes-lore-wind-of-soltia v2.0.7 named-Java oracle"
+total_body_count = 90
+reviewed_body_count = 30
+crosswalked_body_count = 1
+
+[policy]
+blanket_max_span = 48
+
+[[body]]
+java_item = "rpg.GameMIDlet"
+code_sha256 = "c6b611ca3b98870bd3530ed2e7326725dff395eea6d8e99ba7a7dc3b5bb74665"
+opcode_sha256 = "bd77af6522513dc98025020f9f4c41fdc485b249e6d23e919a7b4aafe067f1e2"
+java_ast_sha256 = "0d90eb2ab6e2d318d72b5f45ccea6cdc1b8c529c8c283ceef785f997d25cc496"
+java_nodes_sha256 = "0ab349eea9981205c08c02c2105964aab19343fd1bc483e115c2a8a44e712098"
+java_node_count = 69
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/game_midlet.rs", item = "field:ApplicationState::instance", ast_sha256 = "8959b9bb03c8625a495b53721cce740171444333127cc8a1cf8d51cde638743a", nodes_sha256 = "78751240abb5b0bed6e906ad1227613deaf115dcf8d98f5e8a7b21b33647bcb6", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_midlet.rs", item = "field:ApplicationState::display", ast_sha256 = "8f8be2e5e70400d54e6f011fb94c3a766b12e47d123dbc703d70b5cfa78ae9a3", nodes_sha256 = "1242f12325b0e58a8bd2e36794ec6a1a87c02c6bd19153711d7eba22893e03c2", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_midlet.rs", item = "field:ApplicationState::started", ast_sha256 = "1e4fa13bf771bbf4ed1c2b4b54abfcae00766112554d58348479571725d1b62a", nodes_sha256 = "32250717395ab33f646eb3676a75bd5657e1bd1102747f6faf44bc9716b80bdf", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_midlet.rs", item = "struct:ApplicationState", ast_sha256 = "12466fdb869e935f77248d0722ecd5eef9cf7d0ad2d2f7a3c9d0ece27a46d464", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/game_midlet.rs", item = "fn:construct", ast_sha256 = "d2d71bf6f42f50835bc7a949d9da97555ca61586421f2827abeb690756184446", nodes_sha256 = "9f55c8a8ae8d222e7c93259e8920e4242ba49d8436d067ddde2fcebe0fe10741", node_count = 13 },
+  { file = "transliteration/game-xlat/src/game_midlet.rs", item = "fn:start_app", ast_sha256 = "5675394595d26d74a50a1229fe84a72e02888ecb45d07d2f43f3d29acee12cd3", nodes_sha256 = "b31a9247faad6a19082120ebabd3f37a2666f55e349d23fe4ec22d2b324b58ae", node_count = 32 },
+  { file = "transliteration/game-xlat/src/game_midlet.rs", item = "fn:pause_app", ast_sha256 = "66dc798ce787a1938f76d22b52e4b8ca91a32e9cd6dffd8db5edd94449431349", nodes_sha256 = "dcec16cd8c17399e2532b597a98758303e0da86d9193e3bbec771604322d747c", node_count = 3 },
+  { file = "transliteration/game-xlat/src/game_midlet.rs", item = "fn:destroy_app", ast_sha256 = "7c642884992eb1d666011cdc85477358f75f83b2276e111d1ac14baf7a386290", nodes_sha256 = "c0e5a824bdb732d622a54a6aa1afbb8fbf6d58b710634e459c6091c8042a4042", node_count = 6 },
+  { file = "transliteration/game-xlat/src/game_midlet.rs", item = "fn:exit", ast_sha256 = "e84f688f17d1f93cc670bc2249c7fa408d1365fa305303bcff7fbe81d1312138", nodes_sha256 = "b89098b9dd830256f0110b0418531a680e0205d7fe1fb1fb4688bba57ff72953", node_count = 1 },
+]
+op = []
+adapt = []
+
+[[body]]
+java_item = "defpackage.GameLoop"
+code_sha256 = "be5f84ccb70010943277d05741594a42a2d4a5ae4d86101d93f5b313aaaf4822"
+opcode_sha256 = "ac2df738289e60a78d48f030e284ee40d79317458b5412d223ef9a31075bd144"
+java_ast_sha256 = "fcac592caf104b9524e0cc234fa3bee468cb9ad92d12a05b8686048133c7364d"
+java_nodes_sha256 = "817c956a8d79bebb61424ecca091b8630ad2dbff50d66b5002740a3ab3e97652"
+java_node_count = 666
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "const:EVENT_SCRIPT_SKIP", ast_sha256 = "0240248df71cb8617c6d70f4a5a3024d44e503ac7aaef4335523d8426d022c96", nodes_sha256 = "58a9ae2e2b05b374851ff2ef5dd56b8927032c3fb0aeac1ad94c999f9303be2b", node_count = 1 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "const:DEBUG_FULL_VERSION", ast_sha256 = "ea092ff3643f968d9aa4f189bbc63b219b22f5e6c45e42096982d3bb272a14df", nodes_sha256 = "58a9ae2e2b05b374851ff2ef5dd56b8927032c3fb0aeac1ad94c999f9303be2b", node_count = 1 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "const:AUDIO_MANAGER_MAX_VOLUME", ast_sha256 = "2d3b6b374e19aa763b51339df63e75c2c7154b72907bc32d4da769260fdf9ca8", nodes_sha256 = "c6fe789793f3083733c1ef1e7226a26552834bf618568aa0585e01934e0d6693", node_count = 1 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "field:GameLoopState::display", ast_sha256 = "622b5933dcab065715a241a44043b27225dadd9730eed7f0fac2cd41ec4ca24e", nodes_sha256 = "1242f12325b0e58a8bd2e36794ec6a1a87c02c6bd19153711d7eba22893e03c2", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "field:GameLoopState::current", ast_sha256 = "1d684b58bc829c29b57ebf26e355c69452f0d507fe9b4d2c2bb5f713b840f5bf", nodes_sha256 = "56cdabb889c534b77874e2958757e68cb7840fbfe3e339324198501df42305f7", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "field:GameLoopState::game_screen", ast_sha256 = "18376cf242858c92f3062a9677b9129d5bc6b37ba4f63595e63ffffb6e0d3bc0", nodes_sha256 = "aa2639eb54d40d7598ba385f920670184c15ffbdf62c623cfcddcfcbb901003c", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "field:GameLoopState::frame_delay", ast_sha256 = "57fb7a91a56683cee23aa954713e9f2d0abe1d93f8e90745afffdd5ac4a13304", nodes_sha256 = "9dd307681a5780e1c1a6316a3a84f029f4e60be565e8cfe00cb3045dfd6d5d46", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "field:GameLoopState::frame_target_ms", ast_sha256 = "d9a3f6e380d776d45c81930515eae7e8b010a64dc7df17e458553a32f5774bb2", nodes_sha256 = "adee5c90045ccabe8ab5f569470a0c7ad96d0e34dae5961b8085709e39e249ed", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "field:GameLoopState::volume", ast_sha256 = "03032a4ece7f5840b461b4bc5060cba9cb947f3d21867028cd457f25558d7c66", nodes_sha256 = "63d17c557ffc5c6a200497c21049007be1a2d787c684ce2bf8b3e5968aee5128", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "field:GameLoopState::sound_enabled", ast_sha256 = "7714bc9c9647444665d04493b4cfb24e0ede921f6f9b2d0cd62a3e3fc55ede0e", nodes_sha256 = "80daca562ea3f5d02bbac1545c33f34bfbdbea1fdbce40de2b76d9ad87ea0f81", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "field:GameLoopState::has_created_character", ast_sha256 = "5bf019f789777cdbc1e806809b1fa37f138ed5f3d9b67bd856746463e5b1107a", nodes_sha256 = "404470ded11ecee8d351c8e7547c3ea6aacb3a3f9f8e6eee2e65fa8188b008e8", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "field:GameLoopState::auto_text_advance", ast_sha256 = "7c7381cdc67a9985fed18ab472e562ada2651d5394b57d9edf96869e5e026d38", nodes_sha256 = "e6cd3ca90d1cfb0a4331df7fa68a5a2de3d1ee624a69a91b8e04ef5234d124ff", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "field:GameLoopState::camera_follow", ast_sha256 = "48af47a531a36d19bfc2ef7215ead0b53d9c298a101aca69d8d90f815306f5d2", nodes_sha256 = "3cdc1feb13b9bf9df1018cca5f0475b7a2ab295a9d33ba338bb3001b129db630", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "field:GameLoopState::difficulty", ast_sha256 = "29a652a0e158edc52b103ef0a72223a13f643d78de0970006e9e6d319d558a53", nodes_sha256 = "4af83d6cf5fc8d23188c37ce66a3426c0398cc91b1209231bc5bc087846e3eb8", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "field:GameLoopState::progress_flags", ast_sha256 = "857cab9df06234514a8947256cc0d9a66676c841e582c338992400f84681ab4d", nodes_sha256 = "4679c582103739a9354fb96bc738040e0f557580bec545c7e70ad4d866857472", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "field:GameLoopState::progress_data", ast_sha256 = "02a5c1e0ebc20b1c87d9b15cc8e4595495a641c71bfbc81ff710db28d793e4e4", nodes_sha256 = "26ef57db8b4ce5fd86c313680e8fc94bcbdce776f165117198cb0554ccafb4a3", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "field:GameLoopState::frame_start_ms", ast_sha256 = "658fe57ca076bde9af2ad13601b7f4b235e50eed542833b4a3f4fcbee60c645e", nodes_sha256 = "170eedcc5888533ec1ce3adf800310ebced32df7dbdb9933f814fb77d86311c1", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "field:GameLoopState::stopped", ast_sha256 = "401dd5eb2af27961e92b2910a458c224282ecce0870152913160940466cf8476", nodes_sha256 = "87f7f235f3f4b1796d633429c8e6f1db9226a925f93cf0ab8b3ded16987a877d", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "field:GameLoopState::boot_pending", ast_sha256 = "eb64cd37212ce8269fa761c4f4195a7c86d2764eb7e5f093ad47646eef8b873f", nodes_sha256 = "072c76f36ac7771b96d9bbbf8fedf2393bc9a6b3e9c590789bdd0e851932d2b9", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "field:GameLoopState::instance", ast_sha256 = "bfd19bf0ffa11493586e95263b3919aa3545e8de8c9837fa5b2d8db0c81d9bfa", nodes_sha256 = "78751240abb5b0bed6e906ad1227613deaf115dcf8d98f5e8a7b21b33647bcb6", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "field:GameLoopState::frame_delay_table", ast_sha256 = "16144cbe50dd6422a72071db48a25ac914cd0e60700202069d9b957353aa91f3", nodes_sha256 = "708488705613387da1db2ec0602c2895d9d85661ae15e1c18d884d2069193b54", node_count = 3 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "field:GameLoopState::lock", ast_sha256 = "721bcba1b5712cc8cc38c4d848090ad348303dfeddd72153239c53e3505ae365", nodes_sha256 = "c22efd40b6f6664a1c68e190f129685712d70fbed624f67a517408de6bf8161b", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "struct:GameLoopState", ast_sha256 = "916a44db772f9e7ff67da07fc8fda282f2f89cafff830350561ee9de725e2762", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "fn:clinit_apply", ast_sha256 = "805edbcc4b39909676e7c857b18959c5ad9bfbf0186a2f23a86982432d5eea16", nodes_sha256 = "a7c994d79de851fac3389df5d27fcbf1926018740999c16869465bd0a6d0abaa", node_count = 12 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "impl:GameLoopState::default", ast_sha256 = "a7fd1e108a39b88a5772e8f6a705ab0a141ab975c54908a381e1ee7469ea26f3", nodes_sha256 = "aed01de098481cc2f949248e5b588734fd83646d736152459d86aa4951ac9601", node_count = 52 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "fn:class_init", ast_sha256 = "a6b90903020be838e781820c2e3596103c6d23c358e5d56ab9ba2fc3f3875601", nodes_sha256 = "61bebe427b7c02e96c7727c74597a7c3e8f012c3425d319d23cbdc7061c7e230", node_count = 19 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "fn:create", ast_sha256 = "a379b9ac16cea9c598e582f79216da9a37214f6673cca643a01e614ddb811bca", nodes_sha256 = "3950daa862f3631df2210f821233222f327f9bc61c792226f927b651e82753f3", node_count = 17 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "fn:construct", ast_sha256 = "0d30b72482ff447de5c362267771d92e5329bcf4bd35da7b2a3bc215d3b193f2", nodes_sha256 = "b4132e5e9d3c85d2a199c15176f3bc12970fe2f28942291e801660bb98681404", node_count = 105 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "fn:set_fps", ast_sha256 = "35837dbcfc6f27351fff73d24a81054f2ad78c160e9c4cd98cccef28bf2046c2", nodes_sha256 = "70589f8f11011f221e9554d4fbf8a1b012913a44cfaec088802108e0946d28eb", node_count = 14 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "fn:apply_difficulty_fps", ast_sha256 = "c26713028a5a36e5f0a8043f4c81ecf3da14169344f0fab4e706dfe35d312b0f", nodes_sha256 = "b26e541313a574c83bf0d28b425fe54bba74084d40240c195b723e6b90739820", node_count = 13 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "fn:start", ast_sha256 = "ebba7e5683257fae72372b7ef82ccb452915ca41e69b023ffe7286b1fe9e929c", nodes_sha256 = "de827efffd7b83c3a8a5a109fed463552d58e85085a3dfd2f68cf4701a1e9bfd", node_count = 7 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "fn:run_one_frame", ast_sha256 = "2bc22432c2b3f3c40689367e85c54513ec8d2688510ed22273785ca4bfb149b1", nodes_sha256 = "3d003b1805ef5cccdf80682e68f41500651251d41f19744dc9e5387d1ce4a654", node_count = 53 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "fn:poll_event", ast_sha256 = "b2f8733d65b3f101ad76229623f11bd49bbe7f4edf1aeaaf3c58744e4bd10ce9", nodes_sha256 = "a5bd499d1792f96825cf054c096f9825e98f0f8df02eda934bbe63affb465191", node_count = 10 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "fn:dispatch_paint", ast_sha256 = "10f1511b1d086d4571dc36b9f49ff19df4b6073627cd1474774bfe4f546ec88f", nodes_sha256 = "1e0012e63e487587fa7fa7f9beefd5aa3fb51d7e87d09245100e424490b4bedc", node_count = 17 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "fn:dispatch_key", ast_sha256 = "0fd256494a16e4d3e25d87ea8050453c1e9b367575875a64a5ffafa69af23a36", nodes_sha256 = "502a8d5422874ac5b5c6b431d2008f26d7994f613f2b0789d2cdf85e9ce439ff", node_count = 21 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "fn:mark_frame_start", ast_sha256 = "0f8899d241221a36382cf398b5dc4ed0a7a8d6f2930f6bc815267a138f00cf00", nodes_sha256 = "b8be69d72de2797716d81b1ed0537d8ca6e47c02ca1300f4b8d29942e84d54f0", node_count = 10 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "fn:throttle", ast_sha256 = "fb6618bc226519169f768b04ca79c96304f4bc63be43780e53c73c5f23d79664", nodes_sha256 = "95267d51da0f16e5735b1967e7ef3a2df3e3a1be02533cf4a9807dc3cc779526", node_count = 27 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "fn:sleep_for", ast_sha256 = "00c431391347619e46f22cdbc99a6dc5792dedfaca75330cabfd18c049ebd93b", nodes_sha256 = "1308b13f8e7b2da5a23a86ee048b75d0be6607ef1c6c6c4dc2eae2039e3c8b59", node_count = 24 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "fn:set_loading_fps", ast_sha256 = "8e1f20d590b8ae92b2ddcab58494a0c53b9ba14392023c8dc614975717780281", nodes_sha256 = "e6200b44b467ba23d08e6114f98a0f4fbca6db62fd2ce73e6d0b1772237fe153", node_count = 7 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "fn:set_fast_fps", ast_sha256 = "0701ddbc793127dd75f0f71110f10df65b395076d0df043afc522e80f1fc0e9a", nodes_sha256 = "c982a1f8c153ff1ccd43030c83f7d2a09ed83976e9845b8803e833f5025d9bb8", node_count = 7 },
+  { file = "transliteration/game-xlat/src/game_loop.rs", item = "fn:show_game_screen", ast_sha256 = "52a6859516b85099dfad71a1700fec8ec1e2a1f03136cc646eb1d8c92c808dd8", nodes_sha256 = "f9316420c63237de4c8e28ab43bf9c2958960c71f59a535e28ad0dd69679fb59", node_count = 28 },
+]
+op = []
+adapt = []
+
+[[body]]
+java_item = "defpackage.GameState"
+code_sha256 = "dea90220e68d7cde81f3e2600ff6985b2baa4bfc58806b1231ef1ec794c20c2d"
+opcode_sha256 = "4d4fcf5ecc3ce5cd49fbc7ea8d4aa5b0d69d04d434a5a5b64ede4afcbbb8c533"
+java_ast_sha256 = "d71c6a9f76d2351ca18bfdd94a5bf47aee033f64c92d8934b90b9a6b1a1ff3ac"
+java_nodes_sha256 = "b91b666ed783d2f69b6f5186ab856db2cc2884fa475ff1394eccd05afdf75fe4"
+java_node_count = 3559
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "field:GameStateData::map", ast_sha256 = "437b863e43c99cd5404a26507450812d31ef22d2be32fd1407e73c56f98b39e6", nodes_sha256 = "8fa7055fee0db9fcdbd40e15cf59beaf2d8777952f3e8e152bdbd212fe6b02a4", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "field:GameStateData::cam_target_x", ast_sha256 = "c98513f380a5115d6419542044ee7575049dd215d44b94b17636eb03deb04d58", nodes_sha256 = "910d6fb496d32404a48a5202ec0ef59a839ad7f9f08edcb07cc1a317b442ae10", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "field:GameStateData::cam_target_y", ast_sha256 = "3c6cb9ec9226a3872259f1f21ee45252f08c102206ae2edf03855ee37240803c", nodes_sha256 = "a8d1dae30efbdd303deeb8d70a656ab6a279792e1696b5f773a351b8f3eea072", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "field:GameStateData::cam_x", ast_sha256 = "e9ac313065945189ca252dd2cf4dafcf8dabf199a5a30def38d00d95d502133b", nodes_sha256 = "e8eaccfb95fbe5a247f0790d7b527a07c7cd2076a8c7415e819058cc04b17e08", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "field:GameStateData::cam_y", ast_sha256 = "46c31f898196da4d6cfeed9d98abc432a92dc2d2ba44f38e68b35c82c6174aec", nodes_sha256 = "bf76c9dfc35f8b215773909bcf5628c894db2466c01177453c931a332091e5b1", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "field:GameStateData::hero", ast_sha256 = "21342e5c4ced612465482a296974ea571d4883081e2c7a083d7b0feaf5263f7b", nodes_sha256 = "b222e4d303d5be41dc0e01bd064f1706d52aeb1b04f015308798397f92850b35", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "field:GameStateData::class_id", ast_sha256 = "8253e2103850aba4ac1c8cab7dd38d628e4ac116943c616aefbabd7de986b028", nodes_sha256 = "4652a86d06c041ba4f52684fee1dab6e43223a0d97c5148fe3534226fd45a9ce", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "field:GameStateData::arg0", ast_sha256 = "10e28f68b112bf05fdb8995254a5a5fa12abba09d45d5fecd8617d7038d6101e", nodes_sha256 = "0c01d342d5cad1259cb1e0b6015bc7d094bd7840875084cc5c1583ce86d50003", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "field:GameStateData::arg1", ast_sha256 = "48d2d82e5d2f9989e5b9fa115c18114f734da73ca73a2bcd5203b127a743f249", nodes_sha256 = "09af60ca6841fec6648e0efeddc5c0369876a8e05db47d006652ba9a75fea5ce", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "field:GameStateData::arg2", ast_sha256 = "0bcbc982ce20f339b6213d5a5b67ce95ef37b297879f48db47bb945eb6d80537", nodes_sha256 = "7355d1801fe35b093b284b22da323f6fcb334037a2ef09e8c27145b94a24814b", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "field:GameStateData::story_map_id", ast_sha256 = "d4009015e15791b4f576696e48d74db2e974ce50e33cca6c288133dcfd8373dc", nodes_sha256 = "6878e9b10c9e3999be6451053e1489c6cc55f547e67197ba9c4b8679dcbbe917", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "field:GameStateData::clear_count", ast_sha256 = "d9fd5ed6dc3e77eefa2b8328e344604925ec5fbe1fe99caab6e4aa0c5368526d", nodes_sha256 = "dc125b59cf55f887bdccdc56efd9ab83186d7f6e234506ac7ca05cedbc28b9da", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "field:GameStateData::clear_bonus_table", ast_sha256 = "00cbf4bccaabdb5edb0a9bb3f007ac6f45aade836da644f215314524b21f7691", nodes_sha256 = "11b45202ace1ce8c9c4ae390fefeb3ab3804e5bdfad441b4b64dbdea1b658543", node_count = 3 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "field:GameStateData::save_key", ast_sha256 = "eb380976aba6024617ca0ea02cce9e509a771531784dd660dd8929eab1425b6d", nodes_sha256 = "799a1fd2c62e213b925a951b76d0c9df1c2cc742894b9fc42d51ff247948d085", node_count = 3 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "field:GameStateData::class_start_table", ast_sha256 = "106871185ea978e5161b423e66e0d62659d634124b4d8cadbf1c40e6ab516e02", nodes_sha256 = "f1bd891bd87a5fe6fbac864abaf6a9d5b0160aa52459dc5a37d162325cedeca4", node_count = 3 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "field:GameStateData::save_slots", ast_sha256 = "de3cfd3be8bc3020b5765c392208a936737defae9fe7893756401d57ab398544", nodes_sha256 = "216313ca4dc295ed17e3d6f580dbbf7979431ced3655f8a8c389c9a47090b1df", node_count = 3 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "field:GameStateData::screen", ast_sha256 = "8c07f7f5b804af318bb5bb11ee9cf47a4be0b7ff1b2a034d8a12e66a35badd23", nodes_sha256 = "94db490590c32bc243ef3e7e351495882ddd73faa29cafbfdddf259655b51b6a", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "field:GameStateData::next_state", ast_sha256 = "c679b3881980b64f16cb89d471c1f19c7f601b7dbb78feb0add06cb25464e795", nodes_sha256 = "0a30f66f3b9c4cd4c612d628b2f944de3d3f0d3c3e16007a977437c52402af58", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "field:GameStateData::pending_hero_state", ast_sha256 = "0243bc0295e1298c9550df1200b64dc0a8d3671082cceae004abafbc9a8505b7", nodes_sha256 = "064abf679a1eea8acd3ba8d14ad1ca64ad2b58e5da62763272b5f153112f5394", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "field:GameStateData::pending_hero_facing", ast_sha256 = "37ff79f4eb48b93658498692a7b1e90a7095fc4a3350ffb47436ecc700aeab56", nodes_sha256 = "586096900f41dc04431a76b9d0dc38eb960a56693fb47f5f4582d5f5b1bc25b1", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "field:GameStateData::switches", ast_sha256 = "957c55892e8b1ebea78b3b5c13880b6a0c8553eab56f49e7cc022dbd50ea8282", nodes_sha256 = "808a9538e1f0484f48fe1f6ab8237f00712e1da289cacbc9815151eebf9ea35c", node_count = 3 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "field:GameStateData::flags", ast_sha256 = "6002d49a7f3f13fa306a52c9a923552050b2815240e51d5dfe99cdab191fba4b", nodes_sha256 = "d8c2a3a7786dedf2bfedc12f570073034ad5957dcbc3c4ae7cb3026e52e8b17d", node_count = 3 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "field:GameStateData::class_start_flags", ast_sha256 = "fad580df85e99077dce1b082828121b187f861cb0c029f482893de26c2a8f4a7", nodes_sha256 = "c7717a2073b6987593ce415481d82082a6483b83ab3ac9bb06d4835a79f7667b", node_count = 4 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "struct:GameStateData", ast_sha256 = "c5e2f73d0701a48d12a01dd8e00700847f0f06a7eb419d392f555808374bc52e", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "fn:clinit_apply", ast_sha256 = "ae5051795b75c64e6cf5fc7b1d593d0a6e5b92383c4ac4478b75fce256bab853", nodes_sha256 = "f1dfd5d1e6c286679a566ad485571cbb2251ac3d55ae261432da738fd12ca7b0", node_count = 63 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "impl:GameStateData::default", ast_sha256 = "1ed3a2e4cb24cd18c915c14e8dfdca0b88fcd669bf0e11c26b271d89349f65b8", nodes_sha256 = "0ba8d34bc222999947aeb4b94c33335fab73cf2fb95d747a4a381ac50e4314ba", node_count = 72 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "fn:class_init", ast_sha256 = "75db3452128c02e18fc2eba5b85a6adaaee60da4e59c22bc5dbba595b6abc9cd", nodes_sha256 = "5a57627e06f1ebd203d207c55423d7d4b31c619ef04225b85ae9429c43d17ea7", node_count = 19 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "fn:set_screen", ast_sha256 = "83ab52cbc3bde576c05373b3441b710221345d5cad24ca3c4f6d01f4da5d6ada", nodes_sha256 = "8bffde7b4eab555a2b8b7c5ee940807685bb3cb5e9d512b34018e5715dba80b6", node_count = 8 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "fn:request_state_a0_a1", ast_sha256 = "8da5888a1e7762a58faea63f483691ada07a8b0ad8e640ac4ccfad9af540f019", nodes_sha256 = "e908cee0f9182e2ccbfc4e2dbf28dac3c83992b96081554218d44839231a45af", node_count = 28 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "fn:process_state_request", ast_sha256 = "b65c688526f745c0c8fb6071c34e807f23f8616b6dc293875e3e5a7bf56b46c3", nodes_sha256 = "8de075c4c4090dcedf66cca8d340fa320fc57f3453210d103e3189ac9f679fba", node_count = 89 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "fn:read_save_slot", ast_sha256 = "0c4249002688608c7aff188a83b0b226fbd4b7c3b11723586bcb09150e02c96a", nodes_sha256 = "99b7ec12ba671d2dfb23decc6ae88307b5634c05b784e0594da052983f3cd0c0", node_count = 3 },
+  { file = "transliteration/game-xlat/src/game_state.rs", item = "fn:build_load_menu", ast_sha256 = "af75940789da69fc8fdc9a1ad260c253188574e54899a5a60fac15f26ebca6ad", nodes_sha256 = "4cbbe06eacb27c9162d63bc92d19d529f16dae434f0e3cd6fbddc0378e7d05a3", node_count = 124 },
+]
+op = []
+adapt = []
+
+[[body]]
+java_item = "defpackage.BaseCanvas"
+code_sha256 = "44d5a82425335ebb6e614a153d1f674a1cdf109b98bb8c37a98f506311c4bc7d"
+opcode_sha256 = "06a7dcbe7cf3a0b50583df46b71d12946e37ff2bbc5d2f41cf19191e33481f4b"
+java_ast_sha256 = "188718e446ecda2b35396d6963c967686c69ea0a46798ce01a8eee94c988de44"
+java_nodes_sha256 = "8a89fb1f3aaedf7988d5f08b9c235765c432f3987c56d54bbea29e2f291a0aeb"
+java_node_count = 987
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/base_canvas.rs", item = "const:DEVICE_WIDTH", ast_sha256 = "b7ca5ee43f9af3366704ca92b121ec2d2d90c68b191ef08143a1fc6ef5b84004", nodes_sha256 = "73a9880049d9803503fa3b590d60f0653e1edb9a148b4e326165ebcf3e5f6571", node_count = 1 },
+  { file = "transliteration/game-xlat/src/base_canvas.rs", item = "const:DEVICE_HEIGHT", ast_sha256 = "a397af28ab85f79fecec010232bd6b1e0c9189cf07e0bad2a1ad657f8b854439", nodes_sha256 = "e171dc8713146d439678abd12e54ce0c26d6e8f8c46a56a657661d52e25b4bb2", node_count = 1 },
+  { file = "transliteration/game-xlat/src/base_canvas.rs", item = "field:BaseCanvasState::key_down", ast_sha256 = "ac02b6051547c347095ce555e385a015f188847ea50d4e2b34e09c177f2c2f26", nodes_sha256 = "8874330c35f18df82d1edb03c3b173c610760cba4f97577056d19a369389dbee", node_count = 2 },
+  { file = "transliteration/game-xlat/src/base_canvas.rs", item = "field:BaseCanvasState::pending_key", ast_sha256 = "32dc475b0d6f1a9bc1d0ae1016cb34f69307022b21e854b21da8edc86ffe1608", nodes_sha256 = "edc1cb1b21fe1fce031ac7fb5c45466da59925f6b7c2f72ca80d5080c43f4ee2", node_count = 2 },
+  { file = "transliteration/game-xlat/src/base_canvas.rs", item = "field:BaseCanvasState::width", ast_sha256 = "9dda78a2595824b97db449adaf9bed57023071e7a5ff6eedeb939aa409dd34c6", nodes_sha256 = "3e6fdeffed5a812b09480de440e7f966063da01c37bf8ca92840950bbad71bcf", node_count = 2 },
+  { file = "transliteration/game-xlat/src/base_canvas.rs", item = "field:BaseCanvasState::height", ast_sha256 = "187a8a80cf090c3d7c14e30c91c6d2910530c13c82cc8cfff1f3d0ac7888528c", nodes_sha256 = "7768a71724f092ee6a9fe58be5784cc3d4812d40c27e4b4213ceb698c9759743", node_count = 2 },
+  { file = "transliteration/game-xlat/src/base_canvas.rs", item = "field:BaseCanvasState::half_w", ast_sha256 = "18e3cb8bd99ab15e29663d72fa98f1a23bfafd1583ccd2fff174acfaa078eeed", nodes_sha256 = "d6b815168b7fa893a3d7d314bdb5523fe03db87ce4402a91e805d822acb8f961", node_count = 2 },
+  { file = "transliteration/game-xlat/src/base_canvas.rs", item = "field:BaseCanvasState::half_h", ast_sha256 = "40b4d92537113eb52665d2b1450fa83fb1bd5b0dd866c3cd3ec3ff37a0d82678", nodes_sha256 = "5571efea6a6741bab0b8637448742c611df8b3c58745c8076cdbdd1a74a9e934", node_count = 2 },
+  { file = "transliteration/game-xlat/src/base_canvas.rs", item = "field:BaseCanvasState::keep_loading_progress", ast_sha256 = "b3d179ea5c8a816c926406623f16b487cbb3656c62e16405e75906e035b55707", nodes_sha256 = "a08a515b78ea9dc94f9944b909589abb65d67272977f6816bc22d2370abefc1e", node_count = 2 },
+  { file = "transliteration/game-xlat/src/base_canvas.rs", item = "field:BaseCanvasState::load_progress", ast_sha256 = "15096e8f235afcd123ae40282cd69d54d03019efd7bdb0cb4d297caf97a0fc55", nodes_sha256 = "203aea93eef857a4d66224fb43d94d4ba963dfd33a3ab5cec66002e4470f616f", node_count = 2 },
+  { file = "transliteration/game-xlat/src/base_canvas.rs", item = "field:BaseCanvasState::load_total", ast_sha256 = "ccdcbdff3fe7b23ed3c61ab77628e0bc9677632822105b37e58b0adad96a93ea", nodes_sha256 = "3b188eb1ff31d940529c4961419cac10d4b84a3bf97f7f6c89027357a33c3fe6", node_count = 2 },
+  { file = "transliteration/game-xlat/src/base_canvas.rs", item = "field:BaseCanvasState::load_phase", ast_sha256 = "9b7fd0243db8d09c8e901bf22dcd3a5f1242189d290e7d52758fd048a05e4989", nodes_sha256 = "a6d1645f8ff249d5f48b27fc571343f0a4c7b000b9502807d564b4313f95e9dc", node_count = 2 },
+  { file = "transliteration/game-xlat/src/base_canvas.rs", item = "struct:BaseCanvasState", ast_sha256 = "1289ee6aa33ebd2e6b4aaeb135374e35baacb37e00edde234e528e85d8603731", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/base_canvas.rs", item = "impl:BaseCanvasState::default", ast_sha256 = "5d2e8d4d27a10335ca5b3d4fc0845575fff668bb38a9f6d0632d2c3d6587f6f9", nodes_sha256 = "ee2181b2837329fd5affef0a5a1d08c2047eb40ccb8797d528f36662a0e6671c", node_count = 23 },
+  { file = "transliteration/game-xlat/src/base_canvas.rs", item = "fn:construct", ast_sha256 = "1f54134015948c95f137103f34a1b6158a6aa7e265e07e2d7a2cbb94d852ef0b", nodes_sha256 = "bb26cc43baad70cdbc05b41f53f72345dca22e1700f24237030ac69af72022f1", node_count = 44 },
+  { file = "transliteration/game-xlat/src/base_canvas.rs", item = "fn:flush_key", ast_sha256 = "f05f0e6fc389c655dd1eb523188579e54a714f1d8bf0c508a5a711a351016574", nodes_sha256 = "3f7d1f6de2af80c0dccc6fbede1c0e110af4621b1fde94f1910e89e3b1ec1da4", node_count = 21 },
+  { file = "transliteration/game-xlat/src/base_canvas.rs", item = "fn:request_repaint", ast_sha256 = "f52b3a71251d4de81ec68fab67b908b1b0870899abbbcda3728f6f8d48943954", nodes_sha256 = "8254aa2c61d0b4448cfe02ffc83367cc5e2a279f10ebd723391508b7351e92a2", node_count = 12 },
+  { file = "transliteration/game-xlat/src/base_canvas.rs", item = "fn:set_view_height", ast_sha256 = "c1f232951297f3dc53229e7629da7848fbcf64bcb432a2c7fc898c4fc02b9a06", nodes_sha256 = "9f45c0da1d437f7b6bd593a09870e23c2b003ed689d6ea430cee92173b5063de", node_count = 53 },
+  { file = "transliteration/game-xlat/src/base_canvas.rs", item = "fn:yield_tick", ast_sha256 = "a36e998567d50a9b4d1b0d88dabff6a819fe11ca09042dc7dc1f8d867c28e95a", nodes_sha256 = "92a468c93831ce8d7475197d72804e0cb9a4efd5e5f26237971fab10f35f3774", node_count = 26 },
+]
+op = []
+adapt = []
+
+[[body]]
+java_item = "defpackage.TitleScreen"
+code_sha256 = "e07118e7d692582a01dce656e58d7c622b8e2d30eb9fe61b214049fbf7826e35"
+opcode_sha256 = "7fc9c9a4184aef23e044480560226c903d5ee3df345ef18c3fa64d05e769e793"
+java_ast_sha256 = "c356275eaeb441412d12b704245cff08ea8d1a88e04fd6183f95f48ffb2fd420"
+java_nodes_sha256 = "7511dcfd292523a6690e20bd7380743f58a58021e624bac74d8323f01ad49122"
+java_node_count = 1328
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/title_screen.rs", item = "field:TitleScreenState::state", ast_sha256 = "3d75a5287f7ac800aaaf202c788e238a9d8b513cad5bb100de96996d05865adb", nodes_sha256 = "443a2fca9a69448453299128d0cd4d413d549ee32a61b0344d3e4f8b37e17b61", node_count = 2 },
+  { file = "transliteration/game-xlat/src/title_screen.rs", item = "field:TitleScreenState::load_phase", ast_sha256 = "aa78ea203b0daea38f76f1b27b9dd19a0671abeba5ea57e452b34f28c883576f", nodes_sha256 = "a63ec7b62a6411a1b2c96d4f36263b35930d9b18b9e87e6e7b1ed30be803138b", node_count = 2 },
+  { file = "transliteration/game-xlat/src/title_screen.rs", item = "field:TitleScreenState::anim_tick", ast_sha256 = "892cbecbaa2000455433a3ad0362407ff1b5781240c8cddee5394d84f74c54aa", nodes_sha256 = "28066ca0552769193eb5d1376351648c67d3d1c0065dccc3384b706ff46cea48", node_count = 2 },
+  { file = "transliteration/game-xlat/src/title_screen.rs", item = "field:TitleScreenState::glyph1_x", ast_sha256 = "22d0fc5e4c02bc11cc09c5e6a0379074e203d7e347dd14109a85a5ecf868bba0", nodes_sha256 = "062fd638251f0fc24f967dc0579d8bd0b98d107e8e786e3d927ea76d33ddb3a0", node_count = 2 },
+  { file = "transliteration/game-xlat/src/title_screen.rs", item = "field:TitleScreenState::glyph1_y", ast_sha256 = "e40aea6a6ff09a9bf5a44ee8793d744da68874615ec88d2486781bfae733e080", nodes_sha256 = "fb54e79a2a02f7156a45f3947d934f1a666ea3a219c529a6ecc3e544aaa89a99", node_count = 2 },
+  { file = "transliteration/game-xlat/src/title_screen.rs", item = "field:TitleScreenState::glyph1_frame", ast_sha256 = "c9ed7d9d4133076653e5a9a38a8253855756dc857cf198a6e7a1678eb27ad9b4", nodes_sha256 = "8a93f920cd64bea9eca75191240d63ac36a8e7738a6164df6f9238ce4f840c94", node_count = 2 },
+  { file = "transliteration/game-xlat/src/title_screen.rs", item = "field:TitleScreenState::glyph2_x", ast_sha256 = "c91a8a6331b2cad45262961b1853f95f42757d355b526b33f1328457ded3e333", nodes_sha256 = "9206ff1294ba43fd741f818359e614d867534c40687bc7f928b30068866e972f", node_count = 2 },
+  { file = "transliteration/game-xlat/src/title_screen.rs", item = "field:TitleScreenState::glyph2_y", ast_sha256 = "0da39c789e9875bfb32df84af69e2a6b6fac198141d9143d6a4f986850f19e9c", nodes_sha256 = "d7e3d6ea463026c4c20c6b97bacd83095628e8a09323c19144744e1202dd2366", node_count = 2 },
+  { file = "transliteration/game-xlat/src/title_screen.rs", item = "field:TitleScreenState::glyph2_frame", ast_sha256 = "30f452c6aec831b171da888edb788293f31cf2f40eee98c6b43755738ac6a030", nodes_sha256 = "c616fe5dff1b89d9bd75412b07cf3e03999374434614a1423cae61ee5db23a97", node_count = 2 },
+  { file = "transliteration/game-xlat/src/title_screen.rs", item = "field:TitleScreenState::skip_story_intro", ast_sha256 = "05d01199bd20457cf79098fe3c830fd96adf02e95ed070d3e8be86b305605cb3", nodes_sha256 = "b67c1bde429d7c8259ece2c8a109dcb274c4448fbe6de154a89b2942d222386c", node_count = 2 },
+  { file = "transliteration/game-xlat/src/title_screen.rs", item = "field:TitleScreenState::instance", ast_sha256 = "c50f38a602b3ddde1ae040233425d856392f584e7e89aebed1a92dc9d4b07db3", nodes_sha256 = "78751240abb5b0bed6e906ad1227613deaf115dcf8d98f5e8a7b21b33647bcb6", node_count = 2 },
+  { file = "transliteration/game-xlat/src/title_screen.rs", item = "struct:TitleScreenState", ast_sha256 = "9da83bc67fee0d2339ae8cc24fcee8448f03aca7981b43b4451bb2a98135f664", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/title_screen.rs", item = "fn:construct", ast_sha256 = "7a38c8c2beb89cb676e0e5c825161c14b75432e68f164e62f00f2e92d5590c5a", nodes_sha256 = "cee0de93e58c117d11c26ce514d0987269d79cb4193f92bc0f4857ac288b4f72", node_count = 42 },
+  { file = "transliteration/game-xlat/src/title_screen.rs", item = "fn:start_logo", ast_sha256 = "ba28dc38d6729e0ad1312661398e70007c7181f654d82ee38fd79e6c7585e672", nodes_sha256 = "9b877b171256b7c474ffba42fd7a5d5a4f125b90b2a4040aa54b9a0972991fd1", node_count = 32 },
+  { file = "transliteration/game-xlat/src/title_screen.rs", item = "fn:paint", ast_sha256 = "c7c7b2d09dbdfa8164f37ceb5919768550be42e19f2f278f1b02567876e85ea9", nodes_sha256 = "0733413869001ea3d572dfff0a0c651bad0116f16eb047c70c223ad0c342bb2d", node_count = 43 },
+  { file = "transliteration/game-xlat/src/title_screen.rs", item = "fn:paint_title", ast_sha256 = "54bc2051a8b2fa889e345fddfb6d3f7a293e520f453c8dc389c27cd5a2367d39", nodes_sha256 = "119e11d9d7a49c10bf2d24c45b891a3daf2b159b49b54d20c5716a6b32fbfe06", node_count = 635 },
+  { file = "transliteration/game-xlat/src/title_screen.rs", item = "fn:paint_logo", ast_sha256 = "22e42325919737e74a8c12bbcfa02ba9583a43855d80b6ff2ee1c4a4594f80da", nodes_sha256 = "dd005a54851dd02ea52dd0b69b009117eb159e470b9d6c2bd17ef50a14eabe8d", node_count = 198 },
+  { file = "transliteration/game-xlat/src/title_screen.rs", item = "fn:start_title", ast_sha256 = "1060761067428514ede5c977c10fc150a47f556ca1048d9b840eab04235263c5", nodes_sha256 = "e138a1b6f9b53e7a12cbf314ac36c5d8ba7e4d5315cfd6621516502ce40c97f2", node_count = 153 },
+  { file = "transliteration/game-xlat/src/title_screen.rs", item = "fn:key_pressed", ast_sha256 = "bc250cfd8c36920b1d329284540b4f7a13b7dfa28cc451546f138ada02afdd42", nodes_sha256 = "6bd722437afd3f7eeff39dc7f974feccdba4b438b2c310373f3081f91146f462", node_count = 80 },
+  { file = "transliteration/game-xlat/src/title_screen.rs", item = "fn:enter_story_mode", ast_sha256 = "f7a555d195f3a70857261032a25fc28245e50cff7d13dcd69703bbe31aad7244", nodes_sha256 = "1f89b0fd9ff93515eb9c748601ef6f56567f67cc55cb41571a859f49887f43dd", node_count = 82 },
+  { file = "transliteration/game-xlat/src/title_screen.rs", item = "fn:run", ast_sha256 = "e047b13ef27cab4aa5749ed07d0a5c7f95e3f7ef2c1ede842685670d80a385ee", nodes_sha256 = "a7979e7866d67d16b005ef19d1ddc1687b63cffae1d02db054bf710791517924", node_count = 42 },
+]
+op = []
+adapt = []
+
+[[body]]
+java_item = "defpackage.AssetCache"
+code_sha256 = "21d10f6f9b7181d200627bf804dadaef59e95ed301e918b54b4abe3c5ebfa0ed"
+opcode_sha256 = "875cf492682c583807b824cabbfa9d71f57ff547b31082a29d1e7aede2913f91"
+java_ast_sha256 = "1a05f3f7976f52b277f41b386efb237e3726f090e0316afeefffe75f1dc30a93"
+java_nodes_sha256 = "6d0444bc6372f23afd902291ad1cb763aaed8f8961ac1712b5edf4e1a595bdd9"
+java_node_count = 3799
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/asset_cache.rs", item = "field:AssetCacheState::logo_frames", ast_sha256 = "cf6c47a22f5f69d8b40edc793780d66e2b9e980b6e1f6d8c45d1312b965beac6", nodes_sha256 = "e36e9143eb3e2d9f788fc131b190dc3d6642258e029e3132f45c6580e14a61ba", node_count = 4 },
+  { file = "transliteration/game-xlat/src/asset_cache.rs", item = "field:AssetCacheState::title_bg_frames", ast_sha256 = "6143e4413f3abf499fa05807cfaea108bd5c6ef43d634c863a4f88802fb7222d", nodes_sha256 = "50d6ede1dd076809f01d9e62218b4b309e882771f29b3aac2a37b1bae54159bc", node_count = 4 },
+  { file = "transliteration/game-xlat/src/asset_cache.rs", item = "field:AssetCacheState::title_menu_frames", ast_sha256 = "f0c89970d9a8b2bd4f0917a5406b4a9b55dd16359804c497a573dd0a23ed5240", nodes_sha256 = "a79d8aff0aef460316eb8de594eed8dccaa57a4ddcb77560d068373035ef88db", node_count = 4 },
+  { file = "transliteration/game-xlat/src/asset_cache.rs", item = "field:AssetCacheState::menu_frames", ast_sha256 = "bcd5600a9f4b01584d2543111a85839cf5a8136c6bda65aafd7e008d4da397ef", nodes_sha256 = "4bcb736229d0289f769ced45272720e27ab18bd9e5ccaff3a641fde69820b13a", node_count = 4 },
+  { file = "transliteration/game-xlat/src/asset_cache.rs", item = "field:AssetCacheState::read_buffer", ast_sha256 = "e116457906f13173b51685bcd42fc3d1a1c03bb1298ae70b64bb437f2eb6d179", nodes_sha256 = "1b16c7c68d5fea99db585b8d3887b1fb142e06e36a3385d98f4fed49699510a8", node_count = 3 },
+  { file = "transliteration/game-xlat/src/asset_cache.rs", item = "struct:AssetCacheState", ast_sha256 = "371677b9c326350c73ef79eb463470d7247917d6e206975513140e7c572e99a7", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/asset_cache.rs", item = "impl:AssetCacheState::new", ast_sha256 = "021ab31a072b64fc08fbd93c4c937381439e493920bd9dad4749bdfd5b8c9b00", nodes_sha256 = "6ba32b81d0b5ef28f5ed3628904e28f576bdb74e59dabcc79f2fbcaf5e5d9c54", node_count = 18 },
+  { file = "transliteration/game-xlat/src/asset_cache.rs", item = "fn:read_resource", ast_sha256 = "7845584c9a76a1f419847c14ee0308595c758c6bb42d706a281a898f6a50fee1", nodes_sha256 = "113b31a6eb6d941d4b77a283134047ea193e5a76931910678f93b34e2ae1d6c1", node_count = 102 },
+  { file = "transliteration/game-xlat/src/asset_cache.rs", item = "fn:load_logo", ast_sha256 = "46fce2569f9659e94bc4485a95dabc6b935a44a406974c9ec48108eb0d872d1d", nodes_sha256 = "4aa83d4697a3fbcf7b32143a71436741866fd4cfeeac678441b461b95ca3c9cf", node_count = 27 },
+  { file = "transliteration/game-xlat/src/asset_cache.rs", item = "fn:load_title_screen", ast_sha256 = "1a34f45fe93fc19af2def4258902ae77079025f41d062680eb9b511ab310dceb", nodes_sha256 = "25e2c099e7ecebe76837d81719901b75dd468adb26aedeed1d934638edb67d19", node_count = 151 },
+  { file = "transliteration/game-xlat/src/asset_cache.rs", item = "fn:unload_logo", ast_sha256 = "3d47f3d57c979bd78642c1b6cb31303d4d51470e17e95127646e85473bfdc00b", nodes_sha256 = "9e7211f473e35135cd846e8be8e1d8b6b3a88e647801d6b797ca4d1e7e891d08", node_count = 8 },
+  { file = "transliteration/game-xlat/src/asset_cache.rs", item = "fn:unload_title_screen", ast_sha256 = "fff8082fa43a4ac5f4bb95c2e4ba33ee62f357b22069ca59adc14e74baa93923", nodes_sha256 = "25be178c0ce16a5ec77ee6553f39bfe780e47ba92251a230f323268ece99dec7", node_count = 15 },
+  { file = "transliteration/game-xlat/src/asset_cache.rs", item = "fn:load_main_menu_assets", ast_sha256 = "baefa5c72848e106f94f67614716a551947d58788bf1d50a83e3bf4ba83311da", nodes_sha256 = "eb078e2aad794ebb75ca99a7c29e4799648693c72abd79c1c4b7146c832191e1", node_count = 27 },
+  { file = "transliteration/game-xlat/src/asset_cache.rs", item = "fn:load_item_record", ast_sha256 = "4cb4e58151e91b005ab91e7566140116c454d3c7cd60c1d34eb5acb4da31fdc4", nodes_sha256 = "a6bf17350ef1fd959a73f5741d1415e9b6faa74e9cd8eafd0fa4316e82a774ff", node_count = 115 },
+  { file = "transliteration/game-xlat/src/asset_cache.rs", item = "fn:load_shop_item_data", ast_sha256 = "606b94321c5575dadffe1f2f5666dea72eb8b291ec4153e1d5dcc54ff1456d1e", nodes_sha256 = "02ec4576a2ab9a33d8d76eadbfa8cb8a97f16161750b8bd9014329c7f726faf0", node_count = 7 },
+]
+op = []
+adapt = []
+
+[[body]]
+java_item = "defpackage.PngMerger"
+code_sha256 = "0aa7cb29011514860c4172ef742b3c5df6ab0152eb279dcecf4c751b3901a73e"
+opcode_sha256 = "04c51602f93c0e8486e60e35376ade59fbe1f34c1267fab0b0a1efff2fb310ba"
+java_ast_sha256 = "f75dc22305d869a6f2400c1b3affa2787e9f2ead9746fa37047e9d69973eb8aa"
+java_nodes_sha256 = "0b54bdc6cd742d8135f4ff0993d1cd64e4e5e80bcb07366920934466fea7c048"
+java_node_count = 2890
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "const:CHUNK_TYPES", ast_sha256 = "739a4762ecafb578b45d25ce38070ae2f938e56c5bd4dca9e528b438756c70e2", nodes_sha256 = "92f32decf505e0cc844cc49921920704e291eded83292bc42a5ed84cd91348e6", node_count = 19 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "const:PNG_SIGNATURE", ast_sha256 = "a01c0cf13a1a9850a4df07a5c84903b6ad22edf1450f41cc25f989cf90564eab", nodes_sha256 = "b06da0dc07dd105d97c0ecbbb86ce1c13c50efa3ae1e0d3bb82a5a55f4c966aa", node_count = 10 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "const:IEND_CHUNK", ast_sha256 = "fc9bb509f52c65529faf1c5e48fa090a0eeaff58a67f318cb98de2cded0b0fdf", nodes_sha256 = "4a9f3d88b0a2fd7ad81aeb974a7eb320d47e83a6b8a531a91fd987926a77c874", node_count = 15 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "field:PngMergerState::base_path", ast_sha256 = "3c6f9cf19663a3c769529c189e735a3385fbd6295a62e8e02881a8b6feaa546a", nodes_sha256 = "bfc0ce438f63eb8cbc408cdbcd2c723f81d83995dfe501c6ed0ba92be602d736", node_count = 2 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "field:PngMergerState::merge_palette", ast_sha256 = "31dd75792529335833f6b36a8ce1678e14ec715e10079d0798b7e775fd6d467e", nodes_sha256 = "21c0f43650d669d4830066db4357b4299e6ddf6438ab5f36dae8b9363b7dc19d", node_count = 2 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "field:PngMergerState::palette_remap", ast_sha256 = "3295631cb36606b9b2ec70cf26e3a102c947d121037bb2a7ac7c9efe6b6c5615", nodes_sha256 = "d1e64e187c87e79351bd43ffb55ab31e2453b1cb7982cbf8d206e1c18b256459", node_count = 2 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "field:PngMergerState::mpd_count", ast_sha256 = "6840c889003f866dad8ed9d07eda045729fff071657ed6d80f1bc686731791da", nodes_sha256 = "3925cde26ad1688cb8f31c15116ced8620923725bf008756836f8efd891dd03e", node_count = 2 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "field:PngMergerState::frames_per_mpd", ast_sha256 = "286970c807b7d9318cca975402fa12badecf3cfd60ead5f608096caca8907428", nodes_sha256 = "404ea6d8c1facafd73d566646c1ac88cf3dd72f178a3487b66ac84463d25feef", node_count = 3 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "field:PngMergerState::mph_data", ast_sha256 = "eeaef5ec9f52e90e1d7414f823e46c8cf86ffbfa0628caf0dc5482fd09984116", nodes_sha256 = "618b43002cdefb6b577c78a4a12924df77f5fc8d2b5d82a83e1bf6257ddc2772", node_count = 3 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "field:PngMergerState::mpd_data", ast_sha256 = "9c494bf5fb734604186d777097de86043e60a310d1dd96bf955442c8deb52422", nodes_sha256 = "3b390f423362d77f691e9fc3c21f824dbbaf1a28b389b22047bbe15515af8d05", node_count = 5 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "field:PngMergerState::chunk_masks", ast_sha256 = "eec18667ae8ca0aa17ba7128a7a4d6526585cbe6b1121d9f09cab08e7d46e0f7", nodes_sha256 = "8d4c7e3ec6a72f97e59b6665d51fb3a83599ee6961abfa2ff5f0e39c582985ba", node_count = 3 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "field:PngMergerState::plte_pos", ast_sha256 = "2d77c755922a1ad007659248031765d73a21744f03ace4f81e78e3b9728bf2aa", nodes_sha256 = "1998f08c9a56c45f2f9815db43c2b0a1c4bd2f02008eb03b0c64eac6d3dcd83a", node_count = 2 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "field:PngMergerState::trns_pos", ast_sha256 = "903a3678681c433f76cf70d46a5a7a3589764dd2a69d3b5e39256a637476d3a8", nodes_sha256 = "8d8a5ec8c33462a06023bc1f935a7a5b6323b8eba02f323d124c571237239fbf", node_count = 2 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "field:PngMergerState::preload_all", ast_sha256 = "6cb269c17997dfae22b06e62af7a7f52e7f45c403d64d1b9eb71a89f6da04b0a", nodes_sha256 = "1cc219c8ab11a429ce9923c4c4d8d24ba7e77e9a6564bcc300ed7b72df32aac2", node_count = 2 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "struct:PngMergerState", ast_sha256 = "69bd4b175931b1ff6c4497b5de4546a59d55035549b878b68f5d9dad9dede90f", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "impl:PngMergerState::new", ast_sha256 = "01a7e5d9683b882e6ba9dba8320293a9e2b50c7caad47fa478e26bf2255273d7", nodes_sha256 = "9cce6990046e426d9424123b5eb62011e72676191889ba31a31aa2f5a83b9486", node_count = 4 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:parse_header", ast_sha256 = "04e50654d9453c53fbf6eac09174059af005bb2f95e8b4f9703ffd5106bebd0d", nodes_sha256 = "847481a8ee7a6950775994153b2d05774c4992d575771f735633e0407ba09ccd", node_count = 265 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:frame_count", ast_sha256 = "c2eafc13856830e18a79a5c57affcd63d482020e296723497849639bb90602d8", nodes_sha256 = "adf253a29a387948a042804c4434c9aa4df8c199e93391b4582bf5733539a9ac", node_count = 9 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:unload_mpd", ast_sha256 = "65d74712f2bb74af6691c94b2ec473141c7d559075076179c5e0d797d825cad6", nodes_sha256 = "39986de33367e71d67dad318c53c128f1bd315f3d372e909f60a94798021b32d", node_count = 12 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:unload_all_mpd", ast_sha256 = "931bed20f5717d5b0126a50c667244480eea3f69d1e01b18e9531de4c9fd8834", nodes_sha256 = "4a8efd3c8ebad028355ef46adc9ce8b09ef74b327f44c84ecbe2da398398c850", node_count = 26 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:remap_palette", ast_sha256 = "8fc85454015dff59342ca8e72133d497fb7f81f3193639804a22e78aabcc03e6", nodes_sha256 = "d58224454be7992949afbd1f3d2c8a9d15af0626a4d78ec8417fc566f336c12c", node_count = 24 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:mpd_bytes", ast_sha256 = "cef8d102ad60e99ede192fc3829282476af21eb72d2dc69c6ae8a9ea5b06b34f", nodes_sha256 = "58e5240cac919c435b53c5d587809f21b0528835b6352079678fa0f4e4e60586", node_count = 21 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:mpd_index_of", ast_sha256 = "cbb20dd250afcc1b523f4b731afb399bba64fd3ef8e4360de3747fa3482f619a", nodes_sha256 = "1d718747eae74f1e06a64d78373f69cea56efcbe27c0a10bd1246bb1f2c82683", node_count = 16 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:assemble_frame", ast_sha256 = "7a4182ce660cf802ff64151017c53d8d021f6de3d68f3a9003847fbec836223f", nodes_sha256 = "e48175f93681c9d482dc856499d2b41247d6f542e4ddcf0e3dd8366a16c67d70", node_count = 25 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:assemble_simple", ast_sha256 = "f37fe01b50fca7348ca23a2aa493ec5c1ba4b25d499ea9df216a8e9d288444c4", nodes_sha256 = "5306edab95dda18c6aed2b849afd3bb3b6cf154222d8c4e5decc3a07db45ebaf", node_count = 109 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:assemble_merged", ast_sha256 = "d3b8b1113c32c5c3a47cb03cc898915d62a1b4f6b0601ee666db4e3d55643ee6", nodes_sha256 = "a187e655b72656e88c0a3805f24814a1974f539ae7441124a4bbf48349adaa94", node_count = 642 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:frame_length", ast_sha256 = "209f6d8819794143377da9bdc352ff3f4d181433d4ab871cf5d1f45e47813e47", nodes_sha256 = "05cb73e7833179f379a7acb63dcedb5099cb0569d119d39b2c9ced826bc68bed", node_count = 106 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:find_chunk", ast_sha256 = "7394bc31b4fd75d56b6ad2c07eb7ab8d0d4675532f74b347a6e5fbda0a028aaa", nodes_sha256 = "776e17058b87db8ea8812090b0ac0262545377bd4e2d95dcf09d6b47361730a2", node_count = 155 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:read_u32", ast_sha256 = "79dc25d31cbd5da5be905e3bb45b603b428345785de6d6fbed92b8a2d2e136b2", nodes_sha256 = "8d10478a5428d4920c6aced7c26f39cb512d38e13a011f0841fb50a87ba1f3eb", node_count = 85 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:read_u16", ast_sha256 = "d6c9ba7caf5729c19e4c56299fd4983b9c9ec2ce399b8c8b7ee72b8d82e661da", nodes_sha256 = "72e8dff62ba05f764fea68ebc82718bec37cc52cc7f731e3835283edbaf34920", node_count = 60 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:frame_has_chunk", ast_sha256 = "a089e9ff5ab1fa8db2532937030bce4ceef6c66c9d1d0e90c697078931c395cc", nodes_sha256 = "96a35e5ad02f45c8f431f164f364c9aabdf687aa39dc4922c65dc765577b9870", node_count = 33 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:locate_chunk", ast_sha256 = "e6c61d5df4541db9837fdeeab9c8c3b95e515726618fcf1fe43234f25217a203", nodes_sha256 = "7f3f68cb9df6b9e531e82f09e13f663ec5235d81c4192475706601e42f945b65", node_count = 127 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:mirror", ast_sha256 = "6bd6f7afab3a87d993133be06cde53c0dced65d4fc8d42b47c41ce6b7d0d1822", nodes_sha256 = "94bfdd8c64dbb4b6bc6389d8dc9367ce885d2c6d7711b223a830846c33d8601d", node_count = 77 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:mirror_scanlines", ast_sha256 = "067cae1d41ee9c0af74707513b619c7315a749bf41124ab8326e09cb794b5ddb", nodes_sha256 = "2904ae7a9cc94fb1f1f6cc6bac2a1f26f3418a91909f73d181e8b33bc8a2d11b", node_count = 500 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:apply_effect_default", ast_sha256 = "dc13212159688450589a74993471c7f9c35bca182897bc15f5743b08a2a12c72", nodes_sha256 = "8d7c4987beb0141fd3bee2d9447fb6081087b0db95c2024cda840716a3cd48f1", node_count = 9 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:apply_effect", ast_sha256 = "19f679df4f9a1ad9e3675a8a27f12f5075c1fb90409e2b8b3a9859a032c98c38", nodes_sha256 = "9a194372179fa7f6983a7202416b2a06ffe594ee3bf5a7bd4d538f9055dfdba1", node_count = 27 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:transform_pixels", ast_sha256 = "2a35b4d475650874e615a635c7d32297d7aac66bbc4acb7217aaaa6795daf4f9", nodes_sha256 = "4faca3a68c80db9eda97b9a62ccb027bd70f00eb3b1ce26b29fda09498bd880a", node_count = 1027 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:scale_channel", ast_sha256 = "a5761986e5ee4407cfd6d2e199c7e6e1ff193cbd5375f4fa9d6ed6314d78c421", nodes_sha256 = "ac21f14c93d77b68510c8635222007d87082c1685c4d4bd3bf82031bef553052", node_count = 30 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:to_be32", ast_sha256 = "676047251226c21ff6afcbac1440b80bf74582f65fdb417d47ac147e3c0f3383", nodes_sha256 = "bfd40606bd7caf597574b9e0473ad17382d530dc4797fa8f26ad5732ff670caa", node_count = 42 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:construct", ast_sha256 = "16a990f62e3b4b017245c7ad374f4294c03dfd6f9bbd6287d643e150f5315471", nodes_sha256 = "bd46f9980aa78c4fb97555527783a9a74938a1417e227d53d7509661acb45df0", node_count = 17 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:load", ast_sha256 = "093770248dd10888c098ca2c3e437e14c49482a6353310219a080086cedf7943", nodes_sha256 = "06812a3ce2244dfd978030eb970581e9086de952b694d515af44497d9e8aea91", node_count = 43 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:read_index", ast_sha256 = "28c88eb9b1c5f552338a04a81cc1d49e5e70ed271d8b2371d950fc460e4e69d2", nodes_sha256 = "dec6a88dede76c00a0c969ad49448830be7013af10c6702dffed0a111480beab", node_count = 23 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:load_mpd", ast_sha256 = "94c9b8bcecef3033daf3c6d99b9075383c925f1f5ccd399a7cb8d15d6f20925c", nodes_sha256 = "7172b1e8bc0d52fab77874be4134f84ddfd68f512ced8078d6f4f8598675c893", node_count = 21 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:ensure_mpd", ast_sha256 = "172e66236267a0744eb6b38e8b9be829ca5df64ccf4eaa86d521e4dd216fa85f", nodes_sha256 = "517435f09714dee23a2828211a31b8ab87f800c60e0e21e50f86946ecd39daeb", node_count = 47 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:image", ast_sha256 = "dc3a5b1e6ae6ef9988de8b9ea753eb8ee904f6382063b84c6c126bf43de65bc6", nodes_sha256 = "8779ce4996011c73bf5dbc98a8c42fa0aebbd31e6b879a20cb08ffcae259051b", node_count = 37 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:all_images", ast_sha256 = "ff2a8c48aba63a29c497162cd9bbf3efdd6740e53cdbfbb9f1b3c7ee4ae0fd48", nodes_sha256 = "94429f1533c9668cdaabb8949cda34bfdc70297c063f5123c555b4263d6224fb", node_count = 64 },
+  { file = "transliteration/game-xlat/src/png_merger.rs", item = "fn:image_mirrored", ast_sha256 = "98d3a4d392c4c2fac3fb2fd83b8892594bb9f11b7b4c3515a1cfef83c4516ca3", nodes_sha256 = "7ed1a4177c5b734ab61f29570b117a94e55067f25f56f9e55cd3ac9497535e47", node_count = 59 },
+]
+op = []
+adapt = []
+
+[[body]]
+java_item = "defpackage.ByteUtil"
+code_sha256 = "330778b93717a8ec062d787451d24f0e32e8054441bf14bfe0fe148feec4dbbf"
+opcode_sha256 = "9e5b1c5a68df4bcd354bb016445681bfd1d04da12e9cf9b7dd82efe27c96ed61"
+java_ast_sha256 = "c19fbc058abcfbb054538d1e560cbee0b496e45bb0114295756f825d99ec00a1"
+java_nodes_sha256 = "86747d70c5dd14b8e059c9fea811463a1f5fa84a7a7014b21f1f55fc83d6b5bd"
+java_node_count = 255
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/byte_util.rs", item = "field:JavaRandom::seed", ast_sha256 = "2fa6e42b57cf2d23fbb3a851339cb1fb7e75a0492d6ee8d93da4140b40166b12", nodes_sha256 = "681b629fd9c1163d9bddaf397e5aa04d34e01db8cacc04ede36d7b8b3444716e", node_count = 2 },
+  { file = "transliteration/game-xlat/src/byte_util.rs", item = "struct:JavaRandom", ast_sha256 = "5c1917241eed62a3c62258917b960326c6ceb6868308366f1745ccd2520efbad", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/byte_util.rs", item = "const:JavaRandom::MULTIPLIER", ast_sha256 = "3f6e107e6a6dcf72f65cd10f0281924040f533383ce177a188c03ede38d3fde8", nodes_sha256 = "5e75df556c47774df06e1452b46874175eddc6c2e7fef73a52bf92f0190b253a", node_count = 1 },
+  { file = "transliteration/game-xlat/src/byte_util.rs", item = "const:JavaRandom::ADDEND", ast_sha256 = "ece41381e759ad17490d57df13ff8b12e1c92c50eb523caea90b860a8b5c9ee1", nodes_sha256 = "ccf877fce9b121991bcd4d1d108747ea22c6d2dec6919015f89633b87e6c203a", node_count = 1 },
+  { file = "transliteration/game-xlat/src/byte_util.rs", item = "const:JavaRandom::MASK", ast_sha256 = "89e118d6524c15e13d896632921971a1864cba2205c23e36389e9367552ce2c6", nodes_sha256 = "1e0045aff3985cb7f1e2cfe5427320be43d0166b58707f42abd7165d011750e7", node_count = 6 },
+  { file = "transliteration/game-xlat/src/byte_util.rs", item = "impl:JavaRandom::new", ast_sha256 = "7df656f5b461f71658a738f2bb079d1848f429b3929d8c0c25f7203713d9030c", nodes_sha256 = "8fe2de68a2dd051129a95aa48432c5d232f5e9bedf8b45b39840c7fa79ad5ef8", node_count = 13 },
+  { file = "transliteration/game-xlat/src/byte_util.rs", item = "impl:JavaRandom::next", ast_sha256 = "71e78c280232cfefab8c5bd66a5c2705b14627747de33627c8d759be10929b58", nodes_sha256 = "31c846775f4dc722f811f3be518259141d1fd9806e5fadbe4a9248c0a82be3cc", node_count = 37 },
+  { file = "transliteration/game-xlat/src/byte_util.rs", item = "impl:JavaRandom::next_int", ast_sha256 = "d60b16556483d2f72b9371f18acc7bd349a3ae3c7e44e98bd233188f611fec18", nodes_sha256 = "7ce3c5b83ce72410adc6a2ee18cd9fc7ac1c7a37c0b0f8c32ae7287472fa7bb0", node_count = 5 },
+  { file = "transliteration/game-xlat/src/byte_util.rs", item = "field:ByteUtilState::rng", ast_sha256 = "7a1a9621305ab38a1d21a9a1192f77808027e25702c69b2c8b134da68130930c", nodes_sha256 = "b8cdf599388f0a9348d96f3d1068b2fd5285f5876dd350c569469ae5fc45918e", node_count = 2 },
+  { file = "transliteration/game-xlat/src/byte_util.rs", item = "struct:ByteUtilState", ast_sha256 = "76584f7284e7041bf96f17c6551b9090988805e4a0994091390f5c1511ea77d0", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/byte_util.rs", item = "impl:ByteUtilState::seeded", ast_sha256 = "6c53b0be7e744f5e3ae4dcf2fa50dfd0cea1fd7f41f2f6a432cd3d4070971fcd", nodes_sha256 = "2de29494d27f4e803523afffe16c449a775a760c0ebcc31d70786bdd867bd2bd", node_count = 9 },
+  { file = "transliteration/game-xlat/src/byte_util.rs", item = "fn:java_math_abs", ast_sha256 = "a7bb0b9ed1812cdc8874d63caa3c730c07067a0b55112e0b7ac9c2e01dc3cc27", nodes_sha256 = "a0ecad1381b7e5f0c970b4237f48abd3bbffa1145785bf0cdd53cf5abb874a31", node_count = 14 },
+  { file = "transliteration/game-xlat/src/byte_util.rs", item = "fn:rand_range", ast_sha256 = "a4b2201194d5eda2b5d716d80871e220b4a15f51bbecd1283b8979ceab030a74", nodes_sha256 = "ed963fb2ab8a24a90f47f29db2de2712849ab91882e7a8f6e1ea694edebafc29", node_count = 46 },
+  { file = "transliteration/game-xlat/src/byte_util.rs", item = "fn:read_u16", ast_sha256 = "e8335221091620877b490616371702def546ab183a56151e29a5f541b95f377f", nodes_sha256 = "260b58efd686597eb4f44892b74fab2659529ef002b733543de3e92e173cc42d", node_count = 63 },
+  { file = "transliteration/game-xlat/src/byte_util.rs", item = "fn:read_s32", ast_sha256 = "1185e391282cdae6d6a2f4a5b8c090d87879c16e16f7b82fe0e44224315ae532", nodes_sha256 = "97c50483e8102fc50efd3aa4a48005fae0f60711dcfcf3b92ce1cae569509b40", node_count = 87 },
+  { file = "transliteration/game-xlat/src/byte_util.rs", item = "fn:write_i32", ast_sha256 = "b185c65cf06f6ca8a18c29e069af71b3aabc8e14715921875f0b80f239638d3f", nodes_sha256 = "492892ae7aa6b1e908d5a0e168337c6a5c572c3896110a90bc839f96800d5bf1", node_count = 97 },
+  { file = "transliteration/game-xlat/src/byte_util.rs", item = "fn:concat", ast_sha256 = "abb9fd728dfe45861eaf1912e89a2b822672a6cc564a8f03335a2f31299d4b7a", nodes_sha256 = "2a77bc8007fe487ed3c30ffc6a77a6cc8925b8e5ec513a1e1c5a58e83d3ce6db", node_count = 38 },
+]
+op = []
+adapt = []
+
+[[body]]
+java_item = "defpackage.Adler32"
+code_sha256 = "9ff3cc3e75aedb7c5e153e0fb67468d8b12f197269e980e49ac1dadab4bc234f"
+opcode_sha256 = "608f13cd88b05153ac51f3d56f06950f25818af96b45eebce8af358608424914"
+java_ast_sha256 = "19fb560a2b0a03e505b0604e6b7f759333a8ee55c96ab25540d746b142206343"
+java_nodes_sha256 = "96b89e4ef89fdd30b008cc794367a7b17936cf9810c18dc1ec8935f0ad8a44a3"
+java_node_count = 124
+semantic_status = "crosswalked"
+review = "Adler-32 running checksum, crosswalked node-for-node (124 Java / 168 Rust nodes, every one decided exactly once). Construction is split Java-side field-initializer + synthetic constructor <-> Rust `Default` seed, with the idiomatic `new()` wrapper adapted as a representation-adapter. update() folds bytes in the classic NMAX=5552 blocks: the `this.sum>>16` and `sumB<<16` shifts are realized by j2me_jvm::ishr/ishl and the two `% 65521` reductions by the checked j2me_jvm::java_rem, so the operator-realization parity teeth are satisfied by genuine Rust realizations (no shape_note, no blanket). Preserved defects are represented honestly: sumA/sumB accumulate into SIGNED i32 with wrapping arithmetic (NMAX was derived for an unsigned accumulator, so a large/high-byte input diverges from RFC-1950); and getValue()'s `((long) sum) & (-1)` SIGN-extends rather than zero-extends the state, kept verbatim as `(s.sum as i64) & (-1i64)`. The only one-sided nodes are javac modifier/grouping metadata and the two `(true)` loop guards (erased / faithful-noop) plus the Rust `new()` wrapper (representation-adapter)."
+rust = [
+  { file = "transliteration/game-xlat/src/adler32.rs", item = "field:Adler32State::sum", ast_sha256 = "76b28aee0d28cdc80d54f64079cddd6482b5f3ad7262da97b7ceb8743f49f8eb", nodes_sha256 = "eb8c3b25451dd1ca9e2d5e0bf5a5e74cd62e7ea0145e413912c51f12d32a70e3", node_count = 2 },
+  { file = "transliteration/game-xlat/src/adler32.rs", item = "struct:Adler32State", ast_sha256 = "0fd77c0961ed28e08184f3aa0d35e6be0c69bfe6436b4a39ac4668fda99cd611", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/adler32.rs", item = "impl:Adler32State::default", ast_sha256 = "dbfcbd7c380f72436a8a0627f6b856bff5ca647f49d19243d3bc576700522c03", nodes_sha256 = "8562061e0060a70f2451dba2dfb2eb7324f4317b5d65dbf9553ba833e17ce198", node_count = 5 },
+  { file = "transliteration/game-xlat/src/adler32.rs", item = "impl:Adler32State::new", ast_sha256 = "8b459406210a973109d9d67bb2712dab801822189669bbb18da3d189974bf3e9", nodes_sha256 = "ce85158e3bee02764df0a8cd7fce2422917be961b39a6aadadaafa9d3acefaac", node_count = 4 },
+  { file = "transliteration/game-xlat/src/adler32.rs", item = "fn:update", ast_sha256 = "4fbfd7b69bb02d041fed82b411bdc033ddbc4267beb2680c8b20aab1a95cd39a", nodes_sha256 = "bb720f877f44263baa307e115c455830e929654305da2a9ee8e4c78ab5733a77", node_count = 140 },
+  { file = "transliteration/game-xlat/src/adler32.rs", item = "fn:reset", ast_sha256 = "cb46d07e1030d56348cd9d09739de29d600cc37efc2a1a3c98ffe700a26e797e", nodes_sha256 = "7b763fb1e7586469a8a343d6bfbbeb1fe9ed5efebb5fdf1912ebce82699ac6f6", node_count = 6 },
+  { file = "transliteration/game-xlat/src/adler32.rs", item = "fn:get_value", ast_sha256 = "9c300fae4577e00fe67948149cae1ea9128a3359efc90f9e75da3fff83fdc7e3", nodes_sha256 = "e55793560ff462991cb3df9a18185d45152e062c1395950f4d967b4b69775cc2", node_count = 11 },
+]
+op = [
+  { semantic = "field decl: `private int sum` (name + type) <-> struct field `pub sum: i32`", java = [0, 2], rust = ["0:0", "0:1"] },
+  { semantic = "seed sum = 1: the field initializer `= 1` and the synthetic no-arg constructor that folds it in <-> `impl Default for Adler32State { Adler32State { sum: 1 } }`", java = [3, 4, 5], rust = ["2:0", "2:1", "2:2", "2:3", "2:4"] },
+  { semantic = "update() method body block", java = [6], rust = ["4:0"] },
+  { semantic = "int sumA = this.sum & 65535 <-> let mut sum_a: i32 = s.sum & 65535 (low 16 bits of the packed state)", java = [7, 9, 10, 11, 12, 13], rust = ["4:1", "4:2", "4:3", "4:4", "4:5", "4:6", "4:7"] },
+  { semantic = "int sumB = (this.sum >> 16) & 65535 <-> let mut sum_b: i32 = ishr(s.sum, 16) & 65535 — the RIGHT_SHIFT is realized by j2me_jvm::ishr (Java `>>` masks the count to 5 bits)", java = [14, 16, 17, 19, 20, 21, 22, 23], rust = ["4:8", "4:9", "4:10", "4:11", "4:12", "4:13", "4:14", "4:15", "4:16", "4:17", "4:18"] },
+  { semantic = "outer `while (true)` <-> unconditional `loop` (+ loop body block)", java = [24, 27], rust = ["4:19", "4:20"] },
+  { semantic = "if (length <= 0) { this.sum = (sumB << 16) | sumA; return; } <-> if length <= 0 { s.sum = ishl(sum_b, 16) | sum_a; return; } — the LEFT_SHIFT is realized by j2me_jvm::ishl; `(sumB<<16)|sumA` re-packs the two 16-bit sums as the exit value", java = [28, 30, 31, 32, 33, 34, 35, 36, 37, 38, 40, 41, 42, 43, 44], rust = ["4:21", "4:22", "4:23", "4:24", "4:25", "4:26", "4:27", "4:28", "4:29", "4:30", "4:31", "4:32", "4:33", "4:34", "4:35", "4:36", "4:37", "4:38", "4:39", "4:40"] },
+  { semantic = "int block = length < 5552 ? length : 5552 <-> let mut block: i32 = if length < 5552 { length } else { 5552 } — the classic NMAX=5552 fold cap (ternary realized as an if-expression, incl. its block wrappers)", java = [45, 47, 48, 49, 50, 51, 52, 53], rust = ["4:41", "4:42", "4:43", "4:44", "4:45", "4:46", "4:47", "4:48", "4:49", "4:50", "4:51", "4:52", "4:53"] },
+  { semantic = "length -= block <-> length = length.wrapping_sub(block) (signed wrap is the faithful realization of Java int subtraction)", java = [54, 55, 56, 57], rust = ["4:54", "4:55", "4:56", "4:57", "4:58", "4:59", "4:60", "4:61"] },
+  { semantic = "inner `while (true)` <-> unconditional `loop` (+ loop body block)", java = [58, 61], rust = ["4:62", "4:63"] },
+  { semantic = "int remaining = block <-> let remaining: i32 = block", java = [62, 64, 65], rust = ["4:64", "4:65", "4:66", "4:67"] },
+  { semantic = "block = remaining - 1 <-> block = remaining.wrapping_sub(1) (the inner down-counter)", java = [66, 67, 68, 69, 70, 71], rust = ["4:68", "4:69", "4:70", "4:71", "4:72", "4:73", "4:74"] },
+  { semantic = "if (remaining <= 0) break <-> if remaining <= 0 { break; }", java = [72, 74, 75, 76, 77, 78], rust = ["4:75", "4:76", "4:77", "4:78", "4:79", "4:80", "4:81"] },
+  { semantic = "int index = offset <-> let index: i32 = offset", java = [79, 81, 82], rust = ["4:82", "4:83", "4:84", "4:85"] },
+  { semantic = "offset++ <-> offset = offset.wrapping_add(1)", java = [83, 84, 85], rust = ["4:86", "4:87", "4:88", "4:89", "4:90", "4:91", "4:92"] },
+  { semantic = "sumA += data[index] & 255 <-> sum_a = sum_a.wrapping_add(data[index as usize] as i32 & 255) — signed accumulation (preserved defect: no unsigned widening); `as i32` realizes the baload sign-extend and `as usize` the typed index, then `& 255` re-zero-extends the byte", java = [86, 87, 88, 89, 90, 91, 92, 93], rust = ["4:93", "4:94", "4:95", "4:96", "4:97", "4:98", "4:99", "4:100", "4:101", "4:102", "4:103", "4:104", "4:105", "4:106", "4:107", "4:108", "4:109"] },
+  { semantic = "sumB += sumA <-> sum_b = sum_b.wrapping_add(sum_a) — signed accumulation into i32 (preserved overflow defect: NMAX was derived for an unsigned accumulator, so sum_b can overflow i32::MAX)", java = [94, 95, 96, 97], rust = ["4:110", "4:111", "4:112", "4:113", "4:114", "4:115", "4:116", "4:117"] },
+  { semantic = "sumA %= 65521 <-> sum_a = java_rem(sum_a, 65521).expect(...) — the compound `%=` REMAINDER routed through the checked j2me_jvm::java_rem (65521 is a nonzero const; expect surfaces Java's implicit ArithmeticException-on-zero as a faithful panic)", java = [98, 99, 100, 101], rust = ["4:118", "4:119", "4:120", "4:121", "4:122", "4:123", "4:124", "4:125", "4:126", "4:127", "4:128"] },
+  { semantic = "sumB = sumB % 65521 <-> sum_b = java_rem(sum_b, 65521).expect(...) — the REMAINDER is realized by j2me_jvm::java_rem (signed Java `%`, faithful to the signed-overflow reduction)", java = [102, 103, 104, 105, 106, 107], rust = ["4:129", "4:130", "4:131", "4:132", "4:133", "4:134", "4:135", "4:136", "4:137", "4:138", "4:139"] },
+  { semantic = "reset(): this.sum = 1 <-> s.sum = 1 (+ method body block)", java = [108, 109, 110, 111, 112, 113], rust = ["5:0", "5:1", "5:2", "5:3", "5:4", "5:5"] },
+  { semantic = "getValue(): return ((long) this.sum) & (-1) <-> (s.sum as i64) & (-1i64) — PRESERVED DEFECT: the -1 is an int promoted to -1L, so the `&` SIGN-extends the 32-bit state (a negative long once bit 31 is set) instead of zero-extending; kept verbatim, the `&` realized as a genuine Rust `&`, `(long)`/`(-1)` as `as i64`/`-1i64`", java = [114, 115, 116, 117, 118, 119, 120, 121, 122, 123], rust = ["6:0", "6:1", "6:2", "6:3", "6:4", "6:5", "6:6", "6:7", "6:8", "6:9", "6:10"] },
+]
+adapt = [
+  { category = "erased", reason = "javac MODIFIERS metadata: the field `private` and the (absent) modifiers of the five method locals; Rust encodes visibility as `pub`/module scope and mutability inside the `let [mut] ...` pattern, neither of which is a distinct AST node", java = [1, 8, 15, 46, 63, 80] },
+  { category = "erased", reason = "redundant javac PARENTHESIZED grouping nodes: around (this.sum>>16), the `length<=0` if-condition, (sumB<<16), and the `remaining<=0` if-condition; Rust carries the same grouping via call args / unparenthesized conditions with no paren node", java = [18, 29, 39, 73] },
+  { category = "faithful-noop", reason = "the `(true)` condition of each of the two `while (true)` loops (PARENTHESIZED + BOOLEAN_LITERAL true); the port renders both as an unconditional Rust `loop`, an exact no-op", java = [25, 26, 59, 60] },
+  { category = "representation-adapter", reason = "the idiomatic `Adler32State::new()` wrapper (BLOCK + call to `Adler32State::default()`): a Rust-only representation of Java's `new Adler32()` construction convention — the seed value itself pairs in the field-initializer/constructor op above", rust = ["3:0", "3:1", "3:2", "3:3"] },
+]
+
+[[body]]
+java_item = "defpackage.Crc32"
+code_sha256 = "ce652d4a8bb68146c396f202c2cd3b9d9c444eb7be557007e688a7dbded09efd"
+opcode_sha256 = "80393da7e88a2a45afa51f97214dd140971e5b2beb85730701a5857e5f2df4d0"
+java_ast_sha256 = "68348d1bef1101f8c10e527e4e3fb47ac8d6a8dfc730869c2d21969a1f7f94ad"
+java_nodes_sha256 = "8e73a3c147b6108c8222e92ab7bc8e5292e67597736a427e480ae7500333c0e7"
+java_node_count = 135
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/crc32.rs", item = "fn:table", ast_sha256 = "d0da147b26a345e45ef99a2618027dc5548e5a0ad8792058c67254fc7bfe4fb7", nodes_sha256 = "98192698fda7d28a6d0633f2193f241fe528a988d2d5bdcf7b11135c8d952761", node_count = 113 },
+  { file = "transliteration/game-xlat/src/crc32.rs", item = "field:Crc32State::crc", ast_sha256 = "c7efe2d7360b25be6f2d014163a0f2073d7a9c79f51a80da497e9762d3ce829e", nodes_sha256 = "34a32cd0dd181eead91b2f9728e8c0ba4aeaf376ead78ea319b961eeda163103", node_count = 2 },
+  { file = "transliteration/game-xlat/src/crc32.rs", item = "struct:Crc32State", ast_sha256 = "b1bc27739d09cb723d40c4ade0bd4425ef408fa76720d3ce0d47be1691efb1ee", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/crc32.rs", item = "impl:Crc32State::default", ast_sha256 = "001c6ebb2fad80f3db10b4693af869220768c6137ea60e4b933a315406bc79d6", nodes_sha256 = "1a010bf94b3e152370a13ceca930037cfcb762c6e7d19b7adbf53ab89baa61a9", node_count = 6 },
+  { file = "transliteration/game-xlat/src/crc32.rs", item = "impl:Crc32State::new", ast_sha256 = "aac1f4c5b8b5d48aa140935c5cf57b42e0490073d22afd99717347557df92027", nodes_sha256 = "b1f9812afb5bf17d4fcfaf37d8a3063ad22771f5e8193c9549935314dda85296", node_count = 4 },
+  { file = "transliteration/game-xlat/src/crc32.rs", item = "fn:reset", ast_sha256 = "92aeeff0915fe70ee5c4632848f49937a0d325577f71858e18f6935ff774c3f2", nodes_sha256 = "493e2d7641acc15d113b96b634adac1888e645033d9fdc53aaae2c033d64e67d", node_count = 7 },
+  { file = "transliteration/game-xlat/src/crc32.rs", item = "fn:update", ast_sha256 = "343e2a22e112ba80964f90c5b862b3457f1a96279bb794d61f0dc5b3353565c0", nodes_sha256 = "4ec49660419e64eb356cc1b6a341f68bf3171071d2a74de3420ea54855074ae3", node_count = 64 },
+  { file = "transliteration/game-xlat/src/crc32.rs", item = "fn:get_value", ast_sha256 = "115962b5304cc4e076ed9b1eccc116e1e5bbba641be116f61c3051dd32fdc391", nodes_sha256 = "311aa0a21180362bb8968656acc37f932072a9d8384d2583aa4c40b9879b0763", node_count = 8 },
+]
+op = []
+adapt = []
+
+[[body]]
+java_item = "defpackage.BitmapFont"
+code_sha256 = "6a1bc001061e7e1319b77bfccd2c7d1bd8fe927a1de1c79e517386fde0b03627"
+opcode_sha256 = "d3ad130dac0319989c3c3999cc63665d69b7a96fcaeaabafe61e808a718ee0c1"
+java_ast_sha256 = "3053d928cc978a9a5cc1930b4b4c1038296718eae30078ee8398efa3c855ae69"
+java_nodes_sha256 = "245dad5686af7087b28c6f86924d9b2716c64f5e65e00019a54d54a6b21de1b8"
+java_node_count = 2595
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/bitmap_font.rs", item = "field:BitmapFontState::force_uppercase", ast_sha256 = "59637deffb62fca4246d94c09d801efed0aabd8549bc978a26e07820df4ed80b", nodes_sha256 = "f6f7a6e27d4c0a558ab8abeee1b43c9fcff8618e30e0676a5255629bc06a9235", node_count = 2 },
+  { file = "transliteration/game-xlat/src/bitmap_font.rs", item = "field:BitmapFontState::hide_controls", ast_sha256 = "cf6221b426a855c042277d752af5e6ea59423a2da5c75a1a22ed104294cca849", nodes_sha256 = "40b6b5363c93f1952ce44c40553a69a4065fb7a61270a34008975ef81b099780", node_count = 2 },
+  { file = "transliteration/game-xlat/src/bitmap_font.rs", item = "field:BitmapFontState::bullet_color", ast_sha256 = "9d21738ca0f34358f9f5a1f29fd0c29c3cd1afd9a858cf3b02830aa2c8620986", nodes_sha256 = "5352e780c0fb61e24d9bc348ad4a55312253532e2eb309713cdbdc5fd2592df7", node_count = 2 },
+  { file = "transliteration/game-xlat/src/bitmap_font.rs", item = "field:BitmapFontState::glyph_sheet", ast_sha256 = "c87c32b6b3ee02dd45d2411e34106c7e5e87a070f99eea3fc11d792a974424c9", nodes_sha256 = "a590853a5efe2212b74a2bea13a48f021b349cb79953ea95e38ded3fa6509077", node_count = 3 },
+  { file = "transliteration/game-xlat/src/bitmap_font.rs", item = "field:BitmapFontState::line_height", ast_sha256 = "d5679bacc85ef9870276fb952ee0ed44896ba93a0347ff2386c01b53d3d78e15", nodes_sha256 = "155ecffd62d7e6df5757532c1dd56291b8a527183933bd01810f8e29b32850f8", node_count = 2 },
+  { file = "transliteration/game-xlat/src/bitmap_font.rs", item = "field:BitmapFontState::ascent", ast_sha256 = "cf1752fcb216ade3344e2fcfb25c868c8717a7842b113104231f8bd2c6126287", nodes_sha256 = "d54553b55af94ed89780c30d47e52df2ae2a3233d0af0eeac882d362b13a3e37", node_count = 2 },
+  { file = "transliteration/game-xlat/src/bitmap_font.rs", item = "field:BitmapFontState::space_width", ast_sha256 = "4228d5dc88413789a5a94ddcf88e2f78c8738bfe9b7458fadd8bfa870cd9f825", nodes_sha256 = "108bea91f0900f2af209fa5b80f2591f2176ce789782c15a794e236d5338db6c", node_count = 2 },
+  { file = "transliteration/game-xlat/src/bitmap_font.rs", item = "field:BitmapFontState::kerning", ast_sha256 = "00f1f29af081dc9e1348fe982f6b4b55352539afd85b2521417b2253b3d6d2a0", nodes_sha256 = "5616b8d5e8bdf9cda7dde46eb04dd7100d789d88b3eb99b98ddfca873c5ffd9a", node_count = 2 },
+  { file = "transliteration/game-xlat/src/bitmap_font.rs", item = "field:BitmapFontState::glyph_offsets", ast_sha256 = "4e7817cad2140da368ddf4b3c9122a678876dc531ce5088be0716aa63bbedce7", nodes_sha256 = "c99ac2514e7be5d34ce63d40b92e6fc6d60cb998d00b25b31add3b9784592e12", node_count = 3 },
+  { file = "transliteration/game-xlat/src/bitmap_font.rs", item = "field:BitmapFontState::line_spacing", ast_sha256 = "0e12bf247bdc8cda6aed9e1937748d11cae29c974e638d42a8de38e843dca396", nodes_sha256 = "6ab74321c562e477ec2e902d20febb720494efb144490e645271cb132d051a3e", node_count = 2 },
+  { file = "transliteration/game-xlat/src/bitmap_font.rs", item = "field:BitmapFontState::has_accents", ast_sha256 = "95560ae9298cd4e9a6f98efc76114f4420c6c46582a624a7fde2dfa0bac99240", nodes_sha256 = "68d3aa0b546b8cf8e0450447944e9faaa40b9fee0f8e61dbc0ad96b82d3ceaae", node_count = 2 },
+  { file = "transliteration/game-xlat/src/bitmap_font.rs", item = "struct:BitmapFontState", ast_sha256 = "388753ee2f1070c4c22be1cc6fc4c51a67df7f36f9f9f69338978afeaa86ef5a", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/bitmap_font.rs", item = "impl:BitmapFontState::default", ast_sha256 = "e1b14f155ccb2b354c6a743f5726a3731fc00d39b37d777e909f40e49f763dad", nodes_sha256 = "1c8aa57fb5f687d2f714c2edb727a7cb1517f94183df57f7f8c4b3b98926c3c0", node_count = 28 },
+  { file = "transliteration/game-xlat/src/bitmap_font.rs", item = "fn:crc_table", ast_sha256 = "4ea32dea4248b1269c571fd72ad3ea8b5156ba423d0b3d614e21fb7b2abdd006", nodes_sha256 = "f9832b1accdc04c9619f2ac32118d9711dc24c2f957250c57ff61be8ebaced7b", node_count = 83 },
+  { file = "transliteration/game-xlat/src/bitmap_font.rs", item = "fn:construct", ast_sha256 = "167979a7f2bf20f8889f660f0483fa16cfa45006b0af05ffb5f3d0c4a3afaaa5", nodes_sha256 = "45bef988d5e1a738500a8bd5e9ad7db75e0740711e4143970c01b8d90ee41968", node_count = 43 },
+  { file = "transliteration/game-xlat/src/bitmap_font.rs", item = "fn:load", ast_sha256 = "6e4669ae2ceef73f66d2d09ed6d68fd632e8f4b529991744c59e5ca654004266", nodes_sha256 = "b0611639d0dc74a8bc66ed6e87b3ab1397a3b14735e175e28af827727bcbdda3", node_count = 390 },
+  { file = "transliteration/game-xlat/src/bitmap_font.rs", item = "fn:patch_png", ast_sha256 = "c62ee0152a89196368ff90450af631a8b85862e4a5fbc650b7a2834345c6989a", nodes_sha256 = "56eba89c0fcb45f4e2d25a3e7a3e180447f25a8386e0b320df8913a02cefa33a", node_count = 279 },
+  { file = "transliteration/game-xlat/src/bitmap_font.rs", item = "fn:crc32", ast_sha256 = "dc5fa5a46b6b02b53a54f969ab7c4ea19d2a4feb39f896ac370adddce175d552", nodes_sha256 = "ab5108bf2b289274c859eb32a4efd224dc8920301387447fb692f5ece34efc1c", node_count = 84 },
+  { file = "transliteration/game-xlat/src/bitmap_font.rs", item = "fn:string_width", ast_sha256 = "759274616d220d066fabbc72bc08d3d4f379f39e0e1c8733c50c73c24e99c983", nodes_sha256 = "24870e758006edebe2918a8c4aae02d827ec8c2aa2f4429d6c57658ee15d8e68", node_count = 19 },
+  { file = "transliteration/game-xlat/src/bitmap_font.rs", item = "fn:string_width_range", ast_sha256 = "e5a98a5c63f00b082d74014d98832f8a4ecbba18b37d1ac2c33b44a5f419b9f2", nodes_sha256 = "0e8c1c777a6abdc44fcaf78619a5667175d5bf0f1ddf220fde7832544e99c93c", node_count = 68 },
+  { file = "transliteration/game-xlat/src/bitmap_font.rs", item = "fn:char_width", ast_sha256 = "0b6324186797d501e423cb50daa0303bc01fcf72bb7a98784228279ce4f9ec55", nodes_sha256 = "65221779de807a3af0901c43577dd7983e7d464c6fa603cb1aa9b5f739cde9f9", node_count = 288 },
+  { file = "transliteration/game-xlat/src/bitmap_font.rs", item = "fn:line_height_of", ast_sha256 = "f55fd8dd5b0227e43bc14ee1199539afb94b8e7d7ddf80d14ec0438b9c42fb62", nodes_sha256 = "c6f0a3a10237f7a6e8492cde15d72afd5f47c2fce2bc18cc3cd87bd36cd72418", node_count = 81 },
+  { file = "transliteration/game-xlat/src/bitmap_font.rs", item = "fn:is_control", ast_sha256 = "687b5886e8ed902389405d442ae4a79559e1b94e8b439da3ed749ddb100da1e4", nodes_sha256 = "0ee33c43b870349106fd0b54cc7efafcfacb31a99badd892dfe4f68cee4493d0", node_count = 11 },
+  { file = "transliteration/game-xlat/src/bitmap_font.rs", item = "fn:draw_chars", ast_sha256 = "ae8cc498611cf5a29fd0b54ca87d3e27d6ce69514da5146d8a3482a3bd5a56cf", nodes_sha256 = "0af62f9ed78264431040a6ffb81914f8e7fa42143a5f502da5f73017e5322aff", node_count = 22 },
+  { file = "transliteration/game-xlat/src/bitmap_font.rs", item = "fn:draw_chars_range", ast_sha256 = "dbf7791021a2038284a291280074fe290730236860906c0bdaae49649cfafb92", nodes_sha256 = "b4177fc4cfcb1b496868afcb999143a489248c61d3e6b0688c1546b2e01809cd", node_count = 1406 },
+]
+op = []
+adapt = []
+
+[[body]]
+java_item = "defpackage.FontManager"
+code_sha256 = "6b37ea1a0ac459c87fe24518270112415926e169cb939626699489d3b1650e4c"
+opcode_sha256 = "0a174d873a0b1e3cb6ca784a2867886c695b2138936439edb222bf135915abdb"
+java_ast_sha256 = "951206eab88f33722c2f5c05b5dcff6b9089eb2afeab3a4e04eb8aed4762f392"
+java_nodes_sha256 = "af609f99527a1c54a0727d8ec0c98e952afb5f1272833c409c9aa4b1b93cfc95"
+java_node_count = 1411
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "variant:CurrentFont::Unset", ast_sha256 = "ff65e3da7e174f415d96a14e4e36cd1a58c12e929b4c4ab329e4563bc0e9dc67", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "variant:CurrentFont::SmallBlack", ast_sha256 = "ec4bc16105ee27f9aaa76d0128cd770a0712d1fa4c54600dd9f60fb0073efa76", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "variant:CurrentFont::SmallWhite", ast_sha256 = "5747806b660e6d332f5626080807d633edac69d5185415a5f8de79fbc97945eb", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "variant:CurrentFont::SmallOrange", ast_sha256 = "048d928396840d0b95b5b9b4ef3bf1422e762efa9d9f65782b54b4d58afb529e", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "variant:CurrentFont::BigBlack", ast_sha256 = "cc943d1703aa8ac79499a817c1d8407e0503662bd7c87bbb001e8a759062d763", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "variant:CurrentFont::BigWhite", ast_sha256 = "2fd2597e362d6878bdaf239a37a87148044be7d212071f05eaf53b53447a476c", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "enum:CurrentFont", ast_sha256 = "a20016c666907f4cac8aa5836af0b38ec9b53ddbe0c5786ec4c359350cf10b4c", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "field:FontManagerState::small_black", ast_sha256 = "09fd9d2344aa4c2c9c364d8d15fe2d7c93f6a96873b84648a0cac4a34f41b79b", nodes_sha256 = "4f9c9f4f2953fd6946b2e43ed03b3d26514e46874b61d3a7f3e0ea860848e781", node_count = 3 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "field:FontManagerState::small_white", ast_sha256 = "91216d036c68bba9b76c1c50b0d35fab319751f57ac18ab4a98a758c035d1b1e", nodes_sha256 = "9b0f8b1c1d19abf2d815c3c28f30351336075c5e1c1b34e5eae6904f330bbe68", node_count = 3 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "field:FontManagerState::small_orange", ast_sha256 = "958ad1adf1cdae2e95e5579a14d34d7974a743ae55be0b68e2f0761053cd8b60", nodes_sha256 = "9a2e34a3062ae949d12942c8cf7825a695f9889759c0ce9963b9930f77b10ee1", node_count = 3 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "field:FontManagerState::big_black", ast_sha256 = "74f4354bbb35eedf66088c32cb7a4cb1c60683b670b9dcd0069924ee96a646cc", nodes_sha256 = "6c37d5b9bda1b868ff6dfdf804857535e1a0afc1c1f57e9b8b00e758eae3096a", node_count = 3 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "field:FontManagerState::big_white", ast_sha256 = "3033239223769aa0f52b21b32f3ec803ccc49661877379424928fe9d4b870384", nodes_sha256 = "7ac4f98d60533eb0011197dd6d3f0b964d45f7f704f3d6702115739252afecf3", node_count = 3 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "field:FontManagerState::current_font", ast_sha256 = "c8177d8a7dfae770f76e960dc907d3d58607c69a34178e1f71487781fc725c7c", nodes_sha256 = "89c2eb5fec2dc77f6d2ebf068aeade915861f88b1fcbf2a50f03ed2918e07228", node_count = 2 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "field:FontManagerState::big_font_active", ast_sha256 = "d104951722277c213604e5b04581bce5c62afb6abef99b08f470101e832d2edb", nodes_sha256 = "cf00884028e036daa005b95ec97fb263b3b4d36d7a0a2d34fc74157927282ade", node_count = 2 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "field:FontManagerState::version_text", ast_sha256 = "8d32e3d97d3998a5f790dcefd1a774526508790e8d51883b87f7eefd33e9867e", nodes_sha256 = "aa8427f965db1db246fd7a077d1bc3f1b2e9a8112335f6e6d5f3743f371f9d28", node_count = 4 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "field:FontManagerState::title_footer", ast_sha256 = "c473343688b342e194698c319fc64ac2aec754bf2dcc355a1faa32723e03fe6f", nodes_sha256 = "1b053c4ddfb0ccd6df4473d095d95fa85fa09f2f7ec877576c39dcbd77ade342", node_count = 4 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "field:FontManagerState::main_menu_labels", ast_sha256 = "6ef7ba3f61fc5ec22cd57503396fe3be914c850aea1b12ec91e34daa6d46aafa", nodes_sha256 = "f2460f99612fa8d750fc3a7d4b8ca7ebb1981982528e2ed6ed21c2231571259e", node_count = 5 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "field:FontManagerState::label_ok", ast_sha256 = "fb0d0be9177b8fffa76e433cec72437974b7f26b3e5386be73ccb692ecd08599", nodes_sha256 = "46dbb5f43b41feea50a79e51d5e1c0e6df1b7b4774326a7fa2f74e4a6107b9c9", node_count = 4 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "field:FontManagerState::label_exit", ast_sha256 = "11ad5e7b2241e3f15b116f0ea7a1fbbb6cfc1b98f984759f6ca480a27b6c9bc7", nodes_sha256 = "9264f141dbfbaea3376647b554512011295d03b4a207dd51ae22bd78d2f0f12c", node_count = 4 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "struct:FontManagerState", ast_sha256 = "5a06204ba4ccf3a988283a2bc98aab51a97dbd2f5f968b73dad42dac25454ef6", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "fn:init_fonts", ast_sha256 = "4c9dcbbf00de89e695135d35563422d5664b2740279c972384120b85d4a11cd8", nodes_sha256 = "5c7bb757e4b1f2b36931829a03edcf5f45a07f0072271d7774bd26986a1fc497", node_count = 150 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "fn:font_for_color", ast_sha256 = "be78c36f756aeaba631c941ea90af010ee7e6955e49c6856d9e52a1392358f67", nodes_sha256 = "46b71409eded43c28a60b41b4b0420a5d9682b9ab648fcf47769b3d51c1e7ada", node_count = 73 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "fn:current_font", ast_sha256 = "69475a56c5b51d72a921138926863053784de3df5becffe1128893a9b9acd4a8", nodes_sha256 = "9fd658bc06f570d0e017d790d42fef6726f10ce09d27a130006fbf1fa59d7082", node_count = 43 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "fn:draw_chars", ast_sha256 = "32a177b0fdb120a3b82568b43918eb0fa1953b2383cc0ba048fc18fc75437be6", nodes_sha256 = "c9c9b5cbfdd2d8ea1e3845c0cb7c2cf9a8718c662ed0cfe4ab44b6d5520d92cf", node_count = 27 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "fn:draw_chars_centered", ast_sha256 = "69a1a82ee2ce11065b29bdfdef5a0436f689d379f3e0d42f7576853eadc2d71a", nodes_sha256 = "7182ea7a1056d798b872dfc4b21ad948ea161504c5b1be00c593435faad4daa3", node_count = 27 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "fn:string_width", ast_sha256 = "0ea666d88c0a43d53e7a2f446356e076b0b0b4b839c02b6030a80ab1c8ce55e2", nodes_sha256 = "dcb2896061792e87f663dc25b1c28dcab91f167b4b21de864c5a6685eb5147fd", node_count = 17 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "fn:get_string", ast_sha256 = "c4fff8ffd89fd5b2bccd6bdc5434afd02746dfd763bdfaddeb6f015b41ececda", nodes_sha256 = "cde5b1671a6f4eb1dc3c4c8b6833aca4508bb964d754e261f2d94ea5951e7204", node_count = 33 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "fn:load_title_labels", ast_sha256 = "606080fd155fe176e0e9fe7f040e74c8853fa869e2f74a21e14b6334cdde63bd", nodes_sha256 = "1fa93453a40449263ef6537b56f65985370195d9fe650358804ceea7e06f2b73", node_count = 140 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "const:APP_CONFIG_MENU_BUY_ENABLED", ast_sha256 = "23855b418c4a6bc08cc91795aa12adcb6265ea8062fed6f682b0af5826d145c5", nodes_sha256 = "58a9ae2e2b05b374851ff2ef5dd56b8927032c3fb0aeac1ad94c999f9303be2b", node_count = 1 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "fn:set_big_font", ast_sha256 = "833beffa1cfd991ee4493e5473c28c4136411e270ee7d853624b3d29d4719315", nodes_sha256 = "d089810beb255267d169554991c0b9a8e52ef2f0126982a79f2b19d6957d1b14", node_count = 22 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "fn:line_height", ast_sha256 = "ca0b3071b98ac206eac130eeca20e4a623939c039c6eed25c0c113ae3337500f", nodes_sha256 = "cfafc89cc215e06a200f84e8adee0e68d71d1c7e31a058b2a6d945f06fec11a8", node_count = 7 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "fn:draw_menu_item", ast_sha256 = "ffa5ca8510de9f82ae4738b3130f5317244f64b03c38dab38c5fbdeda447e49f", nodes_sha256 = "2972992e4724df91ad9f166df34935d48f9ae440bf6ccc10259bc03c7ad9dfcb", node_count = 81 },
+  { file = "transliteration/game-xlat/src/font_manager.rs", item = "fn:draw_soft_keys", ast_sha256 = "6ca2ca276f6d3f76a78f51cd43112deb7f0625284d954fcad6121bc3a9571846", nodes_sha256 = "8b23498b2a7d118bd6a8d96cf00e5df65d7613c405d472139929ca59fb9e1111", node_count = 153 },
+]
+op = []
+adapt = []
+
+[[body]]
+java_item = "defpackage.StringTable"
+code_sha256 = "f98222ac3f8e79545203248638a557922ccb17e7faf0bcaacacf57e40a96065e"
+opcode_sha256 = "0c80b355527516b86740c18470a6c43c330c4b5263ac09ce30d4e0b1d9aae452"
+java_ast_sha256 = "d1be1021ed935b5550c097dae6a22bcb93fd7cba37e8ddd71488b9a3bd8a2e5d"
+java_nodes_sha256 = "df26f2b4fb91e292a876992589baba8889ed03e3c29c588cc16b4895e45e09a9"
+java_node_count = 386
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/string_table.rs", item = "field:StringTableData::blob", ast_sha256 = "4a2cc22b3794d4b4fdc0195202292d06a0fad50a8a070a340223a0decfaa63b0", nodes_sha256 = "bc23972faf24a1a5cfcf4ec64794f4be6a1932b5a1ac636d53bd611bcdf280ff", node_count = 3 },
+  { file = "transliteration/game-xlat/src/string_table.rs", item = "field:StringTableData::locale_index", ast_sha256 = "b48380b2afbeb576444699d540e3b54ee4cfc69b531037f196c6c9fb04cf6358", nodes_sha256 = "4e750f0029aa8f756f874a7371e41502622fee351c7a9f4625583ef3240469fa", node_count = 2 },
+  { file = "transliteration/game-xlat/src/string_table.rs", item = "struct:StringTableData", ast_sha256 = "a2d7ad5e0d8ac6afdd1f9f818612ba8feac4c091add7b1d111963638f4748022", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/string_table.rs", item = "const:LOCALES", ast_sha256 = "1dc8d6d0c7d5d21598c369bb926617dd9edf6d065af940e037d6c316b842efb3", nodes_sha256 = "c57c73aeabe73c801395b1b9be9ea0cb8576f7c0b44d1c74dd6b4e3c4dc17613", node_count = 6 },
+  { file = "transliteration/game-xlat/src/string_table.rs", item = "fn:load", ast_sha256 = "29a806543596595fcf9a38dc758adedb3b9a3aefbfef5672a28054d9de627612", nodes_sha256 = "7012d1ef2085558f1445e15f9ada71775c5f2be80a687a2ace5f1c16c9066058", node_count = 150 },
+  { file = "transliteration/game-xlat/src/string_table.rs", item = "fn:get", ast_sha256 = "f91cf858b8322d8283654af7a326b4dd739ff16e0f0cd506171c2b0e6980872b", nodes_sha256 = "713c9595149d6e54a9c4043bcf5db48a2ee5e4e7bb847022e50cfadd36596c81", node_count = 32 },
+  { file = "transliteration/game-xlat/src/string_table.rs", item = "fn:try_get", ast_sha256 = "853d03a9444ec7744f502e8729763cb8d46a4eec8dd60971e4fe8500057c94bb", nodes_sha256 = "f62f4b6fa89b21980f633ebab45fa63ce9a51c5212c0725a36ebe8c94fdd5c2b", node_count = 44 },
+  { file = "transliteration/game-xlat/src/string_table.rs", item = "fn:read_int_be", ast_sha256 = "52b824c7efec12755c3fc2eafd74958a7c53585f1f8cae00570b511bb44764b0", nodes_sha256 = "cdb7f7c5b7c1ac31e57f9296908b3cb2f93197f7d659593a960b9305ffeecdaa", node_count = 71 },
+  { file = "transliteration/game-xlat/src/string_table.rs", item = "fn:read_int_be_checked", ast_sha256 = "307affc371220d74f3012c775ee53a21cec9dfc5376097252d728cf6475201d6", nodes_sha256 = "e3e5d37e72e0b333786f18de00a02c9cfe8f933f215c68f9b81d4b51c3cac01e", node_count = 34 },
+  { file = "transliteration/game-xlat/src/string_table.rs", item = "fn:read_utf", ast_sha256 = "da54b111773877d0dab3c70f49c5dad695bb2423a195a7aefa2a0201cc0e5147", nodes_sha256 = "2f646a95b0d21ee77e0725d50e68d2f5c37b15b75d86ba9ceb1c18abd5a736af", node_count = 305 },
+  { file = "transliteration/game-xlat/src/string_table.rs", item = "fn:diagnostic", ast_sha256 = "fd551df2db17b150632505448d59bbac72f666e3cc25442d329435bd13deb2a9", nodes_sha256 = "3e63b086ae42ebc3f94c9af501e4dea0a74517f4fe1b0eb1e2f4f591c8e57bb0", node_count = 5 },
+]
+op = []
+adapt = []
+
+[[body]]
+java_item = "defpackage.WrapFont"
+code_sha256 = "b1acee0b9184202c631c9c2c142c96c216d95e8efb3c5c56f19d27206cc13cb8"
+opcode_sha256 = "78e57da70f82fbb05fc721854a5bb233787f51df68ae99767534da096508f2e2"
+java_ast_sha256 = "8ec7a4803cf7c4494c267c3dff3812d3b6118466ebcac143505179c5333cb01f"
+java_nodes_sha256 = "10d40a6bb799ac8f9e14a0583ca7b2879d77b7b8283fa5e4a39a7d7052a8e80a"
+java_node_count = 495
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/wrap_font.rs", item = "fn:create", ast_sha256 = "726c76bceda75fe79f01ee5808dc3c7f4a4e04eb80bf4a7dd89b6e2f42173bd3", nodes_sha256 = "b3921d6f6cd31c2f3ef6b6c17e9d6121f4366684490d903c72e8756445fd8da3", node_count = 14 },
+  { file = "transliteration/game-xlat/src/wrap_font.rs", item = "fn:create_single", ast_sha256 = "940ac44f5123c944109ffabfcea1dd0e8fef943763dd7253ebcf816bc456d85e", nodes_sha256 = "bace7f02a027a574061dabedfc8268b24cc736850ca3273326a05a8b5e33ff6f", node_count = 14 },
+]
+op = []
+adapt = []
+
+[[body]]
+java_item = "defpackage.Menu"
+code_sha256 = "20153ef980a407ec62ce32904a389d3aa6be39b56c9b5dab02605f2dd34c8d56"
+opcode_sha256 = "83c9745bd41f77b715cd957a2d26f171aefbf1fd017db005a5252141231b9253"
+java_ast_sha256 = "c6c55bb7a2532374ad76953d20cd20b0e7aa54650610b6b91a82a898728760e7"
+java_nodes_sha256 = "bb0e6ad89a795cb1aff8d9c53320f2721994efb91cd3c63600511aa2bb4369a9"
+java_node_count = 2127
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/menu.rs", item = "field:MenuBase::parent", ast_sha256 = "d7945683abda036dec2dc1d07f676df637d55ec3c8edf37648d997265a2adc0e", nodes_sha256 = "940d408408890c1e9d0bc9f0b54bbdc0c55108d6dd5684673612716d79293a5b", node_count = 2 },
+  { file = "transliteration/game-xlat/src/menu.rs", item = "field:MenuBase::item_count", ast_sha256 = "7339a6d85ae6e83a347a233267cbf3f8af7c8c12e70b538f64b55dab8b8386c6", nodes_sha256 = "77807f606d7e63d87a4379d7dca38ea62e57ddcdc0043ad0579564bf9004facd", node_count = 2 },
+  { file = "transliteration/game-xlat/src/menu.rs", item = "field:MenuBase::child", ast_sha256 = "12cdafbbc070a5f71ad6283f83bb566473e1e12d998af73064cce28312b0d05e", nodes_sha256 = "655e3622d704554bc79fbbd8fd57fe1932d2b96f438dcb03a829094ad04b6419", node_count = 2 },
+  { file = "transliteration/game-xlat/src/menu.rs", item = "field:MenuBase::pending_initial_paint", ast_sha256 = "63ab265ff82155dedca3053e27e5bb081a8299c719caff7c11e2c56307753932", nodes_sha256 = "9b24fcfdeafe60800418b09ee804aa65a468a8b0318cf811aa4d15acbb0646d8", node_count = 2 },
+  { file = "transliteration/game-xlat/src/menu.rs", item = "field:MenuBase::needs_repaint", ast_sha256 = "cf1a3d94a01a8adb621969430e4396ecc372669bb5ff1b811a636855892b8572", nodes_sha256 = "46e24ea7f36d0da96deb6084be6f5f93ffa83c05087dec9b9670a1b8160b6a51", node_count = 2 },
+  { file = "transliteration/game-xlat/src/menu.rs", item = "field:MenuBase::cursor_index", ast_sha256 = "8f57be0d6247c1c649b877b30c9c61b5d25e91c3c70f25171599a320b147d8fd", nodes_sha256 = "cbe2f0d637982ed36d972b245cfbb8663a7c86bb14c3e1e13bbd9e18df173d18", node_count = 2 },
+  { file = "transliteration/game-xlat/src/menu.rs", item = "struct:MenuBase", ast_sha256 = "2c0b93b51ef4ef00685f942b09784b48b4b0c0c5b9c2569179bf182bde896603", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/menu.rs", item = "fn:construct", ast_sha256 = "a9b993908551d40cc3bbcd1e400f370692baf1dda48350d257b00d4e144feafe", nodes_sha256 = "0aabd4a5f65b1eaed01639d0bc577eba70c4bce26f35dc2b46001d56f0809a61", node_count = 16 },
+  { file = "transliteration/game-xlat/src/menu.rs", item = "fn:pass_key_to_child", ast_sha256 = "977500da630e3f0d8cb05eb83b42bd48d55c73534ca4533eaf7319b5dd5727f9", nodes_sha256 = "473e0bb3b719cf48d945d8b761d68af7a8ca3486c1adfacd6b3b96680d27f193", node_count = 12 },
+  { file = "transliteration/game-xlat/src/menu.rs", item = "fn:move_cursor_vertical", ast_sha256 = "61ac9a418c97ef9373634da143c72a1ef2c947a14aec070265203a0b89bb0196", nodes_sha256 = "1f783a0d90972cbb8f758bcf7e52a14a6cec78487474304cf433f7c908cee92a", node_count = 52 },
+  { file = "transliteration/game-xlat/src/menu.rs", item = "fn:step_cursor", ast_sha256 = "9729dd32b2b737bdd803beacc265e906434f96f26ee3d027c97a34445d6ae0aa", nodes_sha256 = "1bc5ee715df521d751c4a60efc89e0b8c74f8ab9caf96737b1d2c444a63a2282", node_count = 125 },
+  { file = "transliteration/game-xlat/src/menu.rs", item = "fn:invalidate_down", ast_sha256 = "b4e02c6c9fbd2b8d34d0bf814b152dcb2492090232f022a382e9872a41403cb1", nodes_sha256 = "b0699039f668c3e4acd778719a22a2ab08594011d8cce903cb0220918a4c3eaa", node_count = 11 },
+  { file = "transliteration/game-xlat/src/menu.rs", item = "fn:render", ast_sha256 = "311fa3b6c3920ba57b3b1fc7ff966ae223f0f322c59990eb569d2fb93ddb1b4b", nodes_sha256 = "4911c40ee919ed4332c438b17b695a1d0464357c47ae4afe3bf89d41917c77fc", node_count = 65 },
+]
+op = []
+adapt = []
+
+[[body]]
+java_item = "defpackage.MainMenu"
+code_sha256 = "b4beb2b25b5fbcd1577517f087bbd4fe9edaef7f2a030c01573a6eaf054d16b7"
+opcode_sha256 = "c254e22af32f2746629e169f7699ec88c8b5d4f337176806e21a717190d0e988"
+java_ast_sha256 = "9c527864e3bc876a95e9fe18964e70fec75c603625f5e602556a1d6a083499dd"
+java_nodes_sha256 = "9fb790249c62f3701478d87eedd470e40fc671fea0958a23c0b1fae7ad055b6a"
+java_node_count = 1463
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/main_menu.rs", item = "field:MainMenuState::base", ast_sha256 = "392488390b8cd28dc3cb7b9ea60839cdc31307c5290f90fc2c70bdb35177d39d", nodes_sha256 = "a2bee9197ca938e175cdeaf4e8ee2d391f8320609e160039542e084ca220898a", node_count = 2 },
+  { file = "transliteration/game-xlat/src/main_menu.rs", item = "field:MainMenuState::has_save", ast_sha256 = "9d2aadc9ca5f41ddd274dbc42c4b54789d5f1162f30db9f86b65a7ab39a12a96", nodes_sha256 = "3404bc45529c35b0e8c7297e90d457c4ca1cf87a9767a92f327be50ad22af118", node_count = 2 },
+  { file = "transliteration/game-xlat/src/main_menu.rs", item = "field:MainMenuState::save_blob", ast_sha256 = "7893d5885c126121923725ea3ab41d6882f49d4218c064c02c8b8d41fe8f159d", nodes_sha256 = "09c4f1fe0e228ae8b20ed63dc35dbb3bc5e032e2e8fe2ce27687aa4c08c1342b", node_count = 3 },
+  { file = "transliteration/game-xlat/src/main_menu.rs", item = "field:MainMenuState::logo_frame", ast_sha256 = "ec2d4d1f300524b8b6d3a333aee48c65aef18eed76d5df0136c54788acee86e4", nodes_sha256 = "0b42ef37ce63a7d7e3b4aeb3066de113d93a30eddfd53ca0ab3ffd585d5d0c76", node_count = 2 },
+  { file = "transliteration/game-xlat/src/main_menu.rs", item = "field:MainMenuState::pending_action", ast_sha256 = "ebc5ecb99db21545c62bb827adc182660369dc81d9a0ba6d8c59c959484fc751", nodes_sha256 = "f2fcf4430822ffe43ae90b0b6b627e846eb299e1fb5476d0e024430a153185ef", node_count = 2 },
+  { file = "transliteration/game-xlat/src/main_menu.rs", item = "field:MainMenuState::demo_expiry", ast_sha256 = "ea51111f1279cc027d0ce07feb8e3273932f965d2b64b8faa3cf75a6e62f1b95", nodes_sha256 = "191cf14cb35f0af98e19a2a217e5da297c1393baa4640b587ff70c7a28927e00", node_count = 2 },
+  { file = "transliteration/game-xlat/src/main_menu.rs", item = "field:MainMenuState::panel_x", ast_sha256 = "963057611a44aa8475a39a845c623dc66485fabd4c6337e1729321c40622f682", nodes_sha256 = "73218f9cc99ac105e816a58f7b52120326f93dd428fafc70b3b170728bf9e013", node_count = 2 },
+  { file = "transliteration/game-xlat/src/main_menu.rs", item = "field:MainMenuState::panel_y", ast_sha256 = "87597b71c0be7690f861d1cb09a0fde39f41d70fe7495685cb3e1fc9a83568e0", nodes_sha256 = "56bc33328a721df5942ec2a894fd266a49231959440a26ff01ee19818b88d3a6", node_count = 2 },
+  { file = "transliteration/game-xlat/src/main_menu.rs", item = "field:MainMenuState::about_index", ast_sha256 = "524f64038d0a2e24b33416ec997b69a41396d6d2d13256d56f9218aae538ad3e", nodes_sha256 = "f563f9e1b4bbd3f6a1763590a0fca0b9a6d69c13456566d759e7b5790794f562", node_count = 2 },
+  { file = "transliteration/game-xlat/src/main_menu.rs", item = "field:MainMenuState::exit_index", ast_sha256 = "36f4741fc8139682efbb9822f1ad9afe6a8b2b60ec4f5088b45e7b6d99c2dbef", nodes_sha256 = "95e85341a8df4eb2c1c615b3eabd6482de1df83ecf0c1eb20a93d41059c208d5", node_count = 2 },
+  { file = "transliteration/game-xlat/src/main_menu.rs", item = "field:MainMenuState::singleton", ast_sha256 = "801cd1ee0df18a8198acacde45a88c2d02a9360af1b102fbe4c5230712d94788", nodes_sha256 = "8837e14e9e7949c6a923112f9d02fe31e9733c2df6adeea908fa86971e4db9a4", node_count = 2 },
+  { file = "transliteration/game-xlat/src/main_menu.rs", item = "field:MainMenuState::pending_buy_prompt", ast_sha256 = "f16be3acead58020427dbd929a7b4b6d6bc4d6a2a25d85e8c2ac6172d97be6f9", nodes_sha256 = "ca5dd46639a3a226ac87acba83485be82c5b157dd0f6446de53c7e4a06842a6e", node_count = 2 },
+  { file = "transliteration/game-xlat/src/main_menu.rs", item = "field:MainMenuState::pending_exit_prompt", ast_sha256 = "07464ca1fa5e774b3fcd0f6eab86fedd9aaf87e7720aeae8e649a0a4b19b17d2", nodes_sha256 = "416652d16b25276b2c7d01cc01a73eb866f91178f9d6aa68a96228027e951726", node_count = 2 },
+  { file = "transliteration/game-xlat/src/main_menu.rs", item = "struct:MainMenuState", ast_sha256 = "f7171d9b25e1c159c1669accb2361a8358d27ca516a119d839a5d84a26c3a158", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/main_menu.rs", item = "impl:MainMenuState::default", ast_sha256 = "dac65f8d32c31d91fed85dc97b70fde464d33bccd4b58b2899cc72cfaada5fc1", nodes_sha256 = "56147cb3078f61cea3c8a22fed14693ead76993843ca020b4a73f6333eba613f", node_count = 33 },
+  { file = "transliteration/game-xlat/src/main_menu.rs", item = "fn:instance", ast_sha256 = "24c6513348eb05077f89116e0c28946a38f5d0ed2985a181d54b643e9212d747", nodes_sha256 = "5855a49f87e2e90dce8167a02c6bbee7569071d2a88a51dcf3b17dfbf7368f6e", node_count = 5 },
+  { file = "transliteration/game-xlat/src/main_menu.rs", item = "fn:create", ast_sha256 = "dc4ae74036f8973eca203206b8a736052b8f8c5b07e79f7cec62459394f0f4c5", nodes_sha256 = "165c1760a0973bb7a15014fa3b863ce5e3f0d656bff1f48915cc899a95937a14", node_count = 54 },
+  { file = "transliteration/game-xlat/src/main_menu.rs", item = "fn:construct", ast_sha256 = "d66e75fd7dcc6f015ac480f6f138b21f643b2c2c0bee6f750569d22a31671181", nodes_sha256 = "e84ca884ed8cbc7fda75d39d7056228f89c4c8eeb5c30b7a2b5b7e03002f1b82", node_count = 63 },
+  { file = "transliteration/game-xlat/src/main_menu.rs", item = "fn:dispose", ast_sha256 = "5d9e214600bc8e4a5cb8b9bf4b523589d1c6005bd7721b980eb233649cdb8b0a", nodes_sha256 = "653926b4922a903112a257ced3e3d5117cb06aa58a9d5f22879cd8d611ddf204", node_count = 7 },
+  { file = "transliteration/game-xlat/src/main_menu.rs", item = "fn:handle_key", ast_sha256 = "b54cc1af44faa66552d0701b001536d155e96b40575d0faae51d08539aa82aae", nodes_sha256 = "c3c6200558cf2a4bee4f21858e6652ffcf27fcd7a4907228875c0881bc3742c6", node_count = 144 },
+  { file = "transliteration/game-xlat/src/main_menu.rs", item = "fn:draw", ast_sha256 = "15d641fda53bd08de30dbf048dbaab3dba5fa7b0e949f199953381010680b6e8", nodes_sha256 = "44c1149b872619886d34a7e5aad527ab29232eeb5f640c05595b2d10c753452c", node_count = 69 },
+  { file = "transliteration/game-xlat/src/main_menu.rs", item = "fn:paint", ast_sha256 = "d99711b47946194c7054c95ff975031f798ef9d2a6c253b9e2f9fabb65937446", nodes_sha256 = "e1baad067fbeec58e3e2b7339bde5dd7f9008761fb80becda0f47f4d85d42a08", node_count = 277 },
+  { file = "transliteration/game-xlat/src/main_menu.rs", item = "fn:draw_menu_panel", ast_sha256 = "d8bd6a23e76452a8db29b0aed0cc3a9e930b4f25d28f6c1a25896771f729bf45", nodes_sha256 = "6671871a7dc087b5f34ed987986fe88d43702bb362431140adad9f3f8d14ff8c", node_count = 342 },
+]
+op = []
+adapt = []
+
+[[body]]
+java_item = "defpackage.GameScreen"
+code_sha256 = "18fa5313e1b17978c18fe41d79bba6741e77b80dbc63472a998872fc29b7f6bf"
+opcode_sha256 = "46175ef8fcb659228a6129b9058f21a834e2d287bf914e91af852389c702d5d1"
+java_ast_sha256 = "111616e68ff6c5257e58fa5ff462fa34ffc6eddde252b0e44f9b482bf90606b3"
+java_nodes_sha256 = "89dfbdfdd5e0066fa92ad36f12b1d2426061f7b908e175b46ed1f3c148423c46"
+java_node_count = 3910
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/game_screen.rs", item = "field:GameScreenState::width", ast_sha256 = "8eda345ef6015fabd4a46866602fa976f3be68a6b2f9c563e314c95bb170eb51", nodes_sha256 = "3e6fdeffed5a812b09480de440e7f966063da01c37bf8ca92840950bbad71bcf", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_screen.rs", item = "field:GameScreenState::world_height", ast_sha256 = "63f4551b56b40ecc45c0deeb6ea3d53e72def1bbd3a52d2974aca0db049b2327", nodes_sha256 = "f495831c944d3b17f4810f70d5977dff5a13d89263846b45d0a089763ab204a0", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_screen.rs", item = "field:GameScreenState::center_x", ast_sha256 = "d730acf09840c2e9b5f693a7b407fcadd1ef08096a4c07a2681bf3f5e954d092", nodes_sha256 = "e5d62e3afab4a96ec6ac5a5e5a97a9986e613970b9db6f390406d04fc04aa9cb", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_screen.rs", item = "field:GameScreenState::center_y", ast_sha256 = "e2513c8e878b9a0c9381ae010580e716216f5b3397fef9c7a474fcd3f6121873", nodes_sha256 = "ee4efc3459ab494497293861e1dfc8c9b454f8eb42cd778c0f01d719507e6b4f", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_screen.rs", item = "field:GameScreenState::hud_slots", ast_sha256 = "ef1d5e0b6bec295d040ef4cffabee7d7aff363f5cd8e32a5811cb6eb3dc1c4f4", nodes_sha256 = "323572877696f50b06f3195afd52954d9371249670ccb61a402a93d71539d198", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_screen.rs", item = "field:GameScreenState::bar_width", ast_sha256 = "3b7b9f63392f8c59d6b56056c9bc190bd626b325bfeffc3820cf3fbdedb19bcb", nodes_sha256 = "bd4e22195cdf4266b8702321f0c2a59d03dbc7b5bf9824167f0e41d363411dcd", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_screen.rs", item = "field:GameScreenState::exp_width", ast_sha256 = "b42c40d18a478b817c163a91a2b77c07d5e71af59d7bf449ce99e7c23f3f718f", nodes_sha256 = "2989129474a4768a84b05941b7b102de3f61d5302601b794784602f234ba72b8", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_screen.rs", item = "field:GameScreenState::fx_timer", ast_sha256 = "063b405349b359dcd24230a7e63a6f968c3f72d5543575d49b4045e1ae33ce9f", nodes_sha256 = "9fa2938051bcfb77f783e52416aa06cf10b4f6b960141908d16e2927d79d15e2", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_screen.rs", item = "field:GameScreenState::world_visible", ast_sha256 = "b312e90f9ad911f6633ed6459eab086a7c9846d76dc76c5197090c066bd48cf9", nodes_sha256 = "2aaaef2f5e72b907de967863e3504ee787880ed5940886b1cb65c68b7e044f77", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_screen.rs", item = "field:GameScreenState::redraw_all", ast_sha256 = "cf842bf2933b315bfa2a44e036edc9eeeecfbf2b4e8a5a95b907d2a33800fdbd", nodes_sha256 = "ad81d8af76f96a1921d5eb12c227d533ed5475556579889843ca00fa309028bc", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_screen.rs", item = "field:GameScreenState::low_hp_blink", ast_sha256 = "41c004a5d750ab3fc579b0865eb8acb8682d7d7bca85ac880970f843f1545818", nodes_sha256 = "a116e92347efbe56c2216407ab9bfa1a81dff2494964f8ded2f1a5080f778f9e", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_screen.rs", item = "field:GameScreenState::message_ttl", ast_sha256 = "26b987c3ed5630d5fb1278edab5b940a307eb22fa1ce64e51d7c367bcf1a5f6f", nodes_sha256 = "aa352c93daeab35982bf938a3c63f9da5fc641487515d3b1fb16b10f0d6a4400", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_screen.rs", item = "field:GameScreenState::target_ttl", ast_sha256 = "8a8a541bcc008656e643a32f54a6e022b10b545312349137fa5656138b871449", nodes_sha256 = "1a796bba1e8df047bacf63908d2598393ae2f632a1d88a978e52603645e94946", node_count = 2 },
+  { file = "transliteration/game-xlat/src/game_screen.rs", item = "struct:GameScreenState", ast_sha256 = "ba84f4acf5acd653f27ea6e570d4d6f0c635b31454460fddbd24e8a4f62d2115", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/game_screen.rs", item = "fn:construct", ast_sha256 = "b91f816816ac230886ab50d855a04ad80c9643aaeaf67864cac4952bdced0297", nodes_sha256 = "8be81dbcef4cb588a338d06222d84649ed99c835a24c8cb624e631853861ad7f", node_count = 116 },
+  { file = "transliteration/game-xlat/src/game_screen.rs", item = "fn:paint", ast_sha256 = "96ca51fc07729e0dc8f4a89995c5dd4c3d71205df01711c949732baa9704dfe5", nodes_sha256 = "b08ef3f2b25f3845691e139e235870fcd14569fc4c19af23df9fed87705671ef", node_count = 36 },
+  { file = "transliteration/game-xlat/src/game_screen.rs", item = "fn:key_pressed", ast_sha256 = "45008ba4049c742df36068a2a08e9fc81ea377baae3e68f5ff2e9fe9bbae67e9", nodes_sha256 = "dc2b4583c7176fcc8a72bf03f478cd211c8b7e0b198250fe8a45da16d10ae012", node_count = 71 },
+]
+op = []
+adapt = []
+
+[[body]]
+java_item = "defpackage.SaveCipher"
+code_sha256 = "50a0b19bdc25066da7addf3cfb804dd1954754901a1ba40c8e6b09cb8897cb09"
+opcode_sha256 = "f563d92e6eea0243806d14ed4ae74538c88743f7855340d9608f7b40fc52b1b5"
+java_ast_sha256 = "3207f955e343c745a049614465c031236963758b776c18da23ca02d8a91ff0cf"
+java_nodes_sha256 = "b0fae7092ad7d883af1753024c9cdd88d8980685b4467771cd7daa0934e2c7f0"
+java_node_count = 203
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/save_cipher.rs", item = "fn:encrypt", ast_sha256 = "1c23296ad3cb056b745d69b6935d15f13c244a2640a6c1140c519577dfbe78c5", nodes_sha256 = "90d4565be1ae8d7c16c8e1f198eeaf0a2fccbe3a12bb4eb19af2a8f1e7117938", node_count = 123 },
+  { file = "transliteration/game-xlat/src/save_cipher.rs", item = "fn:decrypt", ast_sha256 = "9ebe8a6b7dd9b8767bfc29e0aed3125110a67c1919fa38e6d0c9b8fbc908a590", nodes_sha256 = "32547f80842ac1fc1a5b167d6f56132bdf9fee4efb0ae48c61d41c1ca5d1b1cc", node_count = 161 },
+]
+op = []
+adapt = []
+
+[[body]]
+java_item = "defpackage.RmsFile"
+code_sha256 = "582bc96f73147ee97b774613bd5edfa1d256117438c9a68c47629d85c9e5b73b"
+opcode_sha256 = "09aab93872cd898a93701b42d3705a4ec22efd31c13d0628c495ae7196cf8543"
+java_ast_sha256 = "d03b336e4d94411d42865ddf87ea61f652e4c7ad30dfd29ebbad276080a1347e"
+java_nodes_sha256 = "b4af1ebe4a09dd44c3e1b1d6b4752b0769eee1b18dc25a840ccd2f0b179ca808"
+java_node_count = 405
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/rms_file.rs", item = "field:ByteArrayOutputStream::buf", ast_sha256 = "2c2ad203b498294db959fb128174268c9b25173cd0eebb9c29b5fdf75c5a1c74", nodes_sha256 = "e55602bb92cc25840e651bb1078361bfa51493b2c2661901c96ff94124c9bb05", node_count = 3 },
+  { file = "transliteration/game-xlat/src/rms_file.rs", item = "struct:ByteArrayOutputStream", ast_sha256 = "3ef8a3d17536a4a560efcc3e31afd0e9221a2d67ba79e219d6b4a491cc2ef656", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/rms_file.rs", item = "impl:ByteArrayOutputStream::new", ast_sha256 = "f4e9378281ec734bd6f540455ea7f8df75d0623f042f0afaca28009960dde8de", nodes_sha256 = "8805845a0c3e5330af054dba9ff4d26d8cf13c60a6780f75934ff1183a83d148", node_count = 7 },
+  { file = "transliteration/game-xlat/src/rms_file.rs", item = "impl:ByteArrayOutputStream::write", ast_sha256 = "2eb1a9cd41bc7a05692d96bb13c2b38dee9e93f2b82fdf33e550ce5eabf2874f", nodes_sha256 = "c5781455c2c2d3d1c5066519766d9293e6d1a6b593054813bd1b857c217a952a", node_count = 76 },
+  { file = "transliteration/game-xlat/src/rms_file.rs", item = "impl:ByteArrayOutputStream::to_byte_array", ast_sha256 = "f6cf84d27d70da954d7f775868d447b369306fc8aefa010b6ba7469b66570bf4", nodes_sha256 = "15d3736d7404436fc1539349361f3b9ae313fe6a07a0fd1dd4d93fb863c79e59", node_count = 5 },
+  { file = "transliteration/game-xlat/src/rms_file.rs", item = "field:ByteArrayInputStream::buf", ast_sha256 = "2c2ad203b498294db959fb128174268c9b25173cd0eebb9c29b5fdf75c5a1c74", nodes_sha256 = "e55602bb92cc25840e651bb1078361bfa51493b2c2661901c96ff94124c9bb05", node_count = 3 },
+  { file = "transliteration/game-xlat/src/rms_file.rs", item = "field:ByteArrayInputStream::pos", ast_sha256 = "2def7523f2de4cfcaf6c5744044e69a0f4819c9b21efd8d501081efd436f7fe6", nodes_sha256 = "70b326174ea881e7698d2289932a636d2c6a8a459bc9381860f807ef9cbb4f2a", node_count = 2 },
+  { file = "transliteration/game-xlat/src/rms_file.rs", item = "struct:ByteArrayInputStream", ast_sha256 = "93d4ad270d4afd214528b525c7b39b2ac13d9e8ca3b2b5132c1fbf2f64a08472", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/rms_file.rs", item = "impl:ByteArrayInputStream::new", ast_sha256 = "ea8fadc94b22ac0ee3b658ea51b5f4bbc275edf093cfafb0cb56db23dc7227f1", nodes_sha256 = "abf800d973d4b238fc8da1e2011a331e50f85c7dfa5931dfe7aed2beb69e3bf2", node_count = 8 },
+  { file = "transliteration/game-xlat/src/rms_file.rs", item = "impl:ByteArrayInputStream::read", ast_sha256 = "2acd8102802cc91eff3f321e7c68a122e0ff3f13c0b488e535342126dadaa97c", nodes_sha256 = "e96f2a8f70d8d4ff6d8f17342172911eeab1c88dd65fb44e5e4c5f862cdd1527", node_count = 138 },
+  { file = "transliteration/game-xlat/src/rms_file.rs", item = "field:RmsFileState::store", ast_sha256 = "10c568f7d47e9fdaf68aadae7e9d1d2e486ea54f1a78a77d9a9397d2998621ad", nodes_sha256 = "ff759d5b07011add34fbdfd0fd2f4c37369dc389f8ba73af5176bb68f8bd8540", node_count = 3 },
+  { file = "transliteration/game-xlat/src/rms_file.rs", item = "field:RmsFileState::open", ast_sha256 = "b7b5b747b90c625631f3ddddef82e2211b7e1e4408a2cf9d1d6f347a0ef85d2c", nodes_sha256 = "9d50a20a340dbc4ea3a902b9167fa9dcbcca07a1f7939d905201b6b81d8771ac", node_count = 2 },
+  { file = "transliteration/game-xlat/src/rms_file.rs", item = "field:RmsFileState::store_name", ast_sha256 = "17c0d9fbea0c0e7f294c02430784f7d7d2cfb7dde1b5fcf4d7bd0e5a8c47337c", nodes_sha256 = "6c63656ec18f8ce38c1b6732882737ddfa2bb820dacf8c21ee59cf2693c4b97e", node_count = 2 },
+  { file = "transliteration/game-xlat/src/rms_file.rs", item = "field:RmsFileState::read_buffer", ast_sha256 = "1de1f7c2890015e1f4aa08a11470813c207c0ed48349d99b96943eb9153fb3b5", nodes_sha256 = "a122a589d95500337aa017f59d26ce81159a266da95e63c4b2d9d3d12f424d15", node_count = 3 },
+  { file = "transliteration/game-xlat/src/rms_file.rs", item = "field:RmsFileState::write_buffer", ast_sha256 = "4b34aa1f900c5d28a051f0636275561a82ae2f61592b7d8c50a0347d4e8c50fb", nodes_sha256 = "197605814d2d5250ab2bbf6b43ef049017e427cb41a23cd1a51fa4126a340504", node_count = 3 },
+  { file = "transliteration/game-xlat/src/rms_file.rs", item = "struct:RmsFileState", ast_sha256 = "c0124cb1aeeb7cf68e57fdeb9e7db26f7ab94b4323559a5fd08b576518ddb6d3", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/rms_file.rs", item = "fn:new_rms_file", ast_sha256 = "1d0029be6542bccbae3aa9d2ae87e8f7e9ba3ba35c00dbf87738ab942a399956", nodes_sha256 = "4c757edbc63337ff0a3712902337c952581c6d8c5c76ac14c8d7b8292089dacc", node_count = 73 },
+  { file = "transliteration/game-xlat/src/rms_file.rs", item = "fn:close", ast_sha256 = "7b2a08297cea7de1ac6e43be132a2e98a539ea7adafb5c2bdbad458d62a71e03", nodes_sha256 = "df04fe51e6d96b0ba447da8e10f4307191b6f0e369ae98399bf10b00d110820c", node_count = 30 },
+  { file = "transliteration/game-xlat/src/rms_file.rs", item = "fn:close_flush", ast_sha256 = "7f60234bb44ce423f042354d7d1c7bde4f15c787294517bddbacb7d05fdd730a", nodes_sha256 = "16d0140e14933c77a4ee40e9a857e12e52b845509e154fb025f057cf3af91117", node_count = 97 },
+  { file = "transliteration/game-xlat/src/rms_file.rs", item = "fn:write", ast_sha256 = "cbf9362726e2bbe4d3d0767dc63397a144aaaafff7f2d4ab2ab9304101473eca", nodes_sha256 = "52f950ef227dfc8134887f5f5c5630164a20eb3c925f71fa6f34f1cae28391ce", node_count = 30 },
+  { file = "transliteration/game-xlat/src/rms_file.rs", item = "fn:read", ast_sha256 = "03d19528418ab4912e0b07e3256e4fb546e796d289793a60707fe2ec0300263c", nodes_sha256 = "de2ca39507f75a95e524f4aec0399feab3d49f6c9a9c43a9eae0139cf658818f", node_count = 67 },
+  { file = "transliteration/game-xlat/src/rms_file.rs", item = "fn:size", ast_sha256 = "cb06f73f023b001a30b457f8cf077131e24e2e76277fa7443c110decfaa10731", nodes_sha256 = "75d87b1f1da9def67c1ee67900b65035847a5e1effaa61ebb797f2e9b56992ca", node_count = 44 },
+  { file = "transliteration/game-xlat/src/rms_file.rs", item = "fn:exists", ast_sha256 = "7969d870e315d1660f1daeffbc6f5102107d07ecb97dbbe6f65203b87df49d7e", nodes_sha256 = "b78dcf050b616c9670efd2add5dd53188b980736820c78e646a515d6deee75a9", node_count = 28 },
+  { file = "transliteration/game-xlat/src/rms_file.rs", item = "fn:delete", ast_sha256 = "1a3cacb9f9c1b4bc7f7e012feff4976d00077a549c0acc0f5fa8d515cf047f62", nodes_sha256 = "2a358b55f4edc0bc9ab8d5e856f1dff6319b456aa4974c88453ce06dc4965bc1", node_count = 14 },
+]
+op = []
+adapt = []
+
+[[body]]
+java_item = "defpackage.Directions"
+code_sha256 = "187e62eec29a1fb6a8393aa952def519d0cb22cc0c7eb6a8f75fd0f0198fb524"
+opcode_sha256 = "d463f9268c6891b62bf4526a9cee5e9cbfa075f036e5a078113788b66345cba1"
+java_ast_sha256 = "ef5301c6bf1398ead5a10cc2b7613792c78a23a71fc15fe7cfc9f9976ff91a40"
+java_nodes_sha256 = "a942c9a259a7d6c84f25dc0fa67b360c94ede01dda8687f57fe2bba9d69415ba"
+java_node_count = 200
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/directions.rs", item = "const:ELEMENT_DAMAGE_MULTIPLIER", ast_sha256 = "02957f9645c716ce1c485a5967d645b186886f2e050e46963262f9a021c08b54", nodes_sha256 = "0e6c32712b5c6da02dc3931aa0dd78750838655ec4a1424182158212fef671fa", node_count = 21 },
+  { file = "transliteration/game-xlat/src/directions.rs", item = "const:DIR_DX", ast_sha256 = "abee0d64a1626f0da20fbc9654dba296d2e3ffab811cef028ea6866d39a4bf77", nodes_sha256 = "daab0cd172a2d6764df1f7615662ee8f35e758d797f979c62a1e1ca5b55e5ea1", node_count = 13 },
+  { file = "transliteration/game-xlat/src/directions.rs", item = "const:DIR_DY", ast_sha256 = "dbbf4c24c6355bd2e00ddb15815dfd1af3d5c10ee1dc7d9bbeb46ac68651eed5", nodes_sha256 = "fbb7a9cb7d7242143cbf44e56fc18e0cdaff6da84194f20a5b10073dd1eb3c41", node_count = 13 },
+  { file = "transliteration/game-xlat/src/directions.rs", item = "const:FACING_IS_HORIZONTAL", ast_sha256 = "f1583a21805a0c971f22bedb6bdb7dc8dd403c1a699d63430c30abbd99eaa4d8", nodes_sha256 = "f7216adf14f181d31aa23893386e71929e87227e5916a23efcd67602bc6d00d6", node_count = 6 },
+  { file = "transliteration/game-xlat/src/directions.rs", item = "const:DIAG_CW", ast_sha256 = "70e2333948428baf1363ca7802ee50c5292ebc7bb5d6048aea876163de1e1f53", nodes_sha256 = "39824a71dc5d7d273e0d9876d12f0f18c8d23d57f893cfc3754635fc47cdc0f9", node_count = 6 },
+  { file = "transliteration/game-xlat/src/directions.rs", item = "const:DIAG_CCW", ast_sha256 = "f7fc29e760d7d0498b62adbdc0a46f0c1a129dd678e8e8df4129c16bccb1397d", nodes_sha256 = "d644f70dfdf411fed61e54bb0b63f8e854d1b9e81b6002aad6e268f67da206f4", node_count = 6 },
+  { file = "transliteration/game-xlat/src/directions.rs", item = "const:ROTATE_CW", ast_sha256 = "807b67e8466bca80c3d51236d3819258e17b9ab630a5b9577af1216eac74bc94", nodes_sha256 = "13c829e3e8eb3767e6aa46344c7a00f315b891c956b4e277d301e8621a6c8b1a", node_count = 6 },
+  { file = "transliteration/game-xlat/src/directions.rs", item = "const:ROTATE_CCW", ast_sha256 = "33a80322458ff8ead6e994388e9c49e52f159ad482f07756ac807ab4864d3ad6", nodes_sha256 = "13ca725e279f3c603c7e5831c0f5c238288e0203608641616b5b000bef42be12", node_count = 6 },
+  { file = "transliteration/game-xlat/src/directions.rs", item = "const:REVERSE", ast_sha256 = "2e16dbf6882e976c4cf0d4aa5e2aa7da8e201fc88af69d046d94332a4873283d", nodes_sha256 = "d09bbbf66fe997cf654356b1e54d80fb2642d9692b59eb39d2520cd93b264887", node_count = 6 },
+]
+op = []
+adapt = []
+
+[[body]]
+java_item = "defpackage.AppConfig"
+code_sha256 = "4cccffcb889a24d837f6f008f2d3b38437f06ef430a4397c0f23aeeb3dd35e71"
+opcode_sha256 = "5630667fd387cd39e89e765a10076c702b73caaf327880f5dd769dbaa02624a1"
+java_ast_sha256 = "e4e399d88794380fcece88bb3d9952c80f8c408e1abe849f56400e7616e69d14"
+java_nodes_sha256 = "07f9b9865b0251cf1991805e5793896e42784e5abbcd1f2e0884af099f5509ac"
+java_node_count = 606
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/app_config.rs", item = "const:DEMO_UNLOCK_TOKEN", ast_sha256 = "5eec0fdebacd3eb71b6bb7fede248d40d97c654cde19419d8ad95b2c9967b5fc", nodes_sha256 = "eaa0570a543f021da475a7e5706a9964e94fbb49d1c926e18e6579a5c4985dea", node_count = 1 },
+  { file = "transliteration/game-xlat/src/app_config.rs", item = "field:AppConfigState::app_properties", ast_sha256 = "1a7399306cd3e0472cea40b2331e02e34aa955ee3e5f53a4d340ac41e18a7cbd", nodes_sha256 = "aa91cb9cf6658668c149a79e3f1ad013f0c4e0f991dea7f81fee86258f5f2dc0", node_count = 4 },
+  { file = "transliteration/game-xlat/src/app_config.rs", item = "field:AppConfigState::locales", ast_sha256 = "32115ddfe53f3bea164c6077c9777eb8ae41c4b9b28980affdc92ec4db2a3f98", nodes_sha256 = "7923fe6a737679cd99734db6436c2cbcf44abf53a839f818adf17363b77a5afc", node_count = 3 },
+  { file = "transliteration/game-xlat/src/app_config.rs", item = "field:AppConfigState::buy_url", ast_sha256 = "4b330a3df4f8ea85c3e7e1556766157c0a1ce39a33c89294e65db57757e7a7a4", nodes_sha256 = "1c9b7e943ced220be95bf3d455a5c6b9656d4f373dc0427fff02c58c953f48e2", node_count = 3 },
+  { file = "transliteration/game-xlat/src/app_config.rs", item = "field:AppConfigState::menu_buy_enabled", ast_sha256 = "fc5495dd10620396af296cc50a2197755b85d48ca646bb7d017a2209b2025a50", nodes_sha256 = "d0694933839e9d1673482275e082aaf0df24df1e15cacc0811cfb5a43445a16b", node_count = 2 },
+  { file = "transliteration/game-xlat/src/app_config.rs", item = "field:AppConfigState::exit_buy_enabled", ast_sha256 = "6d261d18d18e66221e8c7e560d2e8d71998f60b813d4c05f82d3cee293b2aca6", nodes_sha256 = "56c71946fd2c17b0ec9e92148df9594f33dd362cf3ce990d6a460a6ae94fa3e8", node_count = 2 },
+  { file = "transliteration/game-xlat/src/app_config.rs", item = "field:AppConfigState::full_version", ast_sha256 = "36e165259bde99becf49bc9498e8a30017bb0727baa1a63a8ffe6a306e399de8", nodes_sha256 = "527bc1ce027798b8f24813142f594f5021c1f7ec088760611b739a9c080fc134", node_count = 2 },
+  { file = "transliteration/game-xlat/src/app_config.rs", item = "field:AppConfigState::locale_enabled", ast_sha256 = "c587b65185ddab8da54c215d491f87f40bb0799e03672456e4770d006c44e552", nodes_sha256 = "1c5c98dbf20a57bdd77a79219b99198b7681269ef348f7b3a6feea4e93024f6c", node_count = 3 },
+  { file = "transliteration/game-xlat/src/app_config.rs", item = "struct:AppConfigState", ast_sha256 = "33d5c623fa8c846222d60d6450fdbd452018dc54892c4a88a95daba3e5c0985f", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/app_config.rs", item = "impl:AppConfigState::get_app_property", ast_sha256 = "69785cdb8760d3433c7f8231af2a71153aec567b1252ac39dbb919681f8b6ed3", nodes_sha256 = "6015f65bf297622d11f8e4c1627f8ab0bef37f035289b62dcdc88fa6131f684f", node_count = 8 },
+  { file = "transliteration/game-xlat/src/app_config.rs", item = "fn:java_string_trim", ast_sha256 = "70ae98c1916a6b0437e2bf24de2e5843bb1f3168dbb98c9a8e32388ac2431ace", nodes_sha256 = "83e2cc56664a53fb48b536918c0a7f4a204bb9f770c11d9200f09387f9ac1ca7", node_count = 14 },
+  { file = "transliteration/game-xlat/src/app_config.rs", item = "fn:java_index_of", ast_sha256 = "031f06dbaa9d7772fa3a007cb81e219388245ea117f9ac9cc2692888512e1124", nodes_sha256 = "9f8f6c69864ebc9b87679f32d85f7724f6a508b6babf69073078c57a6545292a", node_count = 72 },
+  { file = "transliteration/game-xlat/src/app_config.rs", item = "fn:init", ast_sha256 = "27aa38cbfb1c051e5a25804fdef13c6dbe22225b66d850ea0b5d5cefbfbe9508", nodes_sha256 = "9dc9cf886f882eaae3b98d8918396747b3539bf3e7ec7f7497e488fea14fcaf8", node_count = 17 },
+  { file = "transliteration/game-xlat/src/app_config.rs", item = "fn:is_full_version", ast_sha256 = "eb4435c4ee1c9fc8fe3d5257d01bc9d8ae02903b73504fc5af376c5f3ee69ad8", nodes_sha256 = "95741dd859273577a4a46b1365d8a43fbcbf0bc6ab15c9547997bf701be04019", node_count = 31 },
+  { file = "transliteration/game-xlat/src/app_config.rs", item = "fn:apply", ast_sha256 = "79bc660485e10ab6628d9f10df1d2279a1ed02152e77d3397a1c82d468eca9e6", nodes_sha256 = "df2e01053b226e96a1abd817d13a134c1a67cd0ac84e0a0db9e56e203dd8bed2", node_count = 42 },
+  { file = "transliteration/game-xlat/src/app_config.rs", item = "fn:show_full_version_link", ast_sha256 = "7b4680276163cac9d0ca8989f1598d692b8b3ccdc856b4db4947e684d6ea363c", nodes_sha256 = "0238a7059befe4ca72219700789b7145ebb0eeb46795a31cb388bdf59bf5c3b9", node_count = 13 },
+  { file = "transliteration/game-xlat/src/app_config.rs", item = "fn:show_demo_buy_link", ast_sha256 = "da0ca42d32fc71de0de72d1cd505276d0156f929587f628bcf1e5d676ecceb4d", nodes_sha256 = "34a06eb559d5b1cd94d0894fbf2877f7ed29aebed1bfdef1d40668ea1889d1c0", node_count = 20 },
+  { file = "transliteration/game-xlat/src/app_config.rs", item = "fn:init_available_locales", ast_sha256 = "77f7d9255f9d7b140869c07f9e126798de26fbd75dc2c5cc2dc984c7493c03b8", nodes_sha256 = "b345fd2f347ea9176b61c3cc949cce2a13805178ad23fdd29189881c4a26bd9a", node_count = 138 },
+  { file = "transliteration/game-xlat/src/app_config.rs", item = "fn:resolve_buy_label", ast_sha256 = "4408a007647e289c34b47bcaa4df2b1a024ddeebe3c81986f5dc3771eb9b1ad3", nodes_sha256 = "0d0fa21f503675244ef165c827528eb4585a771a178a7f99df2a9c87cba8d00a", node_count = 287 },
+  { file = "transliteration/game-xlat/src/app_config.rs", item = "fn:resolve_buy_url", ast_sha256 = "c331d1a7c70d89bcbfe30a26fe91e0e59f6f965dc72a391c4fdf1594bb86ca0e", nodes_sha256 = "4aba7b533d03cef8d98603454af3a13189c9bf17f5ed8ce9c558ce50ddcd37cc", node_count = 28 },
+  { file = "transliteration/game-xlat/src/app_config.rs", item = "fn:is_buy_setup_enabled", ast_sha256 = "19e4938aacfdfd4d077016acdc4ce65e02366a1b710fdf88d2aa60e41aa4d399", nodes_sha256 = "6d5a89ab61cca5864146e9d167068c00c7d27f9e3a206048f58d5ee470ceb4bc", node_count = 70 },
+]
+op = []
+adapt = []
+
+[[body]]
+java_item = "defpackage.Debug"
+code_sha256 = "714fe567b1112889062dfccde3d50f16e6e16f9ac3cbc29d4f65d1e4e6d98076"
+opcode_sha256 = "b343c1691910d734de0abf1e3b3d05fcef9a3215235ccd9304746ddf37de6e7e"
+java_ast_sha256 = "c6f1cf37b4cab8d05b61da105cf206691da9fbd268509db8213291a05f641197"
+java_nodes_sha256 = "1f1240d0781813c9d3b32efa2965a462e1860ca6423d41e11d07b717dc0b385f"
+java_node_count = 31
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/debug.rs", item = "field:DebugState::full_version", ast_sha256 = "97e068422057162346f33705bb6b065a976b58ad64840ea431a5fe230e25d59d", nodes_sha256 = "527bc1ce027798b8f24813142f594f5021c1f7ec088760611b739a9c080fc134", node_count = 2 },
+  { file = "transliteration/game-xlat/src/debug.rs", item = "struct:DebugState", ast_sha256 = "8e7b69944c130380815d7260c6d2ffc42cca54bf0ccccb2196f27fbf569cddbe", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/debug.rs", item = "fn:assert_true", ast_sha256 = "b51eaeb7b3339ac1ae90752587d8047c29e690fc3c904abc63ce4fb45439a5a7", nodes_sha256 = "02963f23e3275307ceda0a2d51da91787b432c105eb33033e6d794d7013be46f", node_count = 8 },
+]
+op = []
+adapt = []
+
+[[body]]
+java_item = "defpackage.EntityList"
+code_sha256 = "e79f38bef9c5f6568c30976547c4ed32e7c798356a33e600e1b0250fc750dfe1"
+opcode_sha256 = "4a87ef19bb31565b79fb13012a734831130d58f005fd33db2027522a7f008c65"
+java_ast_sha256 = "4f7472e49b398c1f296e35fd3d71dcf6c844a3c81ec0997c5338c11bf91bc370"
+java_nodes_sha256 = "2ca8a33a7df9300b9581fa0c61e6fb882f34a34476f1d1d28ea562348c8b0dfc"
+java_node_count = 454
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/entity_list.rs", item = "field:EntityNode::next", ast_sha256 = "04cc8531ec000fbcd4fb3c5b8d98692dcde9362e97f1c1c4ce8332fd435b4ca2", nodes_sha256 = "85f6dead70e12ca80379b2ebc4375c84a5c05bffbee1f04032fa23ac9a63e4e9", node_count = 3 },
+  { file = "transliteration/game-xlat/src/entity_list.rs", item = "field:EntityNode::prev", ast_sha256 = "62edda63b71277a7e6562d1ef39ac19ae6d809cb9d3b8d3fcbc8e42392f398f4", nodes_sha256 = "2c6f81db9d1d2532f2a58d3ec522065b66c54291f2ea8e916056739f9474eba5", node_count = 3 },
+  { file = "transliteration/game-xlat/src/entity_list.rs", item = "field:EntityNode::half_h", ast_sha256 = "f7cfea8ff75f0d31b25b1b679ae4a839aac691efd706077803161420589d96f9", nodes_sha256 = "b30f5b3cee7a441dd11faf661e2cbda85c0e2868e1fbad532c4ef0721391d4a3", node_count = 2 },
+  { file = "transliteration/game-xlat/src/entity_list.rs", item = "field:EntityNode::pixel_y", ast_sha256 = "d8780504b9b8a12ac37cccebbd956554a882acd6cb05982efb0423e5c41d3a0f", nodes_sha256 = "3d9952ce6364977e80e5f772bc806c0a825ab8e717fd84fe3f9d7fe64b15d113", node_count = 2 },
+  { file = "transliteration/game-xlat/src/entity_list.rs", item = "field:EntityNode::removed", ast_sha256 = "9d01462fbdda7d7181fa84a3c7460b3c17f0d554cf256e75a1b44c230d7eeec9", nodes_sha256 = "b328566939ce3aa370100c610f447b8b93e8255fd87ff02434b8cb567577e27d", node_count = 2 },
+  { file = "transliteration/game-xlat/src/entity_list.rs", item = "struct:EntityNode", ast_sha256 = "f6a6ab01c4005fc2d6b4b543f99b47e43c170ba114d11a2840dbb67697f113d2", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/entity_list.rs", item = "field:EntityArena::nodes", ast_sha256 = "997588a3dcad0bd70028756e217df346f1bcc84b22eba3912189873bf14b34bf", nodes_sha256 = "bb9e4d07593d4dc3c9285eee9b280fed32664065d88a00ebb4a0a1febabac332", node_count = 3 },
+  { file = "transliteration/game-xlat/src/entity_list.rs", item = "struct:EntityArena", ast_sha256 = "6dd237d854506d64c434243cfd1fd0485e1550d5d0bdfa62a294bcb3820f900b", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/entity_list.rs", item = "impl:EntityArena::new", ast_sha256 = "0329486d3c30949cdf5e2d327697fb7aee7c10ae8654d48b2b5c99322d38708f", nodes_sha256 = "7b8a991449501d182ddf9ff32a30757f70950c562502b92082f7334f410a8d16", node_count = 7 },
+  { file = "transliteration/game-xlat/src/entity_list.rs", item = "impl:EntityArena::spawn", ast_sha256 = "c8e6c6f700182df14e4ed268134867e73d7865c102da32f5a81a02be035262e8", nodes_sha256 = "cc8cd1698f32cf429a395a993430fafc29e8a05f366d5f880aefabf6be2d4a04", node_count = 23 },
+  { file = "transliteration/game-xlat/src/entity_list.rs", item = "impl:EntityArena::node", ast_sha256 = "93dad7e5dbf46529ae92f3c5544f5e88481955374d2d417171fba8433a60fb0d", nodes_sha256 = "d07e89f56f6404478fc26a4afca32be5d8ed45278902b55a7cdf2e9e2431d4e7", node_count = 8 },
+  { file = "transliteration/game-xlat/src/entity_list.rs", item = "impl:EntityArena::index", ast_sha256 = "7b654cd60515df55b0379bbb67ff912ad5ffdad47f798fc27f5c7ee047cb2b79", nodes_sha256 = "d07e89f56f6404478fc26a4afca32be5d8ed45278902b55a7cdf2e9e2431d4e7", node_count = 8 },
+  { file = "transliteration/game-xlat/src/entity_list.rs", item = "impl:EntityArena::index_mut", ast_sha256 = "fca1bce3c6a05a172c39aede383e029c27d535f9b89a0926ac2fac597b986c37", nodes_sha256 = "49ae7c18e29e7ec197b582b7c7e8f36811d1560424562f096f00a78d5dcd2b25", node_count = 8 },
+  { file = "transliteration/game-xlat/src/entity_list.rs", item = "field:EntityListState::head", ast_sha256 = "2900d1f7b2fb5880c855cbb2b5255a484ccc2a8d25eb2110faf47ce83dd22024", nodes_sha256 = "ac99648694c07c772a3f6dc165d9c45ab8fdfb6c0fb363f5224f83ad8dc6cf84", node_count = 3 },
+  { file = "transliteration/game-xlat/src/entity_list.rs", item = "field:EntityListState::tail", ast_sha256 = "29c061f521db8d93e8c41e442fde2daa874498197966d92045d316d3f4e29261", nodes_sha256 = "ffd74c8854fe2f1f680e76468056ef16ae2eb5f04519c8a3f16700e83dccc436", node_count = 3 },
+  { file = "transliteration/game-xlat/src/entity_list.rs", item = "field:EntityListState::count", ast_sha256 = "6374cc809f028a89e2627871aada724eed3d0e2731ecfce07a8a59465004f170", nodes_sha256 = "f6c50cf32ef855ef09dfd1a8c1bf85688c7e84ed03ef8c2d150b22dcb081fdeb", node_count = 2 },
+  { file = "transliteration/game-xlat/src/entity_list.rs", item = "struct:EntityListState", ast_sha256 = "3e93941ba98da4c69fef2cb55a935e4993aa8365f870bbac32d7639b27c045d5", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/entity_list.rs", item = "impl:EntityListState::new", ast_sha256 = "340c2270ae7f101d8a0ab3cd7acd8fe66cd5485f656aa357dc1150eff4e001f5", nodes_sha256 = "6129c57269bf5040c5167cd13ec7faf152e4a62cefb05972676029050ff4fb40", node_count = 4 },
+  { file = "transliteration/game-xlat/src/entity_list.rs", item = "fn:depth", ast_sha256 = "00ce94eb059e1f91d15da1500cccb201e4b0f5e2ba129a810ecbcb2735a7ac6b", nodes_sha256 = "0eca21c5bcb9017e38b1448cad5ab2c60aa9ec80204ba02c91f23f789ab2c095", node_count = 19 },
+  { file = "transliteration/game-xlat/src/entity_list.rs", item = "fn:add_front", ast_sha256 = "44f839bbe503f452ae2c0dc6923048fe5df9622424f28326747707a8f33952f0", nodes_sha256 = "66712e5239d1c94f40fc999d3a587987469bbf99a571e0bf5999925e0e154225", node_count = 70 },
+  { file = "transliteration/game-xlat/src/entity_list.rs", item = "fn:add_back", ast_sha256 = "800e864f54878275cd46a0e50dc084cda493c24db9e41a38e31282b5c2055b0c", nodes_sha256 = "71d0944ab0ca03636924eec8cd247195f36950f28db9e85fff763f802a09927c", node_count = 70 },
+  { file = "transliteration/game-xlat/src/entity_list.rs", item = "fn:remove", ast_sha256 = "786dbee65b3a9824d5ae25635acbf19d6bde461a50346c956e3a9d71ae9945da", nodes_sha256 = "b581e23e52de6a2eb003b773932835056bf4bd75c50c4c15ab606253dd830fbe", node_count = 119 },
+  { file = "transliteration/game-xlat/src/entity_list.rs", item = "fn:reorder_by_depth", ast_sha256 = "9db8a109860646585903848bd2759b58220040e92c38dc91024317fdc275b703", nodes_sha256 = "cca854c6f4ca06c2eb85f54837efe3a1aeef34debc5c5cbd81f5f117e5f08121", node_count = 415 },
+]
+op = []
+adapt = []
+
+[[body]]
+java_item = "defpackage.Item"
+code_sha256 = "dcd2251c7a715927b124460bf51cc12062bde81eac209f7a72e6b13c2acf4e20"
+opcode_sha256 = "bcb23ad70e213d87b3e37c19dd242ce4cd9b93e6f325340353bcff0d85aa5bb6"
+java_ast_sha256 = "1b22ab9f09961090d764049a8b8878c8c83a0a893c63fb490565e813388ff626"
+java_nodes_sha256 = "fdfdcf870feaa6c2615111d2c700cedde498d3ddd790adea7446871d359fa75c"
+java_node_count = 1061
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/item.rs", item = "variant:ItemClass::Item", ast_sha256 = "a9170a5a4c06192e137ea97bb82e939f38842abe77bd2367f9b3c80129781924", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "variant:ItemClass::Equipment", ast_sha256 = "bec83f7ffb3c7ca9b0301e707369233356fb49da4dfa7db11be87128aaa07ac1", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "variant:ItemClass::Armor", ast_sha256 = "d6e8b4c8495da7fb6acd5aab5bae2021fddef4773761d562dd5ca526f307c2c0", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "variant:ItemClass::Weapon", ast_sha256 = "2bb8f97148e3c52be5c3df4c0c482ac97478aa0e4c555a5b0d7981e4952cac10", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "enum:ItemClass", ast_sha256 = "8a709209f9b3e69c9dd42a0912e5d209b68b9a798cf85d8d3b2df64ad499db15", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "field:Item::class", ast_sha256 = "d75987f27541efb2b43f61c8692a147c7f9b3315fca1eecc8132a131f3c2a35a", nodes_sha256 = "401571ae211bf1eeee2c58d2f0296b88685c516277a3c5a4e9ae81b0a688b94c", node_count = 2 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "field:Item::r#type", ast_sha256 = "f4a811318b946d92894bda7e66899a033c1048a60b19edd4f05663a2a4427cb0", nodes_sha256 = "cfd3cc084e9edd44feff94d599dd5445389ac0391979b3a64c8977043a005e29", node_count = 2 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "field:Item::sub_id", ast_sha256 = "2e7f83b8ba4f7d5f7155f9290a235f8827e0a38702c1c57998c8ad62d80bce72", nodes_sha256 = "3384808f226f6a671f90e4be4fba356f0fffba2a39fb14a8dc6ad89126f19551", node_count = 2 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "field:Item::name", ast_sha256 = "fb4c4f57e5925f8056ec538a0edc9e7e7bce0ad9c4fea6abee030b329282a766", nodes_sha256 = "0db0f6326ce113d95ef101c0534c15cc006345c62180fff32278e001fc69097a", node_count = 3 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "field:Item::description", ast_sha256 = "a04ed045e2fd3de84a05a697bfc680bc1daa8e24c095eb4174a9c5ccc3e7a221", nodes_sha256 = "d95ca0253137362148b20821abb4812f1195756e2227ef55df107a446e818384", node_count = 3 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "field:Item::price", ast_sha256 = "bc536a8355840d65ac6e7f7cfe9fabe5be10f044cd4bb5b52ea74b456948bca6", nodes_sha256 = "dbe0e2ce826a04e85009a8ad26d63329c1d09d560b801fe77804abcb0effc00e", node_count = 2 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "field:Item::quantity", ast_sha256 = "0a4162b5da6c02b00eb3cdb8a0a020f5e1a98f80d174be91eee30aeb93f2d8b7", nodes_sha256 = "df3a6e83d5a2b9c59c28bcf019c95808adad57ed5c4658330c493168b3ec4a60", node_count = 2 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "field:Item::value", ast_sha256 = "da3afe01d324a2a03c55cde1ea67606106f2ed358a0f1d0834ac1b06cfeb85ba", nodes_sha256 = "d52e2dc8503898863daf465d3b8bc108c0ee2d22ebfaa31b5c192874aaf740c3", node_count = 2 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "field:Item::level_req", ast_sha256 = "d121aa9c34a9f4c491a795f10258999ed73356a25c4ea2db26df3d77206038fd", nodes_sha256 = "7e26897fd7eeeb3a4de5d156e723a35c10d2c392aaf7df8175e3906d208d7c48", node_count = 2 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "field:Item::needs_identify", ast_sha256 = "53636ce6bc952b0d7f24eb87718d4102e132afd5872121d5dde92b418b0ef15d", nodes_sha256 = "845685545870a1b984da92a6a7299ed43a91601ce70f54fc12041a25d82d6fc1", node_count = 2 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "field:Item::identified", ast_sha256 = "25b519acd2a15ed461a44bb541fa0e58342b13af444d90e3f373d66bbc8ce3b7", nodes_sha256 = "fb9c964f5ab7ab9013b2103abe3d59d4c370a066148e7ad25eafb7188653726f", node_count = 2 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "field:Item::refine_level", ast_sha256 = "59641034b9dd248ff59914e5ee464dcc11193f3662baf26e34144b5d39f48671", nodes_sha256 = "3f9395fd49298bc1c0439f093dd6c9d4a752c44beac3851f4d9e716314d4a044", node_count = 2 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "field:Item::enchant", ast_sha256 = "4b14c1124c5b157361a83101247cffd842ad5eb68040de2d161399d48b3cce16", nodes_sha256 = "d98b1a71c107f9b3a25ca77b7f9420c2f83834f78401835b6eed55375617d603", node_count = 3 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "field:Item::attribute", ast_sha256 = "4bd1efc7bd83465a59bcb0d9bd22ee52ff99a0f0790dd81fcf52dd8f4985d44e", nodes_sha256 = "af503ce66c8b21e4cc578ec031380ace8f7495c404092a416d4a9a182d242d5c", node_count = 2 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "field:Item::accuracy", ast_sha256 = "3c6b8f6e84c199d51708a7fa81a76c8bfe9d89d02435d56d31c8a709bcdf9724", nodes_sha256 = "83a64e862babb05b3a36a4e755bfb85b7cbbf1d69f348b82a6485f2d708de154", node_count = 2 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "field:Item::crit_bonus", ast_sha256 = "55a614a9914ed7e8094f6242874130a19e3006e2ab68e5bddfe5fd0822366287", nodes_sha256 = "786118aaad53dfa63cfcc53011015d686d4d9978fe18bab6461bbc29cacc90cf", node_count = 2 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "struct:Item", ast_sha256 = "792ee44fe289ad3cdfdf103a1c94ffcca0897b471ad451114d36265d1019c4c6", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "const:STACKABLE", ast_sha256 = "ad5f04ba22658b89ede1d898522911c2dcc69237760e690746abe119950b0c7c", nodes_sha256 = "0b8c263b6ec2678bd3a6e51d494d1080c66c78193602bbe71b01ba03d9c1aa74", node_count = 25 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "const:QUICK_USABLE", ast_sha256 = "d4d62020ecac02566569842d49f0b5efbe8defc07cfbeb7fd7521b6f1bb53433", nodes_sha256 = "7e080fe77b0f6ac09961bcb1126969f902c31f240d638e206177c27001d4f53d", node_count = 25 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "fn:construct_for_type", ast_sha256 = "1ad50f00659aaba46dc770b1920adf08bf72f907271922ab57a33cb65839d535", nodes_sha256 = "99bbafa14a58a478e5b736087663959e7acbbbff1cacf125a70a300823d6494f", node_count = 32 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "fn:new_base", ast_sha256 = "f152539cdffea39c62abdca821169fe7ebcce3a7c74354aed50f5cb94121e46a", nodes_sha256 = "dc4afefeba8aab960de035b48c8ac3279fc042526a12e772fba4bcf05cb19f02", node_count = 44 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "fn:new_item", ast_sha256 = "765f6a334b15e6a76f6191ecfe3dd8b9c28256efd05407d8ce6cbc34052fc1d5", nodes_sha256 = "65bbbf062953ccd47de9b76089ae807b0e2673792bcdc9639f5afd06fb04c831", node_count = 10 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "fn:new_equipment", ast_sha256 = "7e289a7547875aa785c3dbdf28d664de64f03a3d6ea49bc56eade9cd7454ba41", nodes_sha256 = "60e701c064ea6406b493f5cab63d161337f8ed90bd5f2ef201565a730aacd0e6", node_count = 19 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "fn:new_armor", ast_sha256 = "b11b23fd9beb3596d5e16f8baa083517a3a75fe53098a93db7ccb696a575e09e", nodes_sha256 = "ecafb14edcd0fb086ff6faa1adc8916a5fd76ddffd6539e89aef7ee75af37e23", node_count = 19 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "fn:new_weapon", ast_sha256 = "e6260a967654a4eb981cff924502d970e21acbe895cde48f8556807093bfd058", nodes_sha256 = "3f8a1d81e1817e1932f6df9c266b70e2f30241fd7e09770e7b9a7f586f234698", node_count = 19 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "fn:is_equipment", ast_sha256 = "bd856d73c4cf5087203d92777ea4dd711241f5689dd4889001f9f13f40f97b50", nodes_sha256 = "c2ef756b0895987f2171894e73cf61482245f9915690889d7ada01ca7f6ce9c8", node_count = 3 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "fn:is_armor", ast_sha256 = "2b4439c2cbf828ff1fc989e7219fe03e9124aed39b63eee251aeb0ccf6a055ca", nodes_sha256 = "cf2c87f525c5acb9f1c2d4130582cadfc93a05d1cee6c7aa294847d845e4d57f", node_count = 3 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "fn:load", ast_sha256 = "19c73937440d4681caddfe15cb8332ccccbb3f455b7723076f2c30ddc5cf0199", nodes_sha256 = "1dcc98ac4db55541638e4861ba83f4151cd6c3608a5e87533dbc75897882c7f6", node_count = 30 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "fn:parse_record", ast_sha256 = "ca93cd39933d9df9164eb487ceeed9479f2f1b7ff6daddbc64f980994e927b95", nodes_sha256 = "fc2fc32ed658b09733bc016557b76332c2b314d2d8b16ea66c2d552b70bd26e0", node_count = 63 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "fn:parse_record_base", ast_sha256 = "0bc43be3578e781d1fec43adf65c537701be56cb1c7b9f450dcafca17a85dcac", nodes_sha256 = "be2b1113c2aca1267f195754c0d7b8abdf97120388ec7a5c2cf95a0e0d363c89", node_count = 39 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "fn:parse_name", ast_sha256 = "e7f71a9566b38d67150fa476b1527a6e5d433b39807f5eecb028a08d0126941a", nodes_sha256 = "b59ec3186887d2d3066a56b4217aa7c4f3cf2aa1879e6290fbf8cfcef84cbfd7", node_count = 34 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "fn:parse_description", ast_sha256 = "2f5281b2c34d1150e1bf4f9da0e1b371e13aa1463da9bf4576a25dd7fc6943cb", nodes_sha256 = "febeff2c4d9c401023b8ceba266a01968f1caea0e27efc2deffc1a1c778296d2", node_count = 34 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "fn:parse_price", ast_sha256 = "0aaa15367cb27529dc4681ed283f03d42581129bc0dcde6c8cfa75812ada9f64", nodes_sha256 = "c4ef3759f7881641d41e3f563c79a486716f82512ef4842880d0320b96c2f99f", node_count = 97 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "fn:serialize_base", ast_sha256 = "85386e01bfe49a89323d6739a3e8c356cf3bb70870f10fc5ca43c909b6a9b35b", nodes_sha256 = "5fa89db59b560c7d88940fc73b65beb58916cc548b71dbd89ad41c6a213be3c6", node_count = 32 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "fn:serialize", ast_sha256 = "4a76c3dd1552aa1f4fb0189d2153ddb7ca999ef3b9c0c663702354a750d1df1d", nodes_sha256 = "adfcf7b5661e2091b0ae9daf841a7aae398ec1ecaedc199ea515426bde5f922b", node_count = 24 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "fn:add_quantity", ast_sha256 = "911f1f4749440a18c88275e229f64d3f55220851aa2a10c7d95e90e51346a507", nodes_sha256 = "ccd3a48235022b12173a91c9a9430b688c29578089a701f3655a460391eee930", node_count = 18 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "fn:remove_quantity", ast_sha256 = "713d6460ebf802663d7065610844d53eef66ec15a1501daf7c56fccb7a342beb", nodes_sha256 = "5f47c75d0371ed560207973b0677abfb1c7a8d603519a6a7e3e79ebbcda9f31a", node_count = 18 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "fn:is_usable", ast_sha256 = "7205e4c509cada8b068ed966d80d7887d0b69ff9d89d9d13a667589edf71f9fb", nodes_sha256 = "f53612fb8a6a2349a8318930683846ce28b8267169a11a7bc8049de0a3add565", node_count = 24 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "fn:is_quest_item", ast_sha256 = "fddd752475c599ff353832c36779df3d4caf48d7f3d5b542aa832e9e3d506612", nodes_sha256 = "a3ab1438f331b03ded4f91ef4316892c78c52d07b3fba0386d13a39593de1dc7", node_count = 24 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "fn:create", ast_sha256 = "a1af702cee2c316524f088478656184b9e387663f9649b235eeeb3304dce2e74", nodes_sha256 = "d9d599bf7229e8e3fd5eea431ea9e62619b085c741638edde423c343636a7a06", node_count = 30 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "fn:create_from_bytes", ast_sha256 = "5d4d3bb81ba2978e1b431ab543699e8d692315238fea2dcc901ac3c8fb630036", nodes_sha256 = "644281798a17f6110600042d26cd99917a1e5da4e743d1b1808978052b0458ef", node_count = 55 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "fn:deserialize", ast_sha256 = "42b720c46e3acc779bedb772002cbd140674c3df5a5537b5629a23c2c66a544d", nodes_sha256 = "26d0d057b253402db71010efe181a93564113906d44ff93f3c93d9ffd947fcc2", node_count = 91 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "fn:build_shop_stock", ast_sha256 = "cf647ecf1a45a8a3594eb30f47e4f03a2459a130e2b0080ee13b9408c57bcf02", nodes_sha256 = "46e9f66110a577a45972a69b56628fb214cc00d1e2e90914ea08c720e256ed4b", node_count = 176 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "fn:craft", ast_sha256 = "ef7bc69b9a681cb24d21a878a67335c0b1472cee512c81b10696fd56014237f0", nodes_sha256 = "4ecc85a8a96eb49c83a3b92fe95acc1436492435c260ef7f58df2b3c73a637db", node_count = 298 },
+  { file = "transliteration/game-xlat/src/item.rs", item = "fn:ascii_string_chars", ast_sha256 = "409893f9e31aca48982fcdcc3d8178c626dd7c34bf97e67bac13b1f642c3c9e8", nodes_sha256 = "c8fbf39da8cdab7fb7c613eed1bd9c3642e47992f67fc1fa4d7655036f336805", node_count = 52 },
+]
+op = []
+adapt = []
+
+[[body]]
+java_item = "defpackage.Equipment"
+code_sha256 = "fd1da0aa9cf385dfbaa057e839f877079f867745daac5ccbe65d2f59b694bcef"
+opcode_sha256 = "dcd5f2836917df6b892b42df7c7238325392f46952323c1ce375064830ab3f23"
+java_ast_sha256 = "5d583017c87e5c97c9fe93e8658089c9494e74530e06f3a7313fe9261497d2e2"
+java_nodes_sha256 = "d18731e0ed0efc05e877d2f379e3cd5cb202bb6d99f357318c4c094def5ea780"
+java_node_count = 348
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/equipment.rs", item = "fn:parse_record", ast_sha256 = "5730646022681bb2c9c404a076015a1fba6105d51d042ad800532a54ba5cf712", nodes_sha256 = "1bc3386d158c9de23bad3c65834393aea4fb1aead21f46875e5ba983ab5ef8da", node_count = 27 },
+  { file = "transliteration/game-xlat/src/equipment.rs", item = "fn:parse_equip_stats", ast_sha256 = "894fa728c7b92abf75db54931564ef6329ff1e5f8d52945df4be914b17b589bf", nodes_sha256 = "d7a15471c557ccc70a7dd3172a65b99a7161f43d8915cc0b0b8eaf6ca412cdc9", node_count = 219 },
+  { file = "transliteration/game-xlat/src/equipment.rs", item = "fn:serialize", ast_sha256 = "983a1c35f5e0b3fbce2f6954a2736cc00c28b0f16db1058665578b8972a1e82b", nodes_sha256 = "e730a2d715c4ec0f8b169360479613523184a4c4d6959e2e6efe005bcc962db5", node_count = 46 },
+  { file = "transliteration/game-xlat/src/equipment.rs", item = "fn:roll_enchant", ast_sha256 = "473fc55f85f2170daeada9c824f6c0f4f33444a6fc30cc01b5b98c7ae6441182", nodes_sha256 = "3b0826ada81e5a6a9e35b633005bf9923cffcff48425e4d37c0304572da69c29", node_count = 108 },
+  { file = "transliteration/game-xlat/src/equipment.rs", item = "fn:set_enchant", ast_sha256 = "df7d1c73716c203ed69ccb0f1e5a355a438004ee1d63b305389e5a4bd16d194a", nodes_sha256 = "d80c0e70f0ee9172d8bfcdc3aa85a15cb67b7a02bcb57ecf94a649a893c2d51b", node_count = 33 },
+]
+op = []
+adapt = []
+
+[[body]]
+java_item = "defpackage.Armor"
+code_sha256 = "abfb2ebff5357cdb3f0c6de1af25a8a4f911628bbaff41aab9eff23f582dd059"
+opcode_sha256 = "34dae35102c66fc5d4d6631875b70acafff767b1ed5ff7a4d57956d75ca367b9"
+java_ast_sha256 = "21ce80cd992be9b26da8e994377080297dc109a3f82b70daae02cbf8fc7229d4"
+java_nodes_sha256 = "29e2acc7936d603bb9d02d513be0d2f2977db85fbdd00f1d3580f7dac510ea01"
+java_node_count = 102
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/armor.rs", item = "const:PROC_STATUS", ast_sha256 = "3b61cc0cd62c95ee19cdae6b6999861f1271b5c530e14c10b9a0c75a23c8597f", nodes_sha256 = "a718fa72c7bded2019cc788da0c09b6819b2a050be3e11d0be4be46058561beb", node_count = 14 },
+  { file = "transliteration/game-xlat/src/armor.rs", item = "const:PROC_CHANCE", ast_sha256 = "7d7a7648ab670cc2d05978bbf856d1ceba1c76661ef145a49603018cbe9757da", nodes_sha256 = "db8044bfbdcc0fe7e6447af1c050a5f7e80520fbdc311f33cc2e8940ec5ca2dd", node_count = 10 },
+  { file = "transliteration/game-xlat/src/armor.rs", item = "fn:parse_record", ast_sha256 = "c0c7d74a1ed0b3626ef76319919f760a0cdea7e83c8fd74e14a1cf6a4edaf063", nodes_sha256 = "94c54b0b8544966b180a7b1436abea618a732ec40b4246c435f0fe9c4025b4b1", node_count = 33 },
+  { file = "transliteration/game-xlat/src/armor.rs", item = "fn:serialize", ast_sha256 = "ea60dbe4ab8d8f2a4f5fd84f7c18d5fbaacb79ec8456e62b976210994a002b2f", nodes_sha256 = "d51478d5b730318502abbf2c82d8f5d20b351ca59fdffcc14ac0ce7f274bf6fe", node_count = 17 },
+]
+op = []
+adapt = []
+
+[[body]]
+java_item = "defpackage.Weapon"
+code_sha256 = "659ebd0ef41f3e7f3ae4a0a4dc7178f53f7bf5b05d27c7defdf03836b9a714da"
+opcode_sha256 = "d018c0970dc64d5af5c64822657e0471d99cb4192ca28b94fc677bd7aa7eda9a"
+java_ast_sha256 = "f83ff21be3daea536474c715f23e156df43baba852d3628a1b77976515277629"
+java_nodes_sha256 = "81206f89e516fb831c227f8c1b0660e1decf0eb433e8dcc9fbdc190d0fb866db"
+java_node_count = 91
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/weapon.rs", item = "fn:parse_record", ast_sha256 = "e71066bb95fcb245e9e4359599a3f6ca1d8d2591932ebbe4ee5b6cb7736ab13e", nodes_sha256 = "50200e271850cfd96d7c3b3b183fb511bd46c5710392210fbeb3fb41a41b4261", node_count = 107 },
+]
+op = []
+adapt = []
+
+[[body]]
+java_item = "defpackage.ItemBag"
+code_sha256 = "a54dc8a2b85c77f6bd1d76b8d98843a73af6e874534c078e15ca15f31136ad41"
+opcode_sha256 = "3f5f7479760fb07f7a90112dba1c772018c331f4e2ae55efda221cdbc90523d0"
+java_ast_sha256 = "127614f515d82193edbc2e0b9c9120db1053a868339cc39de167c4d529bbfca6"
+java_nodes_sha256 = "4719d3fcfe96193a013ff635f5551c8e90f31bfab8edafcee125f1169ea2d72b"
+java_node_count = 1816
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:assert_true", ast_sha256 = "485f0c56ba2a15769af87562ee24242f297f7c7a27b95124bc3d4f6e967fafb1", nodes_sha256 = "02963f23e3275307ceda0a2d51da91787b432c105eb33033e6d794d7013be46f", node_count = 8 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "field:ItemBag::slots", ast_sha256 = "49e26d9cd4ff4c481a724d33e9af0aa830d4a3b446e88d00986edbcb98879eab", nodes_sha256 = "9a4a3c7d3b0113f5ef9c2aaa6cb6f9023db156cf19d73be07ccb23d44eae2df2", node_count = 4 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "field:ItemBag::quick_slot", ast_sha256 = "dae6dd2ec7cb6dfea0a5d1ca98e13c8ae6f404f04cf3de3870b91cffb9280d8a", nodes_sha256 = "93ed83f5c50bd0984acaf2b9db77b7c722e590dffeeab09568d1abec2ee709d9", node_count = 2 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "field:ItemBag::quick_type_cursor", ast_sha256 = "ef6bfb538efa041849034713257e17723bb6300555ede5ee051b684e19db1823", nodes_sha256 = "8298b9102d96245ef1c01b14d736dfcddddeda8f82a4129c3ac38c33e31a64c1", node_count = 2 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "field:ItemBag::gold", ast_sha256 = "d3caf34efc8fa2017325ca4e7d567ed9dd046059b8115ba8490ad18de626f454", nodes_sha256 = "a97074b4f0654f1e28eefa3f3106fa4f34eb3a75e3eed5b2eb44e0c1e2b93fd5", node_count = 2 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "struct:ItemBag", ast_sha256 = "9c4214b206091dc911f347dab796ac24e7c8d2c02723d855df58d35d6c6a600e", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "const:QUICK_TYPES", ast_sha256 = "ee20d8ef5b262ba51131ce3551213d0274b035171f9f3230d275147511df0f81", nodes_sha256 = "820dbda629d5777e6847cd5ea422e0d7b93bb45a0086255d4c37959a5c533a5f", node_count = 5 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:new", ast_sha256 = "0cc61f3cf0adbb1df4a97c2b5e2ff281234f743e06174468b0442646aa53513f", nodes_sha256 = "1f34f9fc02729c85c1a19963152acadd934786c3167d6c923ae662b5c1c9f480", node_count = 31 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:reset_quick_selection", ast_sha256 = "19311870e9eaecab877ad15cb6fed7c85698e692dc490c7b3afea5e5794f7f0a", nodes_sha256 = "9baefcb06ac07918746932d1420b189fa17d9f8d3c1b7312d4f1e79be3c52d1b", node_count = 18 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:get", ast_sha256 = "9a4d6072e20f0d99b53ef7db4644ec48ccf212ca8049f9a50d689e23403ea2fd", nodes_sha256 = "2f3ca82b3b1d04fe88190379682f415c072ae5ecbcf9dcc5590aa20083cf992e", node_count = 10 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:occupied_slots", ast_sha256 = "b008794c4720520c8498997568dca83aaabf24a955d613239c8ae7abfd1b9ea2", nodes_sha256 = "8a6b542e343146f7979786c501b5de57139664aaf4f4c7b8803e58f75cf85a86", node_count = 104 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:equipment_slots", ast_sha256 = "cebfc16fe08430fc757da4201faf5b2c13de900c3230a0f5d2cf639cb8d3763d", nodes_sha256 = "35753ff5aa5618be68f0307e429b0ddc0b793178c747460c172c48474d26c943", node_count = 168 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:slots_of_type", ast_sha256 = "6442b77245eda351b033dc624d14475ef3b1014be4bcbce880845ada93aeb848", nodes_sha256 = "ac89667d2d3112569ae157e3c2ea1a187a29e53d2839572278f434d8c363b8fb", node_count = 104 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:slot_type_is", ast_sha256 = "7b2da8f38de6803c0c611d80dd2faaddb2c929133640156621ba9a2559aebfed", nodes_sha256 = "0167c4cbdc7ce0b3ad65dc9e60b46f6382de2343e2284473dcfb14e909e5e25b", node_count = 20 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:quick_usable_slots", ast_sha256 = "14314e0814571bd4adc188bf67a50caf4b1cf88253274e74d28cfa09207f71f0", nodes_sha256 = "2ed4f4c418c4cbb29dab2c68f0e834ae46ef0f7d8f302d13bad9ba571d649884", node_count = 131 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:replace_at", ast_sha256 = "15ec392369295d8f549f76f645feb23be3abc2a96ed7fbfbd845b5abd1267ae6", nodes_sha256 = "fc4d3ed514c6e73b29401118d7e122392d9c63f41364a52bdfaaee017905557d", node_count = 12 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:current_quick_item", ast_sha256 = "6d187832fadc6357c1a3bf074047b21ecb57b356c6338bfe528909bf7865e149", nodes_sha256 = "041ac1690d442bc578a6eea79509af82044a0cce981318795ce314530b52e1af", node_count = 22 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:current_quick_type", ast_sha256 = "79c9d9e9636fabe86375303ed7d540744381b9ff103b43cb47db5f503bb3d923", nodes_sha256 = "6f0ca0b43c064b9f68595db5a586150e08a85daf14dda67b35ca88c259ffdbb6", node_count = 9 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:cycle_quick_type", ast_sha256 = "b65d8d23addd6d3b75b8a223ee8ede04c0a37b21d4882bb1588da514e2911c2f", nodes_sha256 = "e323e84ff9cf3ad703d65f03c5c828ab97a338644cfd2189aa69ba0d4f8fc16a", node_count = 45 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:revalidate_quick_slot", ast_sha256 = "5d591b6db42b079fd5fb8db1dc4365954ccb84ea606433c7effc64aa95049894", nodes_sha256 = "b0635f3f674491f4cfe6ea8e88df6e748ecfa290ca65a0d55d3d253519c8ff47", node_count = 69 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:ensure_quick_slot", ast_sha256 = "6832e69f3d44b0a77f7e3c1c598bf9b05aebb583474ab25121213edbace84811", nodes_sha256 = "fc1c6db09445aff94e109b6b2174b5986fdb2e8719398c70f2f50a4c6c5c4d55", node_count = 27 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:add", ast_sha256 = "b127854b785dcda2f710516812fb8fccc2082530a52f405ac57c26fcb3cd1f07", nodes_sha256 = "03ec88be0d5acec644a8a34ab87dde766640409a466db7cdef758b1ca604a878", node_count = 201 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:remove_items", ast_sha256 = "82356d3f30df44d45654aec43d5b27542f6b2aedec276ca39c4767501c0592de", nodes_sha256 = "a50068bc0a1a89be95d0c3e990fb11d89120f67367de52146ae4ec13a188648e", node_count = 104 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:remove_from_slot", ast_sha256 = "8e95afb5f117a2d3199b7b4ede6ce0790601bd2fd3411a54f9e577858886f3dd", nodes_sha256 = "6d3b7bded50487e3c5d75552f6d8c1b723facccac6ddb0c2fd316a72bac8e82e", node_count = 23 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:decrement_item", ast_sha256 = "33b53170a9599cdd19c00e3a8f0f67d330b27747695baee47a07d8bc438a8f7a", nodes_sha256 = "3c2de7d35bb6d88e682709a0775bbf04949a2e3dd7bf56f63b4f0e9d60ea637a", node_count = 45 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:remove_item", ast_sha256 = "7dad1c1c4dd89c64813e62eccbac79e533d888d79664b8cb344cb419f87a5cff", nodes_sha256 = "48216812a1340ac40a097f59bead494d90883aab8c7a8c4bded018c1207f72cb", node_count = 63 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:remove_quest_items", ast_sha256 = "77b1305abadeb6dfccd3516160d286d90981480ec6a2c59e188be2445a64e76e", nodes_sha256 = "8a583c29f306e2f329e04362e04010063ef8a352102f07273f3bae7735f638b8", node_count = 62 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:compact", ast_sha256 = "45f57d1bfbead95d018ee434bc9c0394bff0ba0a067d846b1ced4d2eb2aeff23", nodes_sha256 = "3ef8042d9ec84e79163bfa73d8b7cc7c740ac4687df5ab34b2ddd7ba1b4d8a75", node_count = 90 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:find_item", ast_sha256 = "e6ab9b73e755c6910bc658f91e67eed6464527c9eb8c85f84160a219a7c1b7ff", nodes_sha256 = "ee773e594944d8f04dc14c52c0fbf7eb6f2d6e45268edaa1203f244ec4109529", node_count = 30 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:find_all_items", ast_sha256 = "d4a4a5b6b4d2133ee4bf5a4f50d88de3f5a144ab7ba25a0822c441be6d0f71ef", nodes_sha256 = "163b406a75097ff1911b17ce199418a284db772355e5b693a91d4f57f9095739", node_count = 74 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:total_quantity", ast_sha256 = "e6e100954b0d3820f955a40346fc64bad14098f4661c06e38ea6e6c638553e20", nodes_sha256 = "bcbc1c1f2c744ea443ce73f762be927da7055e7b0b010ffeffbdcba0f5cd3f54", node_count = 70 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:slot_of", ast_sha256 = "2261b7f235a08e87969f6856ba5e61d4fc54eb32b4686c3d30219b3c317ba99b", nodes_sha256 = "c3b2f9bab593fe98c820da87c6263830a453be8cf4873d7d98e3a2e7586f2084", node_count = 53 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:find_slot", ast_sha256 = "158209def50216cf76cc1e2c4106a70865e20e13256bdeadb7616a70e6e1b51a", nodes_sha256 = "2227ac263737297ddc4862735aa38e1bf34746baf7dda367949da5e74e1baf75", node_count = 61 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:can_add", ast_sha256 = "db5558498bf4301963b8bae4b6b77fbe55d0f947486851712eab1bd90b510342", nodes_sha256 = "45bd00ae883902fa10f37f1561e34e304f856b60031206eeeeec9ce12a3ed5ee", node_count = 69 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:first_free_slot", ast_sha256 = "9b9cfef175b4e4fcb3fd42ef40afbf1735416ed64674c0d7795fbec0eb970d03", nodes_sha256 = "a72bc4476570295c3f52abec97ab07713907e8166893d90b09fa7e9612b6034a", node_count = 40 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:has_at_least", ast_sha256 = "3c897a0405155b93efdd577b88a849ca2b00de910e4ba05b7fedd14b54f875a0", nodes_sha256 = "c560df4aa4bf5eb854dba993af5da26f39ec9e8cba24379009ce185aecb87d7a", node_count = 64 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:merge_stacks", ast_sha256 = "2b52ef84be7115b425b330a4239d36bdbc0bc0110ad7f7b0fb6b2e22fdb523e7", nodes_sha256 = "908935a341fa257ad2cb0017c5254ef47f58fd93df8ba7339b44a4a8c50bb07d", node_count = 273 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:serialize", ast_sha256 = "1bd1261c5959a3ba4a48610d2708fcb3527df9c49a569bf45105d7107aeeb80d", nodes_sha256 = "a1d3ca2848f04e59f28986c21c9c3089d01057f85329e31ffafae0897d61dbc6", node_count = 74 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:deserialize", ast_sha256 = "ced8eae46c736fae865960e276ee37a41a17d191d63cbb511fe9884abcb457be", nodes_sha256 = "410073d192339fdf6cd8f1fb1cdff93aacb82d9a1365c0fb75e9b25b1a87aa22", node_count = 121 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:write_int_be", ast_sha256 = "7a6773ddad1645316efa830f94c0b3befb85580f20f600a853d01b3c223eef0a", nodes_sha256 = "f1a96a3e25358b33ee1da00ddb7a27bfe8ca8f32817b912c123a81336a50cd34", node_count = 53 },
+  { file = "transliteration/game-xlat/src/item_bag.rs", item = "fn:read_int_be", ast_sha256 = "672f1ca607a18f8ede94773e59791891898b7205ad6232eee0e03ac39ee9d442", nodes_sha256 = "7b64ce96f48c6f6b6d43ddacc6582dae6767a4c80171610eb53cfc32a1329dc9", node_count = 63 },
+]
+op = []
+adapt = []
+
+[[body]]
+java_item = "defpackage.AudioManager"
+code_sha256 = "286986f4690054ec1f55b0b7d312c79d7688b5ded92aa7c95bbbee14a643bdf4"
+opcode_sha256 = "34fff76f5a3f2fa307e46753fa7c2dadfb9d024068374f228fd0f2ffa4649305"
+java_ast_sha256 = "7e4710741698210d01479b4c29be7552d8812a567f78b19f57b6a8f842efa728"
+java_nodes_sha256 = "00ac87b4f2f90e5673854207aedabd5d9c995d27244249e77625659d85cfa58d"
+java_node_count = 454
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/audio_manager.rs", item = "const:FILE_TABLE", ast_sha256 = "42d20dd934136cd528bfe6e87b4882dcd9ecc41700ccdb23dd23ae4535e1e22f", nodes_sha256 = "0e7918e1d1e8e422ffc30d238df91f93386054803d1ec4cdcc713b0a5836e8cf", node_count = 33 },
+  { file = "transliteration/game-xlat/src/audio_manager.rs", item = "field:AudioManagerState::max_volume", ast_sha256 = "b9e20a770a0e2a91ac91129970010bcf8cf1664ca84bf585c2bd2dc25c0a159e", nodes_sha256 = "e190bd208d17bbd392eaea52887e0c4873a38921a35288ac50c54aa66e96dedb", node_count = 2 },
+  { file = "transliteration/game-xlat/src/audio_manager.rs", item = "field:AudioManagerState::scaled_volume", ast_sha256 = "f3afeeff5b6ca62270b84aa9857333ccb6db04c2072b93f517535349b8feb9b8", nodes_sha256 = "5bd3a9baaee994cd7a7fe712a8f3556284df44667d70fdbf8c03b0adbf17392b", node_count = 2 },
+  { file = "transliteration/game-xlat/src/audio_manager.rs", item = "field:AudioManagerState::bgm", ast_sha256 = "1fac86899fcf1d7070758101f7d70b65117d4b476e62e5505f2c8abe420d6e5a", nodes_sha256 = "525aadebc419da5ce46a8d03c227c03bfff1abc33da22fcd0f206bda64b2eca7", node_count = 3 },
+  { file = "transliteration/game-xlat/src/audio_manager.rs", item = "field:AudioManagerState::bgm2", ast_sha256 = "51b1f027f7730825168a772597a0dbb637d83a89fbb67d9318bb0ff8108e0238", nodes_sha256 = "74c45c2d66c2fc88a1c4e13c364c4615d1ab5a927a69a2b57909d543a5cd3f3e", node_count = 3 },
+  { file = "transliteration/game-xlat/src/audio_manager.rs", item = "field:AudioManagerState::sfx", ast_sha256 = "69fdf4a86bce15733eb2048a3278e8118055f31514858d8ce1d13a17b554651a", nodes_sha256 = "ba46caf1de9153c066ebb319b938b2d59b82d3d376b3fef228862d735e079b22", node_count = 3 },
+  { file = "transliteration/game-xlat/src/audio_manager.rs", item = "field:AudioManagerState::clips", ast_sha256 = "39429ecaab07f0580e3fcc585be07f17b72b11c29caf43f3af69a79190d412f5", nodes_sha256 = "ca3dce21028165705f89a78774a7bb7e22515991256a33f41203f232dd6264c6", node_count = 4 },
+  { file = "transliteration/game-xlat/src/audio_manager.rs", item = "field:AudioManagerState::file_table", ast_sha256 = "d035200015600a9b71f59e0ee7bf40595532f76d9b2b1cf1c1629d21ce63f58d", nodes_sha256 = "1e5ad43b02a73b68f3eab154706cc8abed4a07ecf23b3f59660bb149b024c4da", node_count = 3 },
+  { file = "transliteration/game-xlat/src/audio_manager.rs", item = "field:AudioManagerState::pool", ast_sha256 = "dd2c001ddf6aa95e1ccb649eb7e73ac6456262239cfaea593c00610d01b92643", nodes_sha256 = "e59b37d2ea7e8eab71a5a0ba729324c78bc4a974facb17f54958234cea163817", node_count = 3 },
+  { file = "transliteration/game-xlat/src/audio_manager.rs", item = "struct:AudioManagerState", ast_sha256 = "e6b674795031bb1c90f842c529d58e352c8bf74db80d92778b1a7cc5750634c5", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/audio_manager.rs", item = "impl:AudioManagerState::default", ast_sha256 = "3ee7bf071cd6efed0e5820ecbcfec2944d64b293d5aa08818134a22e9fd9b50e", nodes_sha256 = "fe751c3e0ef95f832444416ed4e7bb0eef733dc9f8bb9e221726445e9a4e1fe9", node_count = 33 },
+  { file = "transliteration/game-xlat/src/audio_manager.rs", item = "fn:pause", ast_sha256 = "e855a97c4f7387beac4a9170be2a21d5b51c92b665e5717bad293ac962dd3015", nodes_sha256 = "41e01a2cd184b690dd688fcefb145eaefdf61e29ad5c9f87ee16720842b87a38", node_count = 47 },
+  { file = "transliteration/game-xlat/src/audio_manager.rs", item = "fn:resume", ast_sha256 = "aaa8d2eb0fa4de0682f3f38e94b557120024637607c1ebb1e1ebbda1f86fe3ab", nodes_sha256 = "83009e9de5a96757e8c56560639b52331c6b91a18d7b87b1341559b23c5ebb41", node_count = 56 },
+  { file = "transliteration/game-xlat/src/audio_manager.rs", item = "fn:stop_bgm2", ast_sha256 = "03b8380dc0e2222ec0f4a932dbe43e850c9e28524fad4d64de88aaa87d349aab", nodes_sha256 = "4dc2e561f0c2de23ab58c6d5dd3e72b39e061290e79c73d1257d5d1e9a093614", node_count = 24 },
+  { file = "transliteration/game-xlat/src/audio_manager.rs", item = "fn:stop_sfx", ast_sha256 = "3a2ec2c5423400b5eea935f6e8c3cf1db975dae67d95d2812dc235dd29928c9f", nodes_sha256 = "cea8d13d5629875cdfdf1e1f2d70cfa681ce6e12011ada1656e70c9f2a3ec635", node_count = 24 },
+  { file = "transliteration/game-xlat/src/audio_manager.rs", item = "fn:stop_bgm1", ast_sha256 = "eacfaad3839d173e9d0a92e87321b89c79ffaafba801d5799468155c06f5f1a5", nodes_sha256 = "e2505d941b3c6bfc56d5afa8a307abbd6bd121e018c4282fb5c7c3531d3310ba", node_count = 24 },
+  { file = "transliteration/game-xlat/src/audio_manager.rs", item = "fn:stop_bgm", ast_sha256 = "2e0ae8a020861a0748f49575160cc93b9a165526faa9e966001f0d72511a86fd", nodes_sha256 = "73d70e6c9841c0d7957065176c69cad790a7c264e31fba63fe4e35d4ce6dc695", node_count = 61 },
+  { file = "transliteration/game-xlat/src/audio_manager.rs", item = "fn:play_sfx", ast_sha256 = "21bbaaa9578f9aa93e78581c3bc8ff354c8a19b557cf4eeb9d2aa00283770eec", nodes_sha256 = "29e3067eb7031602f44becb10023ca241362ddcb23b03e28f84b149d2afaa63d", node_count = 71 },
+  { file = "transliteration/game-xlat/src/audio_manager.rs", item = "fn:set_volume", ast_sha256 = "480f656a1782b88ac004a0c8fa4955a8c371e40caa06163e00cc9266bc2a2dd9", nodes_sha256 = "7cbf9738d62d93465f69503d9615b6032f985cde6b4a1cc67957ecb6512472bc", node_count = 127 },
+  { file = "transliteration/game-xlat/src/audio_manager.rs", item = "fn:ready_sound", ast_sha256 = "4ae872b706fa465c95c00be874f59582edba9900aceff392d926036a97b12859", nodes_sha256 = "86d6686c5f0149f422784a018436a6e0d9819dfee2b9ffd56d186fd0f4bd26c7", node_count = 13 },
+  { file = "transliteration/game-xlat/src/audio_manager.rs", item = "fn:load_clip", ast_sha256 = "008be182d0b8747adb7d66e8a966dbef4bce45f1ef8aaf6a6fa28f0e7566a694", nodes_sha256 = "b16980a430c2254034b8f008ada6e0fac6cbee6de54105c9a7bdc6d5c1185f23", node_count = 99 },
+  { file = "transliteration/game-xlat/src/audio_manager.rs", item = "fn:unload_clip", ast_sha256 = "8e412bbef38bb7f8803d9b4ea1375894cf4bd6a4f62a0babbd3ecb7fa9d9a162", nodes_sha256 = "1b4ef630fae1d6cdb86ff493a4ad4857cec42d9154070c27b36d3496d24f52c0", node_count = 42 },
+  { file = "transliteration/game-xlat/src/audio_manager.rs", item = "fn:play_bgm", ast_sha256 = "10304751a840a20e628bb639b6d38495bcdb360d350026b37133c93c76c7bb74", nodes_sha256 = "4a699a9b8780a6715dd32ee87160d26354868b4aa7a440bd77a9345f9de1cd1b", node_count = 107 },
+  { file = "transliteration/game-xlat/src/audio_manager.rs", item = "fn:play_bgm2", ast_sha256 = "8bfebb6d8ccb7bc8832fd2b83334ec862d19032618371257710bc111483e5aab", nodes_sha256 = "418a3b500f2744a299378e2ee4fce88f7b21d96962bf2f12fe4b85b3282a4aef", node_count = 107 },
+]
+op = []
+adapt = []
+
+[[body]]
+java_item = "defpackage.SoundPlayer"
+code_sha256 = "c7c4cd7624a32adec32535bd2d18ad8abd6516a3b979eb37f1a80567607cdc6a"
+opcode_sha256 = "b611e472e3a5c297df5ca7cb8135b5e62024f6ffbdfa4a2c8468661172167811"
+java_ast_sha256 = "756e0662a1fee8694817a8772e4ca89eef419bf149ad6c87d9e9333c675aa298"
+java_nodes_sha256 = "a572905d62f21a012929f0d2faaf74633aa9b85ea75aeedfa038f09e2a4282a6"
+java_node_count = 312
+review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+rust = [
+  { file = "transliteration/game-xlat/src/sound_player.rs", item = "field:SoundPlayerState::player", ast_sha256 = "323f4cf2fae82b9c04308a425bb38b2db51bc7c38cb80ea75c5c7b66e1a5cd20", nodes_sha256 = "ac89761261b2e815056f34809319604c8e02158e0e10707cfa4e18470efa90d0", node_count = 3 },
+  { file = "transliteration/game-xlat/src/sound_player.rs", item = "struct:SoundPlayerState", ast_sha256 = "e20aa66f27cbcf7dac35197a623cf9a3c780b5f43da423da5382b2468121575e", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
+  { file = "transliteration/game-xlat/src/sound_player.rs", item = "fn:new_player", ast_sha256 = "a3f13a72c363f9c8ceaaaf426fbf8565de96074580f159c182fe62fd5d8a3cde", nodes_sha256 = "0098e8818b932ae7c387bd9ca15058d462b3f7ac150bcca45cbaf994ba6ffbf9", node_count = 23 },
+  { file = "transliteration/game-xlat/src/sound_player.rs", item = "fn:create", ast_sha256 = "1c5d1f60d3200e06c99ab38b4549df4e767952f320ed5a407889e5069f0397e9", nodes_sha256 = "dc8b23ef52b27fab09412812560e33f34f2ead4a30d29604cf04fd8a8891de34", node_count = 43 },
+  { file = "transliteration/game-xlat/src/sound_player.rs", item = "fn:create_body", ast_sha256 = "ff7ff6e56278742a6cca030d84c90acc934f34cd90c7c2ee50259e6e912c51e1", nodes_sha256 = "7bc725d7619531a5b0750122f95e8642dd714b0ec71748e851e738eecabe1e1d", node_count = 111 },
+  { file = "transliteration/game-xlat/src/sound_player.rs", item = "fn:content_type_of", ast_sha256 = "d5c27070bb54e8f78d709bbb52cc8d2e9cfbe934b33d4e20023a3d3bf7f061b4", nodes_sha256 = "84f0fc8a91851223e865aa4be031bedfcf389a341871a9b2e5f40f000007935f", node_count = 50 },
+  { file = "transliteration/game-xlat/src/sound_player.rs", item = "fn:set_loop_count", ast_sha256 = "917bf6223c3fbe1b3c25b64afdca9b8712f112d59d7e17f2285254b1788f500a", nodes_sha256 = "2c4ef0865b180809ffcf0c21c26f10e596e29ab51218516bb2e4c58a9bfb04b0", node_count = 17 },
+  { file = "transliteration/game-xlat/src/sound_player.rs", item = "fn:play", ast_sha256 = "e158122f24c645ccb0b8cda7ddab51f5cfff0ec5bb7869f79217d69f5210a78a", nodes_sha256 = "bc9d605532b2aa5cd022bed98aba8b900a2d02c9563fdd6c162d4301fd2e1d0a", node_count = 14 },
+  { file = "transliteration/game-xlat/src/sound_player.rs", item = "fn:stop", ast_sha256 = "3aa48a9c3904f2bae69aa7d6a9d382a40dd7169e0931d7be7765bc0890a7b2cc", nodes_sha256 = "694e6e71e340a512cd23f34fa677543739e970dfe32182d8605fcc26bb106ad4", node_count = 14 },
+  { file = "transliteration/game-xlat/src/sound_player.rs", item = "fn:dispose", ast_sha256 = "88a527877e06341538adf68435d0ddacc6582d4bd37b059d7756618b46219384", nodes_sha256 = "4a48f13a760095375a92a3e4cc9f83437b82c26eba9a2c47b7b150acb2be66a6", node_count = 21 },
+  { file = "transliteration/game-xlat/src/sound_player.rs", item = "fn:is_playing", ast_sha256 = "d42e057b6f1c2a0c08633fcb19741446871d94b190c63fb145d6e24629c9847b", nodes_sha256 = "28ca44d5926224622c2fca1c00371628a9e5ed5f06a2f73dd5c9f5c45fba0267", node_count = 16 },
+  { file = "transliteration/game-xlat/src/sound_player.rs", item = "fn:set_volume", ast_sha256 = "c6f30fafb46e5e7c51a3eff4dea23b9a84ebcb40eab58358666e3aef81120538", nodes_sha256 = "4a46ae0d130e7abc3e748e56c3b92261601d4005999e0e6ff321c1a04ca505f2", node_count = 34 },
+  { file = "transliteration/game-xlat/src/sound_player.rs", item = "fn:start", ast_sha256 = "5945886ddf40037ee7f586aa8fd05697f8bb6332245554fb717f4b80e76f2f31", nodes_sha256 = "c6a93c4912f75cdff1796d1c2a1b109e7ab7246a9854c05ac5c9317d9f855fbd", node_count = 16 },
+  { file = "transliteration/game-xlat/src/sound_player.rs", item = "fn:start_body", ast_sha256 = "d6b785cde0c7fac5bb341d9d73e46a3198b48fc8a63e9091f6a96d1ea12f2810", nodes_sha256 = "405a5f268591fdccf1bcac830766cd373e5da956099643caace2d9ed71075249", node_count = 23 },
+  { file = "transliteration/game-xlat/src/sound_player.rs", item = "fn:player_update", ast_sha256 = "8bcbb5832e88268fdf351f3011dd066dc69ca923f72a63be4ff454978cec4837", nodes_sha256 = "b89098b9dd830256f0110b0418531a680e0205d7fe1fb1fb4688bba57ff72953", node_count = 1 },
+  { file = "transliteration/game-xlat/src/sound_player.rs", item = "fn:string_index_of", ast_sha256 = "eed247d6d49178c87836687f4007a234bd2a925fa276787640b7244a478c72c4", nodes_sha256 = "52383fefeb867463698f6037cff593c6577c1e1facb017d5e1a011155663f7c8", node_count = 14 },
+]
+op = []
+adapt = []
+

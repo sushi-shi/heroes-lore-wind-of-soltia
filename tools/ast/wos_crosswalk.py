@@ -13,9 +13,16 @@ is responsible for:
 * selecting the exact source/Rust items (the transliterated classes, below);
 * running both live emitters and a classfile reader (``javap``);
 * recomputing every locked digest so evidence and manifest agree;
-* writing the live ``evidence`` table and a BASELINE ``manifest`` (schema 2) with
-  ZERO ``op``/``adapt`` decisions — the honest "nothing is decided yet" starting
-  point — then invoking the generic verifier's ``--coverage`` report.
+* on the DEFAULT (validate) path: regenerating the git-ignored ``evidence`` table
+  ONLY, then validating the TRACKED, hand-maintained ``manifest`` (schema 2,
+  committed at ``tools/ast/wos.manifest.toml``) against that fresh evidence and
+  printing the generic verifier's ``--coverage`` report. Authored op/adapt
+  decisions live in that tracked manifest and PERSIST — this path never rewrites
+  it;
+* on ``--refresh-locks``: recomputing every lock from fresh evidence and
+  (re)writing the tracked manifest while PRESERVING every authored decision
+  (bootstrapping a zero-decision baseline the first time). Locks are therefore
+  never hand-typed, and the generic verifier re-compares them each run.
 
 Body granularity
 ----------------
@@ -100,6 +107,13 @@ CORPUS: tuple[ClassPair, ...] = (
     ClassPair("AppConfig", "defpackage", "java/src/main/java/defpackage/AppConfig.java", "transliteration/game-xlat/src/app_config.rs"),
     ClassPair("Debug", "defpackage", "java/src/main/java/defpackage/Debug.java", "transliteration/game-xlat/src/debug.rs"),
     ClassPair("EntityList", "defpackage", "java/src/main/java/defpackage/EntityList.java", "transliteration/game-xlat/src/entity_list.rs"),
+    ClassPair("Item", "defpackage", "java/src/main/java/defpackage/Item.java", "transliteration/game-xlat/src/item.rs"),
+    ClassPair("Equipment", "defpackage", "java/src/main/java/defpackage/Equipment.java", "transliteration/game-xlat/src/equipment.rs"),
+    ClassPair("Armor", "defpackage", "java/src/main/java/defpackage/Armor.java", "transliteration/game-xlat/src/armor.rs"),
+    ClassPair("Weapon", "defpackage", "java/src/main/java/defpackage/Weapon.java", "transliteration/game-xlat/src/weapon.rs"),
+    ClassPair("ItemBag", "defpackage", "java/src/main/java/defpackage/ItemBag.java", "transliteration/game-xlat/src/item_bag.rs"),
+    ClassPair("AudioManager", "defpackage", "java/src/main/java/defpackage/AudioManager.java", "transliteration/game-xlat/src/audio_manager.rs"),
+    ClassPair("SoundPlayer", "defpackage", "java/src/main/java/defpackage/SoundPlayer.java", "transliteration/game-xlat/src/sound_player.rs"),
 )
 
 # The full baseline class count of the game (89 default-package + rpg.GameMIDlet),
@@ -307,45 +321,196 @@ BASELINE_REVIEW = (
     "This is the honest starting point, not a passing crosswalk."
 )
 
+DEFAULT_BUILD = "heroes-lore-wind-of-soltia v2.0.7 named-Java oracle"
 
-def emit_manifest(bodies: list[Body]) -> str:
+# The TRACKED, hand-maintained manifest (committed, like the shipped fixture):
+# it carries the reviewer's authored op/adapt/review/semantic_status decisions
+# AND the locked digests. The locks are RECOMPUTED from live evidence by
+# `--refresh-locks` (never hand-typed) and re-COMPARED by the generic verifier on
+# every run; the decisions PERSIST because the default (validate) path never
+# rewrites this file.
+MANIFEST_PATH = AST_DIR / "wos.manifest.toml"
+# The live emitter evidence, git-ignored (playbook R1). Regenerated EVERY run.
+EVIDENCE_PATH = OUT_DIR / "wos.evidence.toml"
+
+
+# --- Minimal, generic TOML serializer (stdlib has readers only) --------------
+def _toml_scalar(value: object) -> str:
+    if isinstance(value, bool):  # bool is an int subclass — check it first
+        return "true" if value else "false"
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, float):
+        return repr(value)
+    if isinstance(value, str):
+        return toml_str(value)
+    raise TypeError(f"unserializable TOML scalar: {value!r}")
+
+
+def _toml_inline(value: object) -> str:
+    """Serialize a value as an inline TOML fragment (tables/arrays/scalars)."""
+    if isinstance(value, dict):
+        inner = ", ".join(f"{k} = {_toml_inline(v)}" for k, v in value.items())
+        return "{ " + inner + " }" if inner else "{}"
+    if isinstance(value, (list, tuple)):
+        return "[" + ", ".join(_toml_inline(v) for v in value) + "]"
+    return _toml_scalar(value)
+
+
+# Canonical per-body scalar key order for stable diffs across refreshes/edits.
+_BODY_SCALAR_ORDER = (
+    "java_item",
+    "code_sha256",
+    "opcode_sha256",
+    "java_ast_sha256",
+    "java_nodes_sha256",
+    "java_node_count",
+    "semantic_status",
+    "review",
+)
+
+
+def _serialize_array(name: str, entries: list) -> list[str]:
+    if not entries:
+        return [f"{name} = []"]
+    lines = [f"{name} = ["]
+    for entry in entries:
+        lines.append(f"  {_toml_inline(entry)},")
+    lines.append("]")
+    return lines
+
+
+def _serialize_body(body: dict) -> list[str]:
+    lines = ["[[body]]"]
+    for key in _BODY_SCALAR_ORDER:
+        if body.get(key) is not None:
+            lines.append(f"{key} = {_toml_scalar(body[key])}")
+    lines += _serialize_array("rust", list(body.get("rust", [])))
+    lines += _serialize_array("op", list(body.get("op", [])))
+    lines += _serialize_array("adapt", list(body.get("adapt", [])))
+    return lines
+
+
+def serialize_manifest(manifest: dict) -> str:
     lines = [
-        "# GENERATED by tools/ast/wos_crosswalk.py — BASELINE manifest (schema 2).",
-        "# Zero op/adapt decisions on purpose: the honest node-level burn-down.",
+        "# TRACKED, hand-maintained per-node crosswalk manifest (schema 2).",
+        "#",
+        "# op/adapt/review/semantic_status are the reviewer's AUTHORED decisions",
+        "# and persist across runs — the default `wos_crosswalk.py` (validate) path",
+        "# regenerates EVIDENCE only and never rewrites this file.",
+        "#",
+        "# The locks (code/opcode/AST/node-inventory digests + node counts) are",
+        "# RECOMPUTED from live evidence by `wos_crosswalk.py --refresh-locks` (which",
+        "# preserves every decision) and never hand-typed; the generic verifier",
+        "# re-compares them against fresh evidence on every run, so a one-node drift",
+        "# in either body breaks a lock.",
         "schema_version = 2",
-        'build = "heroes-lore-wind-of-soltia v2.0.7 named-Java oracle"',
-        f"total_body_count = {TOTAL_GAME_CLASSES}",
-        f"reviewed_body_count = {len(bodies)}",
-        "crosswalked_body_count = 0",
+        f"build = {toml_str(str(manifest.get('build', DEFAULT_BUILD)))}",
+        f"total_body_count = {int(manifest['total_body_count'])}",
+        f"reviewed_body_count = {int(manifest['reviewed_body_count'])}",
+        f"crosswalked_body_count = {int(manifest['crosswalked_body_count'])}",
         "",
         "[policy]",
-        "blanket_max_span = 48",
+        f"blanket_max_span = {int(manifest.get('policy', {}).get('blanket_max_span', 48))}",
         "",
     ]
-    for pair, body in zip(CORPUS, bodies):
-        java_nodes_sha256 = vc.node_inventory_digest(body.java_nodes)
-        lines += [
-            "[[body]]",
-            f"java_item = {toml_str(body.java_item)}",
-            f"code_sha256 = {toml_str(body.code_sha256)}",
-            f"opcode_sha256 = {toml_str(body.opcode_sha256)}",
-            f"java_ast_sha256 = {toml_str(body.java_ast_sha256)}",
-            f"java_nodes_sha256 = {toml_str(java_nodes_sha256)}",
-            f"java_node_count = {len(body.java_nodes)}",
-            f"review = {toml_str(BASELINE_REVIEW)}",
-            "rust = [",
-        ]
-        for target in body.rust:
-            ast_sha256 = sha(target.ast)
-            nodes_sha256 = vc.node_inventory_digest(target.nodes)
-            lines.append(
-                f"  {{ file = {toml_str(pair.rust)}, item = {toml_str(target.item)}, "
-                f"ast_sha256 = {toml_str(ast_sha256)}, "
-                f"nodes_sha256 = {toml_str(nodes_sha256)}, "
-                f"node_count = {len(target.nodes)} }},"
-            )
-        lines += ["]", "op = []", "adapt = []", ""]
+    for body in manifest["body"]:
+        lines += _serialize_body(body)
+        lines.append("")
     return "\n".join(lines) + "\n"
+
+
+def refresh_manifest(bodies: list[Body], existing: dict | None) -> dict:
+    """Recompute every lock from live evidence, PRESERVING authored decisions.
+
+    ``existing`` is the parsed tracked manifest (or ``None`` to bootstrap a
+    fresh baseline). op/adapt/review/semantic_status are carried over verbatim
+    per body; only the digests, node counts, and rust-target inventory are
+    recomputed from ``bodies`` (the live evidence).
+    """
+    prior = {b["java_item"]: b for b in existing.get("body", [])} if existing else {}
+    new_bodies: list[dict] = []
+    crosswalked = 0
+    for pair, body in zip(CORPUS, bodies):
+        prev = prior.get(body.java_item, {})
+        rust_targets = [
+            {
+                "file": pair.rust,
+                "item": target.item,
+                "ast_sha256": sha(target.ast),
+                "nodes_sha256": vc.node_inventory_digest(target.nodes),
+                "node_count": len(target.nodes),
+            }
+            for target in body.rust
+        ]
+        merged = {
+            "java_item": body.java_item,
+            "code_sha256": body.code_sha256,
+            "opcode_sha256": body.opcode_sha256,
+            "java_ast_sha256": body.java_ast_sha256,
+            "java_nodes_sha256": vc.node_inventory_digest(body.java_nodes),
+            "java_node_count": len(body.java_nodes),
+            "review": prev.get("review", BASELINE_REVIEW),
+            "rust": rust_targets,
+            "op": list(prev.get("op", [])),
+            "adapt": list(prev.get("adapt", [])),
+        }
+        status = prev.get("semantic_status")
+        if status:
+            merged["semantic_status"] = status
+            if status == "crosswalked":
+                crosswalked += 1
+        new_bodies.append(merged)
+    return {
+        "build": (existing or {}).get("build", DEFAULT_BUILD),
+        "total_body_count": TOTAL_GAME_CLASSES,
+        "reviewed_body_count": len(new_bodies),
+        "crosswalked_body_count": crosswalked,
+        "policy": {
+            "blanket_max_span": (existing or {}).get("policy", {}).get(
+                "blanket_max_span", 48
+            )
+        },
+        "body": new_bodies,
+    }
+
+
+def _regenerate_evidence(args: argparse.Namespace) -> None:
+    """Run both live emitters + javap and (re)write the git-ignored evidence."""
+    if not args.rust_emitter_bin.exists():
+        raise SystemExit(
+            f"missing rust emitter {args.rust_emitter_bin} — "
+            f"run `cargo build -p j2me-ast-audit` first"
+        )
+    # Compile the generic javac dumper into a scratch dir (self-contained).
+    emitter_classdir = OUT_DIR / "emitter-classes"
+    emitter_classdir.mkdir(parents=True, exist_ok=True)
+    subprocess.run(
+        ["javac", "-d", str(emitter_classdir), str(AST_DIR / "JavaAstAuditDump.java")],
+        check=True,
+    )
+    bodies = build_bodies(emitter_classdir, args.rust_emitter_bin, args.class_dir)
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    EVIDENCE_PATH.write_text(emit_evidence(bodies), encoding="utf-8")
+    print(f"wrote {EVIDENCE_PATH.relative_to(ROOT)} (live emitter evidence)")
+    args._bodies = bodies  # stash for --refresh-locks
+
+
+def _load_evidence() -> dict:
+    import tomllib
+
+    return vc.load_evidence(tomllib.loads(EVIDENCE_PATH.read_text(encoding="utf-8")))
+
+
+def _load_manifest() -> dict:
+    import tomllib
+
+    if not MANIFEST_PATH.exists():
+        raise SystemExit(
+            f"tracked manifest {MANIFEST_PATH.relative_to(ROOT)} is missing — "
+            f"bootstrap it with `wos_crosswalk.py --refresh-locks`"
+        )
+    return tomllib.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
 
 
 def main() -> int:
@@ -365,53 +530,61 @@ def main() -> int:
     parser.add_argument("--strict", action="store_true")
     parser.add_argument("--coverage", action="store_true")
     parser.add_argument(
-        "--emit-only", action="store_true", help="write evidence+manifest, skip validate"
+        "--emit-only",
+        action="store_true",
+        help="regenerate the git-ignored evidence only, then stop (no validate)",
+    )
+    parser.add_argument(
+        "--refresh-locks",
+        action="store_true",
+        help=(
+            "recompute every lock from fresh evidence and (re)write the TRACKED "
+            "manifest, PRESERVING all authored op/adapt/review/semantic_status "
+            "decisions; bootstraps the manifest if it does not yet exist"
+        ),
     )
     args = parser.parse_args()
 
-    if not args.rust_emitter_bin.exists():
-        raise SystemExit(
-            f"missing rust emitter {args.rust_emitter_bin} — "
-            f"run `cargo build -p j2me-ast-audit` first"
-        )
-
-    # Compile the generic javac dumper into a scratch dir (self-contained).
-    emitter_classdir = OUT_DIR / "emitter-classes"
-    emitter_classdir.mkdir(parents=True, exist_ok=True)
-    subprocess.run(
-        ["javac", "-d", str(emitter_classdir), str(AST_DIR / "JavaAstAuditDump.java")],
-        check=True,
-    )
-
-    bodies = build_bodies(emitter_classdir, args.rust_emitter_bin, args.class_dir)
-
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    evidence_path = OUT_DIR / "wos.evidence.toml"
-    manifest_path = OUT_DIR / "wos.manifest.toml"
-    evidence_path.write_text(emit_evidence(bodies), encoding="utf-8")
-    manifest_path.write_text(emit_manifest(bodies), encoding="utf-8")
-    print(f"wrote {evidence_path.relative_to(ROOT)} and {manifest_path.relative_to(ROOT)}")
-
+    _regenerate_evidence(args)
     if args.emit_only:
         return 0
 
     import tomllib
 
-    manifest = tomllib.loads(manifest_path.read_text(encoding="utf-8"))
-    evidence = vc.load_evidence(tomllib.loads(evidence_path.read_text(encoding="utf-8")))
+    if args.refresh_locks:
+        existing = (
+            tomllib.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+            if MANIFEST_PATH.exists()
+            else None
+        )
+        refreshed = refresh_manifest(args._bodies, existing)
+        MANIFEST_PATH.write_text(serialize_manifest(refreshed), encoding="utf-8")
+        verb = "refreshed locks in" if existing else "bootstrapped"
+        preserved = sum(
+            1 for b in refreshed["body"] if b.get("op") or b.get("adapt")
+        )
+        print(
+            f"{verb} {MANIFEST_PATH.relative_to(ROOT)} "
+            f"({len(refreshed['body'])} bodies; {preserved} carry authored decisions)"
+        )
+
+    manifest = _load_manifest()
+    evidence = _load_evidence()
     report = vc.validate(manifest, evidence, strict=args.strict)
     print(vc.format_coverage(report))
     if report.errors:
         print("---", file=sys.stderr)
-        # The baseline's expected reds are the per-body "no op/adapt decisions"
-        # lines: that IS the unchecked signal. Any OTHER error is a wiring bug.
-        undecided = [e for e in report.errors if "no op/adapt decisions" in e]
-        other = [e for e in report.errors if "no op/adapt decisions" not in e]
+        # A per-body "no op/adapt decisions" red IS the unchecked baseline signal;
+        # a "--strict: N node(s) ... undecided" red is the same signal aggregated.
+        # Anything else is a wiring/lock bug worth surfacing loudly.
+        expected = ("no op/adapt decisions", "--strict:")
+        undecided = [e for e in report.errors if any(x in e for x in expected)]
+        other = [e for e in report.errors if not any(x in e for x in expected)]
         for error in other[:80]:
             print(error, file=sys.stderr)
         print(
-            f"[baseline] {len(undecided)} bodies carry the expected "
-            f"'no op/adapt decisions' red; {len(other)} other error(s)",
+            f"[gate] {len(undecided)} undecided-baseline red(s); "
+            f"{len(other)} other error(s)",
             file=sys.stderr,
         )
         return 1
