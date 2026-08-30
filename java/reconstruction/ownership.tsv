@@ -241,6 +241,8 @@ FontManager	r	versionText	[C	FontManagerState	version_text
 FontManager	a	mainMenuLabels	[[C	FontManagerState	main_menu_labels
 FontManager	c	labelExit	[C	FontManagerState	label_exit
 FontManager	d	labelOk	[C	FontManagerState	label_ok
+FontManager	a	wrapCache	Ljava/util/Vector;	FontManagerState	wrap_cache
+FontManager	e	wrapCacheKey	Ljava/lang/String;	FontManagerState	wrap_cache_key
 StringTable	a	instance	Lcj;	StringTableData	string_table
 ByteUtil	a	rng	Ljava/util/Random;	ByteUtilState	rng
 Directions	a	elementDamageMultiplier	[[B	directions	ELEMENT_DAMAGE_MULTIPLIER
