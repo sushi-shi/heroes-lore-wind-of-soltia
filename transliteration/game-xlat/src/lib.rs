@@ -87,4 +87,13 @@ pub mod floater;
 pub mod overlay;
 pub mod status_icon;
 
+// The transient/world entity leaves layered on the `Entity`/`Battler` hierarchy: the
+// animated visual `Effect` (`y`) and its moving `Projectile` (`i`) subclass, plus the
+// town-folk `Npc` (`ac`). Each adds an `EntityData` variant (see `entity`) and, where
+// it renders on the map, a `game_map::draw_entities` / entity-update dispatch arm.
+// Their guardian sprite/anim banks bottom out in DEFERRED `AssetCache` banks.
+pub mod effect;
+pub mod npc;
+pub mod projectile;
+
 pub use game::Game;

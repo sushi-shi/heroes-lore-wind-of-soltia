@@ -272,3 +272,19 @@ AssetLoader	a	phase	B	AssetLoaderState	phase
 #                              on FloaterData)
 StatusIcon	a	DURATION_BY_KIND	[S	status_icon	DURATION_BY_KIND
 Floater	h	DEFAULT_LIFETIME	[B	floater	DEFAULT_LIFETIME
+#
+# obf class map (the transient/world entity leaves):
+#   Effect      -> y.class    (two rows: FRAME_COUNTS + TYPE_SPRITE_INDEX, the
+#                              per-type lifetime / guardian-sprite-index tables, both
+#                              `static final` arrays -> module consts. The instance
+#                              fields frameCount/frame/type/frameBank/spriteScript are
+#                              per-INSTANCE on effect::EffectData.)
+#   Projectile  -> i.class    (no rows: instance-only, no statics — owner/piercing/dir/
+#                              range/chainFrame/hasHit/damage/statusKind/crit are
+#                              per-INSTANCE on projectile::ProjectileData, which embeds
+#                              the Effect base EffectData as its "super".)
+#   Npc         -> ac.class   (no rows: instance-only, no statics — kind/spriteSet/
+#                              visible are per-INSTANCE on npc::NpcData, which embeds
+#                              the Battler base BattlerData as its "super".)
+Effect	a	FRAME_COUNTS	[S	effect	FRAME_COUNTS
+Effect	i	TYPE_SPRITE_INDEX	[B	effect	TYPE_SPRITE_INDEX

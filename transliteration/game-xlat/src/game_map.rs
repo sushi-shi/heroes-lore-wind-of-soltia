@@ -29,11 +29,15 @@
 
 use crate::asset_cache;
 use crate::base_canvas::BaseCanvasState;
+use crate::battler;
+use crate::effect;
 use crate::entity::{EntityId, EntityKind};
 use crate::entity_list::{self, EntityListState};
 use crate::game::Game;
 use crate::hero;
+use crate::npc;
 use crate::png_merger;
+use crate::projectile;
 use j2me_jvm::java_div;
 
 /// `private static final int[] minimapColors` (`ae.a`) — minimap floor/wall colors,
@@ -208,6 +212,28 @@ pub fn unlink_entity(g: &mut Game, id: EntityId) {
     entity_list::reorder_by_depth(&mut map.entities, entity_arena, id);
 }
 
+/// `public final void removeEntity(Entity ckVar)` (`ae`) — clears a `Battler`'s
+/// occupancy footprint (a no-op for a non-`Battler` `Effect`/`Projectile`) and
+/// unlinks `id` from the z-sorted draw list. Called by the [`update_combatants`]
+/// Effect reap and by [`effect::paint`].
+pub fn remove_entity(g: &mut Game, id: EntityId) {
+    // if (ckVar instanceof Battler) ((Battler) ckVar).clearOccupancy();
+    if g.entity_arena[id].as_battler().is_some() {
+        battler::clear_occupancy(g, id);
+    }
+    // this.entities.remove(ckVar);
+    let Game {
+        game_state,
+        entity_arena,
+        ..
+    } = &mut *g;
+    let map = game_state
+        .map
+        .as_mut()
+        .expect("GameState.map null in removeEntity");
+    entity_list::remove(&mut map.entities, entity_arena, id);
+}
+
 /// `public final void updateWorld()` (`ae`) — one world simulation step:
 /// `processSpawnQueue(true, 3); expirePickups(); updateCombatants();`.
 ///
@@ -267,35 +293,111 @@ fn expire_pickups(g: &mut Game) {
 }
 
 /// `updateCombatants()` (`ae`) — walks the z-ordered entity list, updating each
-/// live Enemy/Effect. In this slice the only live entity is the hero (a `Hero`,
-/// which is neither `MapObject`/`Enemy`/`Effect`), so the loop only advances the
-/// cursor and clears any `removed` flag the depth re-sort set — the Enemy/Effect
-/// update + reorder + reap branches are DEFERRED (those subclasses are not ported).
+/// live Enemy/Effect. The `Effect`/`Projectile` arm is ported (`onFrame`, reorder,
+/// reap when finished); the Enemy arm stays DEFERRED (`Enemy` unported). In this
+/// slice's `.evt`-parse-DEFERRED maps no Effect is auto-spawned, so the loop still
+/// only advances past the hero (a `Hero`) until an effect is added.
 fn update_combatants(g: &mut Game) {
-    let Game {
-        game_state,
-        entity_arena,
-        ..
-    } = &mut *g;
-    let map = game_state
+    // Entity ckVar = this.entities.head;
+    let mut cursor = g
+        .game_state
         .map
         .as_ref()
-        .expect("GameState.map null in updateCombatants");
-    // Entity ckVar = this.entities.head; while (ckVar != null) { ... }
-    let mut cursor = map.entities.head;
+        .expect("GameState.map null in updateCombatants")
+        .entities
+        .head;
+    // while (ckVar != null) { ... }
     while let Some(cur) = cursor {
+        let node_kind = g.entity_arena[cur].kind();
+        let removed = g.entity_arena[cur].removed;
         // if (ckVar instanceof MapObject) ckVar = ckVar.next;
-        if entity_arena[cur].kind() == crate::entity::EntityKind::MapObject {
-            cursor = entity_arena[cur].next;
-        // else if (instanceof Enemy && !removed) { update; reorder; if dead remove } — DEFERRED.
-        // else if (instanceof Effect && !removed) { onFrame; reorder; if finished remove } — DEFERRED.
+        if node_kind == EntityKind::MapObject {
+            cursor = g.entity_arena[cur].next;
+        // else if ((ckVar instanceof Enemy) && !ckVar.removed) { update; reorder; if dead remove }
+        //   DEFERRED: Enemy (al) unported — no Enemy nodes in this slice.
+        // else if ((ckVar instanceof Effect) && !ckVar.removed) {
+        } else if (node_kind == EntityKind::Effect || node_kind == EntityKind::Projectile)
+            && !removed
+        {
+            // Effect yVar = (Effect) ckVar; yVar.onFrame();
+            effect::on_frame(g, cur);
+            // ckVar = ckVar.next;
+            cursor = g.entity_arena[cur].next;
+            // this.entities.reorderByDepth(yVar);
+            {
+                let Game {
+                    game_state,
+                    entity_arena,
+                    ..
+                } = &mut *g;
+                let map = game_state
+                    .map
+                    .as_mut()
+                    .expect("GameState.map null in updateCombatants");
+                entity_list::reorder_by_depth(&mut map.entities, entity_arena, cur);
+            }
+            // if (yVar.isFinished()) removeEntity(yVar);
+            if effect::is_finished(g, cur) {
+                remove_entity(g, cur);
+            }
         // else if (ckVar.removed) { ckVar.removed = false; ckVar = ckVar.next; }
-        } else if entity_arena[cur].removed {
-            entity_arena[cur].removed = false;
-            cursor = entity_arena[cur].next;
+        } else if removed {
+            g.entity_arena[cur].removed = false;
+            cursor = g.entity_arena[cur].next;
         // else ckVar = ckVar.next;
         } else {
-            cursor = entity_arena[cur].next;
+            cursor = g.entity_arena[cur].next;
+        }
+    }
+}
+
+/// `public final void updateNpcs()` (`ae`) — one NPC simulation step
+/// (`updateNpcEntities()`). Driven by the DEFERRED `GameState.update`; ported here as
+/// the `Npc` entity-update walk.
+pub fn update_npcs(g: &mut Game) {
+    // updateNpcEntities();
+    update_npc_entities(g);
+}
+
+/// `updateNpcEntities()` (`ae`) — walks the z-ordered entity list, updating each live
+/// `Npc` (`Npc.update()` is the inherited `Battler.update` = `stepIfMoving`; NPCs are
+/// idle in this slice, so it is a no-op) and re-sorting it by depth.
+fn update_npc_entities(g: &mut Game) {
+    // Entity ckVar = this.entities.head;
+    let mut cursor = g
+        .game_state
+        .map
+        .as_ref()
+        .expect("GameState.map null in updateNpcEntities")
+        .entities
+        .head;
+    // while (ckVar != null) { ... }
+    while let Some(cur) = cursor {
+        let removed = g.entity_arena[cur].removed;
+        // if ((ckVar instanceof Npc) && !ckVar.removed) {
+        if g.entity_arena[cur].kind() == EntityKind::Npc && !removed {
+            // Npc acVar = (Npc) ckVar; acVar.update();
+            npc::update(g, cur);
+            // ckVar = ckVar.next;
+            cursor = g.entity_arena[cur].next;
+            // this.entities.reorderByDepth(acVar);
+            let Game {
+                game_state,
+                entity_arena,
+                ..
+            } = &mut *g;
+            let map = game_state
+                .map
+                .as_mut()
+                .expect("GameState.map null in updateNpcEntities");
+            entity_list::reorder_by_depth(&mut map.entities, entity_arena, cur);
+        // else if (ckVar.removed) { ckVar.removed = false; ckVar = ckVar.next; }
+        } else if removed {
+            g.entity_arena[cur].removed = false;
+            cursor = g.entity_arena[cur].next;
+        // else ckVar = ckVar.next;
+        } else {
+            cursor = g.entity_arena[cur].next;
         }
     }
 }
@@ -485,10 +587,11 @@ pub fn paint(g: &mut Game) {
 /// (`ae.b:(…Graphics;II)V => []`) — walks the map's z-sorted entity list head→tail
 /// (front to back by depth) and paints each at the camera offset (`i`,`i2`).
 ///
-/// The concrete `Entity.paint` is a virtual call; this slice dispatches on the node's
-/// [`EntityKind`]. On the first world frame the only linked entity is the hero (the
-/// `.evt` object/npc/enemy parse that would add [`crate::map_object`]/Npc/Enemy nodes
-/// is DEFERRED), so those subclass paints are DEFERRED and cannot appear here yet.
+/// The concrete `Entity.paint` is a virtual call; this dispatches on the node's
+/// [`EntityKind`]. `Hero`/`Npc`/`Effect`/`Projectile` paints are ported; `MapObject`
+/// paint (and `Enemy`, unported) are DEFERRED. The successor is read AFTER `paint`
+/// (as in Java `ckVar = ckVar2.next;`), because [`effect::paint`] can `unlinkEntity`
+/// (re-sort) / `removeEntity` (unlink) this node during the call.
 pub fn draw_entities(g: &mut Game, i: i32, i2: i32) {
     // Entity ckVar = this.entities.head;
     let mut cursor = g
@@ -498,16 +601,19 @@ pub fn draw_entities(g: &mut Game, i: i32, i2: i32) {
         .expect("GameState.map null in drawEntities")
         .entities
         .head;
-    // while (ckVar != null) { ckVar.paint(graphics, i, i2); ckVar = ckVar.next; }
+    // while (ckVar2 != null) { ckVar2.paint(graphics, i, i2); ckVar = ckVar2.next; }
     while let Some(id) = cursor {
-        let next = g.entity_arena[id].next;
+        // ckVar2.paint(graphics, i, i2)  — the virtual Entity.paint.
         match g.entity_arena[id].kind() {
-            // ckVar.paint(graphics, i, i2)  — Hero.paint (`ao.a:(…Graphics;II)V`).
             EntityKind::Hero => hero::paint(g, id, i, i2),
-            // (MapObject / Npc / Enemy paints DEFERRED — none are linked in this slice.)
+            EntityKind::Npc => npc::paint(g, id, i, i2),
+            EntityKind::Effect => effect::paint(g, id, i, i2),
+            EntityKind::Projectile => projectile::paint(g, id, i, i2),
+            // (MapObject.paint DEFERRED — the render lane; Enemy unported; Bare synthetic.)
             EntityKind::MapObject | EntityKind::Bare => {}
         }
-        cursor = next;
+        // ckVar = ckVar2.next;   (read after paint — effect paint may relink/unlink it.)
+        cursor = g.entity_arena[id].next;
     }
 }
 

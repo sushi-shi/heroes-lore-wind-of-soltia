@@ -30,8 +30,11 @@
 //! (`pixelY >> 4`, `pixelX >> 4`, `pixelY & 15`, `pixelX & 15`).
 
 use crate::byte_util::JavaRandom;
+use crate::effect::EffectData;
 use crate::hero::HeroData;
 use crate::map_object::MapObjectData;
+use crate::npc::NpcData;
+use crate::projectile::ProjectileData;
 use j2me_jvm::ishr;
 
 /// A node in the [`EntityArena`] — the slab index that stands in for an `Entity`
@@ -50,6 +53,12 @@ pub enum EntityKind {
     MapObject,
     /// `Hero` (`ao`) — the player character (a `Battler`).
     Hero,
+    /// `Npc` (`ac`) — a town/quest actor (a `Battler`).
+    Npc,
+    /// `Effect` (`y`) — a transient animated visual effect.
+    Effect,
+    /// `Projectile` (`i`) — a moving ranged-attack effect (an `Effect`).
+    Projectile,
 }
 
 /// The per-subclass data of a node — the flattened tagged union standing in for the
@@ -68,6 +77,13 @@ pub enum EntityData {
     /// is itself a heap object, and boxing keeps the (large) leaf off the shared
     /// [`EntityNode`] size.
     Hero(Box<HeroData>),
+    /// `Npc` (`ac`) instance data (embeds the `Battler` base). Boxed like `Hero`.
+    Npc(Box<NpcData>),
+    /// `Effect` (`y`) instance data. Boxed: the effect carries an (unloaded here)
+    /// image bank + sprite script, kept off the shared [`EntityNode`] size.
+    Effect(Box<EffectData>),
+    /// `Projectile` (`i`) instance data (embeds the `Effect` base). Boxed like `Hero`.
+    Projectile(Box<ProjectileData>),
 }
 
 /// The `Entity` (`ck`) base record: the fields every subclass inherits, plus the
@@ -133,6 +149,9 @@ impl EntityNode {
             EntityData::Bare => EntityKind::Bare,
             EntityData::MapObject(_) => EntityKind::MapObject,
             EntityData::Hero(_) => EntityKind::Hero,
+            EntityData::Npc(_) => EntityKind::Npc,
+            EntityData::Effect(_) => EntityKind::Effect,
+            EntityData::Projectile(_) => EntityKind::Projectile,
         }
     }
 
@@ -160,6 +179,7 @@ impl EntityNode {
     pub fn as_battler(&self) -> Option<&crate::battler::BattlerData> {
         match &self.data {
             EntityData::Hero(h) => Some(&h.battler),
+            EntityData::Npc(n) => Some(&n.battler),
             _ => None,
         }
     }
@@ -168,6 +188,7 @@ impl EntityNode {
     pub fn as_battler_mut(&mut self) -> Option<&mut crate::battler::BattlerData> {
         match &mut self.data {
             EntityData::Hero(h) => Some(&mut h.battler),
+            EntityData::Npc(n) => Some(&mut n.battler),
             _ => None,
         }
     }
@@ -176,6 +197,59 @@ impl EntityNode {
     pub fn as_map_object(&self) -> Option<&MapObjectData> {
         match &self.data {
             EntityData::MapObject(m) => Some(m),
+            _ => None,
+        }
+    }
+
+    /// `this instanceof Npc` → the borrowed [`NpcData`], or `None`.
+    pub fn as_npc(&self) -> Option<&NpcData> {
+        match &self.data {
+            EntityData::Npc(n) => Some(n.as_ref()),
+            _ => None,
+        }
+    }
+
+    /// Mutable [`Self::as_npc`].
+    pub fn as_npc_mut(&mut self) -> Option<&mut NpcData> {
+        match &mut self.data {
+            EntityData::Npc(n) => Some(n.as_mut()),
+            _ => None,
+        }
+    }
+
+    /// `this instanceof Effect` → the borrowed `Effect` **base** [`EffectData`], or
+    /// `None`. Returns the base for both an `Effect` and a `Projectile` node (the
+    /// `instanceof Effect` accessor, mirroring [`Self::as_battler`]); a Java
+    /// `((Effect) this).frame` / `super.spriteScript` on a `Projectile` routes here.
+    pub fn as_effect(&self) -> Option<&EffectData> {
+        match &self.data {
+            EntityData::Effect(e) => Some(e.as_ref()),
+            EntityData::Projectile(p) => Some(&p.effect),
+            _ => None,
+        }
+    }
+
+    /// Mutable [`Self::as_effect`].
+    pub fn as_effect_mut(&mut self) -> Option<&mut EffectData> {
+        match &mut self.data {
+            EntityData::Effect(e) => Some(e.as_mut()),
+            EntityData::Projectile(p) => Some(&mut p.effect),
+            _ => None,
+        }
+    }
+
+    /// `this instanceof Projectile` → the borrowed [`ProjectileData`], or `None`.
+    pub fn as_projectile(&self) -> Option<&ProjectileData> {
+        match &self.data {
+            EntityData::Projectile(p) => Some(p.as_ref()),
+            _ => None,
+        }
+    }
+
+    /// Mutable [`Self::as_projectile`].
+    pub fn as_projectile_mut(&mut self) -> Option<&mut ProjectileData> {
+        match &mut self.data {
+            EntityData::Projectile(p) => Some(p.as_mut()),
             _ => None,
         }
     }
