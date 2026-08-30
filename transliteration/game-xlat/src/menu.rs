@@ -28,11 +28,15 @@
 //! transition (New Game → `ClassSelectMenu`): the instance fields (as [`MenuBase`],
 //! carried per concrete menu), the cursor navigation (`moveCursorVertical` +
 //! `moveCursorHorizontal` + `moveCursor` + `stepCursor`), `passKeyToChild`,
-//! `invalidateDown`, and the lazy [`render`]. The large static **draw kit**
-//! (`drawBevelBox`/`drawButton`/`drawSelectableBox`/`drawTabButton`/
-//! `drawTextField`/`drawPanelFrame`/…, `drawListPage`, the pagination helpers,
-//! `showPopup`/`onPopupResult`/`close`) is not reached by the ported menus and is
-//! **DEFERRED**.
+//! `invalidateDown`, and the lazy [`render`]. A later increment adds the popup
+//! machinery — [`show_popup`]/[`show_popup_labels`]/[`show_message`],
+//! [`on_popup_result`] (+ [`on_popup_result_base`]), [`close`], [`invalidate_up`],
+//! and the [`parent_of`] parent scan — plus the shared panel draw kit the front-menu
+//! dialogs need ([`draw_panel_frame`]/[`fill_panel_interior`] over
+//! [`draw_bevel_box`]/[`fill_inset2`]). The remaining static draw kit
+//! (`drawButton`/`drawSelectableBox`/`drawTabButton`/`drawTextField`/`drawListPage`,
+//! the pagination helpers, the item/gold widgets) is not reached by the ported menus
+//! and is **DEFERRED**.
 //!
 //! Menu has **no `static` fields** (every field is per-instance), so it contributes
 //! no `java/reconstruction/ownership.tsv` rows.
@@ -46,8 +50,12 @@
 
 use crate::class_confirm_menu;
 use crate::class_select_menu;
+use crate::confirm_dialog;
+use crate::continue_menu;
 use crate::game::Game;
 use crate::main_menu;
+use crate::options_menu;
+use crate::popup_menu;
 use crate::start_trait_menu;
 
 /// The pushed sub-screen of a menu — the flat model of the polymorphic
@@ -67,8 +75,14 @@ pub enum MenuChild {
     ClassConfirm,
     /// `child instanceof StartTraitMenu` (`bk`) — the starting-guardian picker.
     StartTrait,
-    /// `child instanceof PopupMenu` (DEFERRED — `showMessage`/`showPopup`).
+    /// `child instanceof PopupMenu` (`af`) — a `showMessage`/`showPopup` dialog.
     Popup,
+    /// `child instanceof ConfirmDialog` (`am`) — the two-line Yes/No dialog.
+    Confirm,
+    /// `child instanceof ContinueMenu` (`a`) — the load-game slot picker.
+    Continue,
+    /// `child instanceof OptionsMenu` (`be`) — the options screen.
+    Options,
 }
 
 /// Identifies a *concrete* menu that owns a `MenuBase` + `paint`/`handleKey` — the
@@ -85,7 +99,29 @@ pub enum MenuNode {
     ClassConfirm,
     /// `StartTraitMenu` (`bk`) — pushed as `ClassConfirmMenu`'s child by "Yes".
     StartTrait,
+    /// `PopupMenu` (`af`) — pushed by any menu's `showPopup`/`showMessage`.
+    Popup,
+    /// `ConfirmDialog` (`am`) — pushed by `SkillTab`'s confirm prompts.
+    Confirm,
+    /// `ContinueMenu` (`a`) — pushed as `MainMenu`'s child by Continue.
+    Continue,
+    /// `OptionsMenu` (`be`) — pushed as `MainMenu`'s (or `SystemTab`'s) child by Options.
+    Options,
 }
+
+/// Every concrete [`MenuNode`], for the parent-scan ([`parent_of`]). The flat model
+/// is a singleton stack, so a node's parent is the unique node whose resolved
+/// [`child_node`] is that node.
+const ALL_NODES: [MenuNode; 8] = [
+    MenuNode::Main,
+    MenuNode::ClassSelect,
+    MenuNode::ClassConfirm,
+    MenuNode::StartTrait,
+    MenuNode::Popup,
+    MenuNode::Confirm,
+    MenuNode::Continue,
+    MenuNode::Options,
+];
 
 /// The instance fields of a `Menu` (`cb`), carried by each concrete menu's state
 /// (e.g. [`crate::main_menu::MainMenuState`], [`crate::class_select_menu::ClassSelectMenuState`]).
@@ -139,6 +175,10 @@ fn node_base(g: &Game, node: MenuNode) -> &MenuBase {
         MenuNode::ClassSelect => &g.class_select_menu.base,
         MenuNode::ClassConfirm => &g.class_confirm_menu.base,
         MenuNode::StartTrait => &g.start_trait_menu.base,
+        MenuNode::Popup => &g.popup_menu.base,
+        MenuNode::Confirm => &g.confirm_dialog.base,
+        MenuNode::Continue => &g.continue_menu.base,
+        MenuNode::Options => &g.options_menu.base,
     }
 }
 
@@ -149,23 +189,42 @@ fn node_base_mut(g: &mut Game, node: MenuNode) -> &mut MenuBase {
         MenuNode::ClassSelect => &mut g.class_select_menu.base,
         MenuNode::ClassConfirm => &mut g.class_confirm_menu.base,
         MenuNode::StartTrait => &mut g.start_trait_menu.base,
+        MenuNode::Popup => &mut g.popup_menu.base,
+        MenuNode::Confirm => &mut g.confirm_dialog.base,
+        MenuNode::Continue => &mut g.continue_menu.base,
+        MenuNode::Options => &mut g.options_menu.base,
     }
 }
 
 /// Resolves a child discriminant to the [`MenuNode`] to recurse into
-/// (`MenuChild::None` → no child). The `ClassConfirm`/`StartTrait` children are now
-/// real nodes; the remaining DEFERRED child menu (`Popup`) has no ported node yet —
-/// reaching one is the transliteration's next-lane boundary.
+/// (`MenuChild::None` → no child). Every child menu is now a real ported node.
 fn child_node(child: MenuChild) -> Option<MenuNode> {
     match child {
         MenuChild::None => None,
         MenuChild::ClassSelect => Some(MenuNode::ClassSelect),
         MenuChild::ClassConfirm => Some(MenuNode::ClassConfirm),
         MenuChild::StartTrait => Some(MenuNode::StartTrait),
-        MenuChild::Popup => {
-            unimplemented!("DEFERRED: PopupMenu (showMessage/showPopup child) — next lane")
+        MenuChild::Popup => Some(MenuNode::Popup),
+        MenuChild::Confirm => Some(MenuNode::Confirm),
+        MenuChild::Continue => Some(MenuNode::Continue),
+        MenuChild::Options => Some(MenuNode::Options),
+    }
+}
+
+/// `((Menu) this).parent` — the flat model's parent link. The child stack is a
+/// singleton chain, so a node's parent is the unique other node whose current
+/// [`child`](MenuBase::child) resolves (via [`child_node`]) to it (`None` at the
+/// root, or when the node is not currently linked into the stack).
+pub fn parent_of(g: &Game, node: MenuNode) -> Option<MenuNode> {
+    for &candidate in ALL_NODES.iter() {
+        if candidate == node {
+            continue;
+        }
+        if child_node(node_base(g, candidate).child) == Some(node) {
+            return Some(candidate);
         }
     }
+    None
 }
 
 /// Dispatches the abstract `Menu.paint` to the concrete node's `paint`.
@@ -175,6 +234,10 @@ fn paint_node(g: &mut Game, node: MenuNode, origin_x: i32, origin_y: i32) {
         MenuNode::ClassSelect => class_select_menu::paint(g, origin_x, origin_y),
         MenuNode::ClassConfirm => class_confirm_menu::paint(g, origin_x, origin_y),
         MenuNode::StartTrait => start_trait_menu::paint(g, origin_x, origin_y),
+        MenuNode::Popup => popup_menu::paint(g, origin_x, origin_y),
+        MenuNode::Confirm => confirm_dialog::paint(g, origin_x, origin_y),
+        MenuNode::Continue => continue_menu::paint(g, origin_x, origin_y),
+        MenuNode::Options => options_menu::paint(g, origin_x, origin_y),
     }
 }
 
@@ -185,6 +248,10 @@ fn dispatch_handle_key(g: &mut Game, node: MenuNode, action: i32, key_code: i32)
         MenuNode::ClassSelect => class_select_menu::handle_key(g, action, key_code),
         MenuNode::ClassConfirm => class_confirm_menu::handle_key(g, action, key_code),
         MenuNode::StartTrait => start_trait_menu::handle_key(g, action, key_code),
+        MenuNode::Popup => popup_menu::handle_key(g, action, key_code),
+        MenuNode::Confirm => confirm_dialog::handle_key(g, action, key_code),
+        MenuNode::Continue => continue_menu::handle_key(g, action, key_code),
+        MenuNode::Options => options_menu::handle_key(g, action, key_code),
     }
 }
 
@@ -359,4 +426,218 @@ fn render_node(g: &mut Game, node: MenuNode, origin_x: i32, origin_y: i32) {
             }
         }
     }
+}
+
+// --------------------------------------------------------------------------
+// Popup / dialog machinery (the `Menu` push + result callbacks)
+// --------------------------------------------------------------------------
+
+/// `public void onPopupResult(byte tag, byte result)` (`cb.a:(BB)V => []`): the
+/// **base** `Menu.onPopupResult` — dismiss the child, reactivate the game screen,
+/// and mark the ancestors dirty. Concrete overrides (e.g.
+/// [`main_menu::on_popup_result`]) call this as their `super`.
+pub fn on_popup_result_base(g: &mut Game, node: MenuNode, _tag: i8, _result: i8) {
+    // this.child = null;
+    node_base_mut(g, node).child = MenuChild::None;
+    // if (GameLoop.gameScreen != null) GameLoop.gameScreen.activate();
+    if g.game_loop.game_screen {
+        // (DEFERRED: GameScreen.activate() — GameScreen not ported this lane;
+        //  GameLoop.gameScreen is null on the front-menu path, so this never runs.)
+    }
+    // invalidateUp();
+    invalidate_up(g, node);
+}
+
+/// Dispatches the virtual `Menu.onPopupResult(tag, result)` to `node`'s concrete
+/// override (only `MainMenu` overrides it among the ported menus; the rest use the
+/// base [`on_popup_result_base`]).
+pub fn on_popup_result(g: &mut Game, node: MenuNode, tag: i8, result: i8) {
+    match node {
+        MenuNode::Main => main_menu::on_popup_result(g, tag, result),
+        _ => on_popup_result_base(g, node, tag, result),
+    }
+}
+
+/// `public final void close()` (`cb.a:()V => []`): drops the pushed child,
+/// reactivates the game screen, and marks the ancestors dirty. Identical body to the
+/// base [`on_popup_result_base`] (Java's `Menu.close`/`Menu.onPopupResult` share it).
+pub fn close(g: &mut Game, node: MenuNode) {
+    // this.child = null;
+    node_base_mut(g, node).child = MenuChild::None;
+    // if (GameLoop.gameScreen != null) GameLoop.gameScreen.activate();
+    if g.game_loop.game_screen {
+        // (DEFERRED: GameScreen.activate() — see on_popup_result_base.)
+    }
+    // invalidateUp();
+    invalidate_up(g, node);
+}
+
+/// `public final void invalidateUp()` (`cb.b:()V => []`): marks this screen and
+/// every ancestor as needing a repaint. Walks up via [`parent_of`] (the flat model
+/// of the `parent` reference chain).
+pub fn invalidate_up(g: &mut Game, node: MenuNode) {
+    // if (this.parent != null) this.parent.invalidateUp();
+    if let Some(parent) = parent_of(g, node) {
+        invalidate_up(g, parent);
+    }
+    // this.needsRepaint = true;
+    node_base_mut(g, node).needs_repaint = true;
+}
+
+/// `public final void showPopup(byte style, byte tag, Object[] lines)`
+/// (`cb.a:(BB[Ljava/lang/Object;)V => []`):
+/// `child = new PopupMenu(this, style, tag, lines, null, null)`.
+pub fn show_popup(g: &mut Game, node: MenuNode, style: i8, tag: i8, lines: Vec<Vec<u16>>) {
+    // this.child = new PopupMenu(this, style, tag, lines, null, null);
+    popup_menu::construct(g, style, tag, lines, None, None);
+    node_base_mut(g, node).child = MenuChild::Popup;
+}
+
+/// `public final void showPopup(byte style, byte tag, Object[] lines, char[] okLabel, char[] cancelLabel)`
+/// (`cb.a:(BB[Ljava/lang/Object;[C[C)V => []`): the custom-label overload.
+pub fn show_popup_labels(
+    g: &mut Game,
+    node: MenuNode,
+    style: i8,
+    tag: i8,
+    lines: Vec<Vec<u16>>,
+    ok_label: Option<Vec<u16>>,
+    cancel_label: Option<Vec<u16>>,
+) {
+    // this.child = new PopupMenu(this, style, tag, lines, okLabel, cancelLabel);
+    popup_menu::construct(g, style, tag, lines, ok_label, cancel_label);
+    node_base_mut(g, node).child = MenuChild::Popup;
+}
+
+/// `public final void showMessage(Object[] lines)`
+/// (`cb.a:([Ljava/lang/Object;)V => []`):
+/// `child = new PopupMenu(this, (byte) 1, (byte) 0, lines, null, null)`.
+pub fn show_message(g: &mut Game, node: MenuNode, lines: Vec<Vec<u16>>) {
+    // this.child = new PopupMenu(this, (byte) 1, (byte) 0, lines, null, null);
+    popup_menu::construct(g, 1, 0, lines, None, None);
+    node_base_mut(g, node).child = MenuChild::Popup;
+}
+
+// --------------------------------------------------------------------------
+// Shared panel draw kit (the beveled-box statics the front-menu dialogs use)
+// --------------------------------------------------------------------------
+
+/// `public static final void drawPanelFrame(Graphics graphics, int x, int y, int width, int height)`
+/// (`cb`): the standard beveled panel outline.
+pub fn draw_panel_frame(graphics: &mut j2me_me::Graphics, x: i32, y: i32, width: i32, height: i32) {
+    // drawBevelBox(graphics, x, y, width, height, 2039615, 6242111, 2039615);
+    draw_bevel_box(graphics, x, y, width, height, 2039615, 6242111, 2039615);
+}
+
+/// `public static final void fillPanelInterior(Graphics graphics, int x, int y, int width, int height)`
+/// (`cb`): fills the panel interior (inset two pixels) with the menu-blue background.
+pub fn fill_panel_interior(
+    graphics: &mut j2me_me::Graphics,
+    x: i32,
+    y: i32,
+    width: i32,
+    height: i32,
+) {
+    // fillInset2(graphics, x, y, width, height, 4136767);
+    fill_inset2(graphics, x, y, width, height, 4136767);
+}
+
+/// `public static final void drawBevelBox(Graphics graphics, int x, int y, int width, int height, int frame, int highlight, int shadow)`
+/// (`cb`): a raised beveled box outline — `frame` edges, `highlight` inner top/left,
+/// `shadow` inner bottom/right. All offsets are `+1`/`-2`/`-3` constant iadd/isub.
+// The eight-parameter list mirrors the Java `drawBevelBox` signature verbatim.
+#[allow(clippy::too_many_arguments)]
+pub fn draw_bevel_box(
+    graphics: &mut j2me_me::Graphics,
+    x: i32,
+    y: i32,
+    width: i32,
+    height: i32,
+    frame: i32,
+    highlight: i32,
+    shadow: i32,
+) {
+    // graphics.setColor(frame);
+    graphics.set_color(frame);
+    // graphics.drawLine(x + 1, y, (x + width) - 2, y);
+    graphics.draw_line(
+        x.wrapping_add(1),
+        y,
+        x.wrapping_add(width).wrapping_sub(2),
+        y,
+    );
+    // graphics.drawLine((x + width) - 1, y + 1, (x + width) - 1, (y + height) - 2);
+    graphics.draw_line(
+        x.wrapping_add(width).wrapping_sub(1),
+        y.wrapping_add(1),
+        x.wrapping_add(width).wrapping_sub(1),
+        y.wrapping_add(height).wrapping_sub(2),
+    );
+    // graphics.drawLine(x + 1, (y + height) - 1, (x + width) - 2, (y + height) - 1);
+    graphics.draw_line(
+        x.wrapping_add(1),
+        y.wrapping_add(height).wrapping_sub(1),
+        x.wrapping_add(width).wrapping_sub(2),
+        y.wrapping_add(height).wrapping_sub(1),
+    );
+    // graphics.drawLine(x, y + 1, x, (y + height) - 2);
+    graphics.draw_line(
+        x,
+        y.wrapping_add(1),
+        x,
+        y.wrapping_add(height).wrapping_sub(2),
+    );
+    // graphics.setColor(highlight);
+    graphics.set_color(highlight);
+    // graphics.drawLine(x + 1, y + 1, (x + width) - 3, y + 1);
+    graphics.draw_line(
+        x.wrapping_add(1),
+        y.wrapping_add(1),
+        x.wrapping_add(width).wrapping_sub(3),
+        y.wrapping_add(1),
+    );
+    // graphics.drawLine(x + 1, y + 1, x + 1, (y + height) - 3);
+    graphics.draw_line(
+        x.wrapping_add(1),
+        y.wrapping_add(1),
+        x.wrapping_add(1),
+        y.wrapping_add(height).wrapping_sub(3),
+    );
+    // graphics.setColor(shadow);
+    graphics.set_color(shadow);
+    // graphics.drawLine((x + width) - 2, y + 1, (x + width) - 2, (y + height) - 3);
+    graphics.draw_line(
+        x.wrapping_add(width).wrapping_sub(2),
+        y.wrapping_add(1),
+        x.wrapping_add(width).wrapping_sub(2),
+        y.wrapping_add(height).wrapping_sub(3),
+    );
+    // graphics.drawLine(x + 1, (y + height) - 2, (x + width) - 2, (y + height) - 2);
+    graphics.draw_line(
+        x.wrapping_add(1),
+        y.wrapping_add(height).wrapping_sub(2),
+        x.wrapping_add(width).wrapping_sub(2),
+        y.wrapping_add(height).wrapping_sub(2),
+    );
+}
+
+/// `public static final void fillInset2(Graphics graphics, int x, int y, int width, int height, int color)`
+/// (`cb`): fills a `width`×`height` box inset by two pixels with `color`.
+pub fn fill_inset2(
+    graphics: &mut j2me_me::Graphics,
+    x: i32,
+    y: i32,
+    width: i32,
+    height: i32,
+    color: i32,
+) {
+    // graphics.setColor(color);
+    graphics.set_color(color);
+    // graphics.fillRect(x + 2, y + 2, width - 4, height - 4);
+    graphics.fill_rect(
+        x.wrapping_add(2),
+        y.wrapping_add(2),
+        width.wrapping_sub(4),
+        height.wrapping_sub(4),
+    );
 }

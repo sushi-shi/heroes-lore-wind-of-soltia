@@ -44,6 +44,26 @@
 #                              `pending_new_game` field is NOT a Java datum — it is the
 #                              DEFERRED-SEAM record of the deferred GameState.newGame
 #                              launch, owned pending integration.)
+#   PopupMenu   -> af.class   (no rows: instance dialog, no static fields — the Menu
+#                              base fields + the instance `type`/`options`/`joinedText`/
+#                              `boxHeight`/`positiveLabel`/`negativeLabel` are
+#                              per-INSTANCE, carried by PopupMenuState; the flat model
+#                              holds the reusable child slot as Game.popup_menu, linked
+#                              by the pushing menu's Menu.child discriminant)
+#   ConfirmDialog -> am.class (no rows: instance dialog, no static fields — the Menu
+#                              base fields + `line1`/`line2`/`lineCount`/`resultTag` are
+#                              per-INSTANCE, carried by ConfirmDialogState; child slot is
+#                              Game.confirm_dialog, linked by Menu.child)
+#   ContinueMenu -> a.class   (no rows: instance menu, no static fields — the Menu base
+#                              fields + `slotData`/`cursorAnimFrame` are per-INSTANCE,
+#                              carried by ContinueMenuState; child slot is
+#                              Game.continue_menu, linked by MainMenu's Menu.child)
+#   OptionsMenu -> be.class   (no rows: instance menu, no static fields — the Menu base
+#                              fields + `inGame` and the `gameLoop` reference (aliasing
+#                              the GameLoop singleton = Game.game_loop, modelled as a
+#                              presence flag) are per-INSTANCE, carried by
+#                              OptionsMenuState; child slot is Game.options_menu, linked
+#                              by MainMenu's/SystemTab's Menu.child)
 #   AssetCache  -> ce.class   (PARTIAL: the title/logo render-path statics + the
 #                              main-menu frame atlas `menuFrames` + the world tileset
 #                              atlas `mapTiles`)
