@@ -3,18 +3,41 @@
 //!
 //! Implementation #1: strict transliteration. See `docs/TRANSLITERATION.md`.
 //!
-//! Global session state — a static-only class, never instantiated. This
-//! increment ports only its `<clinit>` (the static-field initialization) so the
-//! `<clinit>` machinery is in place; the session methods (`startNewMap`,
-//! `processStateRequest`, save/load, camera/hero transitions, …) reach many
-//! not-yet-ported classes (Hero, GameMap, AssetLoader, RmsFile, …) and are
-//! DEFERRED.
+//! Global session state — a static-only class, never instantiated.
 //!
-//! Opcode shape (R8, `_reference/numeric_shapes.json`): `n.<clinit>:()V => []`
-//! (pure array/String construction — no arithmetic).
+//! Ported: the `<clinit>`, `setScreen`, all four `requestState` overloads,
+//! `clearRequest`, `requestMapWarp`, `processStateRequest` (cases 1/2/12/15/16/21
+//! route to ported destinations; see below), `startNewMap`, `continueGame`,
+//! `startNewCharacter`, `newGame`, `buildLoadMenu`, the camera + hero-transition
+//! helpers, the switch/flag bitset accessors (`clearSwitches`/`clearFlags`/
+//! `setSwitch`/`isSwitch`/`isFlag`), the world sim step, and the **RMS save
+//! format** (`saveGame`/`loadGame` over [`crate::rms_file`] + [`crate::save_cipher`],
+//! plus `packProgress`/`unpackProgress`/`progressBonus`).
+//!
+//! Two deferrals remain in the save/session methods, each reaching a class a
+//! sibling lane still owns:
+//! - **`Hero.save` / `Hero.load`** (`ao`) are unported (only Hero's field layer +
+//!   New Game setup have landed), so the hero stat blob is DEFERRED: `saveGame`
+//!   writes an **empty** hero slice (a documented placeholder — the four
+//!   length-prefixed slices' structure is preserved intact) and `loadGame` reads
+//!   the slice (advancing the RMS cursor) but does not apply it. The
+//!   bag/quick-item/progress/position slices round-trip in full (their
+//!   serialisers are ported).
+//! - **`processStateRequest`** cases 11 (Shop/Refine/Blacksmith), 13/14
+//!   (CharacterMenu), and case 12's inner Refine/Blacksmith switch reach unported
+//!   menus and stay DEFERRED; case 21's `CharacterMenu.closeMenu` +
+//!   `AssetLoader.loadMainMenu` and `startNewCharacter`'s `GameLoop.saveOptions`
+//!   are likewise DEFERRED (each marked at its site).
+//!
+//! Opcode shapes (R8, `_reference/numeric_shapes.json`): `n.<clinit>:()V => []`;
+//! `progressBonus n.a:(B)B`, `isSwitch n.a:(I)Z` / `isFlag n.b:(I)Z`,
+//! `packProgress n.a:()[B => []`, `unpackProgress n.a:([B)V => []`,
+//! `saveGame n.o:()V`, `loadGame n.r:()V`, `startNewCharacter n.c:()V`,
+//! `continueGame` a no-arithmetic `()V` — each transliterated verbatim below.
 
 use crate::asset_cache;
 use crate::asset_loader;
+use crate::audio_manager;
 use crate::battler;
 use crate::directions;
 use crate::entity::{self, EntityId};
@@ -23,8 +46,11 @@ use crate::game_loop;
 use crate::game_map::{self, GameMapState};
 use crate::game_screen;
 use crate::hero;
+use crate::item_bag;
 use crate::main_menu;
-use j2me_jvm::{ishl, java_div, java_rem};
+use crate::rms_file;
+use crate::save_cipher;
+use j2me_jvm::{ishl, ishr, java_div, java_rem, JavaError};
 
 /// Java `n` / `GameState` state. Every field is `static` (see
 /// `java/reconstruction/ownership.tsv`); struct order preserves the reviewed
@@ -245,11 +271,13 @@ pub fn request_map_warp(g: &mut Game, map_id: i8, a0: i8, a1: i8, a2: i8) {
 }
 
 /// `public static final void processStateRequest()` (`n.processStateRequest`):
-/// dispatches the queued `nextState`. This slice ports `case 1` (kick the map
-/// loader), `case 2` (set-screen + FPS), `case 15` (warp the map to the world) and
-/// `case 21` (New Game / start-new-map); the shop/character/game-over/ending
-/// transitions (cases 11, 12, 13, 14, 16) reach unported screens and are DEFERRED.
-/// State `0` (no request) falls through to a no-op.
+/// dispatches the queued `nextState`. Ported: `case 1` (kick the map loader),
+/// `case 2` (set-screen + FPS), `case 12` (return to the world; its inner
+/// Refine/Blacksmith close-switch is DEFERRED), `case 15` (warp the map to the
+/// world), `case 16` (game-over fade + sfx) and `case 21` (New Game /
+/// continue / new character). The shop / character-menu transitions (cases 11,
+/// 13, 14) reach unported menus and stay DEFERRED. State `0` (no request) falls
+/// through to a no-op.
 pub fn process_state_request(g: &mut Game) {
     // if (nextState == 0) {}   — empty statement (decompiler noise).
     // byte state = nextState; nextState = (byte) 0;
@@ -281,28 +309,56 @@ pub fn process_state_request(g: &mut Game) {
                 game_loop::set_fast_fps(g);
             }
         }
+        // case 12: setScreen(2); switch (arg0) { RefineMenu/BlacksmithMenu close }
+        12 => {
+            // setScreen(2);
+            set_screen(g, 2);
+            // switch (arg0) { case 1: RefineMenu.instance().closeRefine();
+            //   case 2: BlacksmithMenu.instance().closeBlacksmith(); }
+            //   — DEFERRED: RefineMenu (bd) / BlacksmithMenu (bc) not yet ported.
+        }
         // case 15: warpMap();
         15 => {
             warp_map(g);
         }
+        // case 16: setScreen(10); AudioManager.loadClip(12); playSfx(12,false); fxTimer=16;
+        16 => {
+            // setScreen(10);
+            set_screen(g, 10);
+            // AudioManager.loadClip((byte) 12);
+            audio_manager::load_clip(g, 12);
+            // AudioManager.playSfx((byte) 12, false);
+            audio_manager::play_sfx(g, 12, false);
+            // GameScreen.fxTimer = 16;
+            g.game_screen.fx_timer = 16;
+        }
         // case 21: New Game / continue / new character, then kick the resource load.
         21 => {
             // if (arg0 == 1) continueGame(); else if (arg0 == 0) startNewMap();
-            //   else if (arg0 == 2) { startNewCharacter(); ...; loadMainMenu(); stopBgm(); }
+            //   else if (arg0 == 2) { startNewCharacter(); closeMenu(false); setScreen(1);
+            //     loadMainMenu(); stopBgm(); }
             if g.game_state.arg0 == 1 {
-                // continueGame();  — DEFERRED (save/load path; not the New Game drive).
+                // continueGame();
+                continue_game(g);
             } else if g.game_state.arg0 == 0 {
                 start_new_map(g);
             } else if g.game_state.arg0 == 2 {
-                // startNewCharacter()/closeMenu/loadMainMenu/stopBgm  — DEFERRED (NG+ path).
+                // startNewCharacter();
+                start_new_character(g);
+                // CharacterMenu.instance().closeMenu(false);  — DEFERRED (CharacterMenu unported).
+                // setScreen(1);
+                set_screen(g, 1);
+                // AssetLoader.loadMainMenu();  — DEFERRED (AssetLoader.loadMainMenu unported).
+                // AudioManager.stopBgm();
+                audio_manager::stop_bgm(g);
             }
             // setScreen(1); GameLoop.instance.setLoadingFps(); AssetLoader.loadResources();
             set_screen(g, 1);
             game_loop::set_loading_fps(g);
             asset_loader::load_resources(g);
         }
-        // (DEFERRED: cases 11,12,13,14,16 — shop-refine-blacksmith / character menu /
-        // game-over / ending; not reached by the New Game → world drive.)
+        // (DEFERRED: cases 11,13,14 — shop-refine-blacksmith / character-menu open /
+        // character-menu close; reach still-unported menus.)
         _ => {}
     }
 }
@@ -382,6 +438,25 @@ pub fn set_switch(g: &mut Game, bit: i32) {
     g.game_state.switches[idx] = ((g.game_state.switches[idx] as i32) | mask) as i8;
 }
 
+/// `public static final boolean isSwitch(int bit)` (`n.a:(I)Z => [idiv,irem,ishr,iand]`):
+/// returns whether story switch `bit` is set. The `byte` element sign-extends to
+/// `int` (baload) before the `>>` (ishr); the trailing `& 1` isolates bit 0.
+pub fn is_switch(g: &Game, bit: i32) -> bool {
+    // return ((switches[bit / 8] >> (bit % 8)) & 1) == 1;
+    let idx = java_div(bit, 8).expect("bit / 8") as usize;
+    let sh = java_rem(bit, 8).expect("bit % 8");
+    (ishr(g.game_state.switches[idx] as i32, sh) & 1) == 1
+}
+
+/// `public static final boolean isFlag(int bit)` (`n.b:(I)Z => [idiv,irem,ishr,iand]`):
+/// returns whether story flag `bit` is set (same shape as [`is_switch`], over `flags`).
+pub fn is_flag(g: &Game, bit: i32) -> bool {
+    // return ((flags[bit / 8] >> (bit % 8)) & 1) == 1;
+    let idx = java_div(bit, 8).expect("bit / 8") as usize;
+    let sh = java_rem(bit, 8).expect("bit % 8");
+    (ishr(g.game_state.flags[idx] as i32, sh) & 1) == 1
+}
+
 /// `public static final void startNewMap()` (`n`): starts a fresh map for the
 /// current class — resets progress and reads the class start triple.
 ///
@@ -410,6 +485,377 @@ pub fn start_new_map(g: &mut Game) {
     g.game_state.arg0 = g.game_state.class_start_table[base.wrapping_add(1) as usize];
     // arg1 = classStartTable[((classId - 6) * 3) + 2];
     g.game_state.arg1 = g.game_state.class_start_table[base.wrapping_add(2) as usize];
+}
+
+/// `public static final void continueGame()` (`n`, a no-arithmetic `()V`): resumes a
+/// saved game, falling back to a fresh map when the load fails.
+///
+/// The original's `Throwable th = null; … th.printStackTrace();` in the catch is a
+/// JADX artifact (a phantom null local; the shipped code logged the caught `e2`).
+/// Per `docs/TRANSLITERATION.md` `printStackTrace` is a no-op, which sidesteps the
+/// phantom — a failed [`load_game`] simply routes to [`start_new_map`].
+pub fn continue_game(g: &mut Game) {
+    // clearSwitches(); clearFlags();
+    clear_switches(g);
+    clear_flags(g);
+    // Throwable th = null;  — JADX phantom local (see doc note).
+    // setSwitch(0);
+    set_switch(g, 0);
+    // try { loadGame(); } catch (Exception e2) { th.printStackTrace(); startNewMap(); }
+    if load_game(g).is_err() {
+        start_new_map(g);
+    }
+}
+
+/// `public static final void startNewCharacter()` (`n.c:()V => [iadd,i2b, (isub,imul)
+/// ×3, iadd×2]`): finalizes a newly created character — applies the New Game+ class
+/// bonus, marks the profile, resets progress, and reads the class start triple.
+///
+/// DEFERRED: `GameLoop.instance.saveOptions()` (`bs`) is unported; the original wraps
+/// it in `try { } catch (Exception) { }`, so skipping it is the swallowed-failure
+/// case and observationally identical here.
+pub fn start_new_character(g: &mut Game) {
+    let id = g
+        .game_state
+        .hero
+        .expect("GameState.hero null in startNewCharacter");
+    // Hero player = hero;
+    // player.classId = (byte) (player.classId + progressBonus(classId));
+    let class_id = g.game_state.class_id;
+    let bonus = progress_bonus(g, class_id);
+    {
+        let hero = g.entity_arena[id].as_hero_mut().expect("Hero node");
+        hero.class_id = (hero.class_id as i32).wrapping_add(bonus as i32) as i8;
+        // if (hero.classId > 100) hero.classId = (byte) 100;
+        if hero.class_id > 100 {
+            hero.class_id = 100;
+        }
+    }
+    // clearCount = (byte) 1;
+    g.game_state.clear_count = 1;
+    // GameLoop.instance.hasCreatedCharacter = true;
+    g.game_loop.has_created_character = true;
+    // try { GameLoop.instance.saveOptions(); } catch (Exception unused) {}
+    //   — DEFERRED: GameLoop.saveOptions (bs) unported; the catch swallows failure.
+    // clearSwitches(); clearFlags(); setSwitch(0);
+    clear_switches(g);
+    clear_flags(g);
+    set_switch(g, 0);
+    // hero.bag.removeQuestItems();
+    {
+        let hero = g.entity_arena[id].as_hero_mut().expect("Hero node");
+        item_bag::remove_quest_items(&mut hero.bag);
+    }
+    // hero.hp = hero.maxHp; hero.mp = hero.maxMp;
+    {
+        let hero = g.entity_arena[id].as_hero_mut().expect("Hero node");
+        hero.hp = hero.max_hp;
+        hero.mp = hero.max_mp;
+    }
+    // storyMapId = classStartTable[(classId - 6) * 3];
+    let base = (class_id as i32).wrapping_sub(6).wrapping_mul(3);
+    g.game_state.story_map_id = g.game_state.class_start_table[base as usize];
+    // arg0 = classStartTable[((classId - 6) * 3) + 1];
+    g.game_state.arg0 = g.game_state.class_start_table[base.wrapping_add(1) as usize];
+    // arg1 = classStartTable[((classId - 6) * 3) + 2];
+    g.game_state.arg1 = g.game_state.class_start_table[base.wrapping_add(2) as usize];
+}
+
+/// `private static final byte[] packProgress()` (`n.a:()[B => []`): serializes the
+/// switch bitset, flag bitset, and `clearCount` into one 257-byte array — 128 switch
+/// bytes, then 128 flag bytes, then the single `clearCount` byte — via a
+/// `ByteArrayOutputStream`/`DataOutputStream`. The original's `catch (IOException)`
+/// returns `null`, but an in-memory `ByteArrayOutputStream` never throws (cf.
+/// [`crate::item_bag::serialize`]), so the result is always `Some`. `[]` shape — no
+/// arithmetic (plain stream writes).
+fn pack_progress(g: &Game) -> Option<Vec<i8>> {
+    // dataOut.write(switches); dataOut.write(flags); dataOut.writeByte(clearCount);
+    let mut out: Vec<i8> = Vec::new();
+    out.extend_from_slice(&g.game_state.switches);
+    out.extend_from_slice(&g.game_state.flags);
+    out.push(g.game_state.clear_count);
+    // return byteStream.toByteArray();
+    Some(out)
+}
+
+/// `private static final void unpackProgress(byte[] data)` (`n.a:([B)V => []`):
+/// restores the switch/flag bitsets and `clearCount` from a [`pack_progress`] blob
+/// via a `ByteArrayInputStream`/`DataInputStream`. `DataInputStream.read(byte[])`
+/// fills the whole target when enough bytes remain (the decrypted blob always has
+/// ≥ 257), so the two 128-byte reads and the trailing `readByte` recover exactly.
+/// `[]` shape — no arithmetic. The `catch (IOException)` is unreachable in memory.
+fn unpack_progress(g: &mut Game, data: &[i8]) {
+    // dataIn.read(switches); dataIn.read(flags); clearCount = dataIn.readByte();
+    let mut pos: usize = 0;
+    let n_sw = g.game_state.switches.len();
+    g.game_state
+        .switches
+        .copy_from_slice(&data[pos..pos + n_sw]);
+    pos += n_sw;
+    let n_fl = g.game_state.flags.len();
+    g.game_state.flags.copy_from_slice(&data[pos..pos + n_fl]);
+    pos += n_fl;
+    g.game_state.clear_count = data[pos];
+}
+
+/// `public static final byte progressBonus(byte forClassId)`
+/// (`n.a:(B)B => [imul, iadd×3, i2b, iinc, iadd, i2b, iinc, (imul, idiv, i2b)×3]`):
+/// the New Game+ stat bonus for `forClassId`, scaled by story progress (how many of
+/// 20 milestone flags + 6 milestone switches are set) and the per-clear
+/// [`GameStateData::clear_bonus_table`] factor. Returns `0` once the story has been
+/// cleared three times.
+pub fn progress_bonus(g: &Game, for_class_id: i8) -> i8 {
+    // if (clearCount >= 3) return (byte) 0;
+    if g.game_state.clear_count >= 3 {
+        return 0;
+    }
+    // byte count = 0;
+    let mut count: i8 = 0;
+    // for (int flagIndex = 0; flagIndex < 20; flagIndex++) if (isFlag(1 + (flagIndex*3) + 1)) count++;
+    let mut flag_index: i32 = 0;
+    while flag_index < 20 {
+        let bit = 1i32
+            .wrapping_add(flag_index.wrapping_mul(3))
+            .wrapping_add(1);
+        if is_flag(g, bit) {
+            count = (count as i32).wrapping_add(1) as i8;
+        }
+        flag_index = flag_index.wrapping_add(1);
+    }
+    // for (int switchIndex = 100; switchIndex <= 105; switchIndex++) if (isSwitch(switchIndex)) count++;
+    let mut switch_index: i32 = 100;
+    while switch_index <= 105 {
+        if is_switch(g, switch_index) {
+            count = (count as i32).wrapping_add(1) as i8;
+        }
+        switch_index = switch_index.wrapping_add(1);
+    }
+    // switch (forClassId) { 6: (count*cbt)/19; 7: /21; 8: /16; default: 0 }
+    let cbt = g.game_state.clear_bonus_table[g.game_state.clear_count as usize] as i32;
+    match for_class_id {
+        6 => java_div((count as i32).wrapping_mul(cbt), 19).expect("(count * cbt) / 19") as i8,
+        7 => java_div((count as i32).wrapping_mul(cbt), 21).expect("(count * cbt) / 21") as i8,
+        8 => java_div((count as i32).wrapping_mul(cbt), 16).expect("(count * cbt) / 16") as i8,
+        _ => 0,
+    }
+}
+
+/// `public static final void saveGame() throws Exception` (`n.o:()V`): writes the
+/// encrypted hero / bag / progress / position save blob to the class's RMS slot, plus
+/// the encrypted quick-item bar to `/o`.
+///
+/// The blob is four `[u16 big-endian length][SaveCipher-encrypted payload]` slices,
+/// assembled with the original's exact offset arithmetic (`(len & 65280) >> 8` high
+/// byte, `len & 255` low byte). DEFERRED: `player.save()` (Hero.save, `ao`) is
+/// unported (sibling lane), so the hero slice is written from an **empty**
+/// placeholder — the four-slice structure is preserved intact; swap the placeholder
+/// for `hero::save(...)` when it lands. The bag / progress / position / quick-item
+/// slices are complete (their serialisers are ported).
+pub fn save_game(g: &mut Game) -> Result<(), JavaError> {
+    let id = g.game_state.hero.expect("GameState.hero null in saveGame");
+    let save_key = g.game_state.save_key.clone();
+    // Hero player = hero; byte[] heroBytes = player.save();
+    //   — DEFERRED: Hero.save (ao) unported; empty placeholder preserves the slice layout.
+    let hero_bytes: Vec<i8> = Vec::new();
+    // byte[] bagBytes = player.bag.serialize();
+    let bag_bytes = {
+        let hero = g.entity_arena[id].as_hero().expect("Hero node");
+        item_bag::serialize(&hero.bag)
+    }
+    .ok_or(JavaError::NullPointer)?;
+    // byte[] progressBytes = packProgress();
+    let progress_bytes = pack_progress(g).ok_or(JavaError::NullPointer)?;
+    // byte[] posBytes = {map.mapType, ((Entity) player).tileX, ((Entity) player).tileY};
+    let pos_bytes: Vec<i8> = {
+        let map_type = g
+            .game_state
+            .map
+            .as_ref()
+            .expect("GameState.map null in saveGame")
+            .map_type;
+        let node = &g.entity_arena[id];
+        vec![map_type, node.tile_x, node.tile_y]
+    };
+    // byte[] encHero/encBag/encProgress/encPos = SaveCipher.encrypt(<slice>, saveKey);
+    let enc_hero = save_cipher::encrypt(&hero_bytes, &save_key);
+    let enc_bag = save_cipher::encrypt(&bag_bytes, &save_key);
+    let enc_progress = save_cipher::encrypt(&progress_bytes, &save_key);
+    let enc_pos = save_cipher::encrypt(&pos_bytes, &save_key);
+    // byte[] blob = new byte[encHero.length + encBag.length + encProgress.length + encPos.length + 8];
+    let blob_len = (enc_hero.len() as i32)
+        .wrapping_add(enc_bag.len() as i32)
+        .wrapping_add(enc_progress.len() as i32)
+        .wrapping_add(enc_pos.len() as i32)
+        .wrapping_add(8);
+    let mut blob = vec![0i8; blob_len as usize];
+    // blob[0] = (byte)((encHero.length & 65280) >> 8); blob[1] = (byte)(encHero.length & 255);
+    blob[0] = ishr(enc_hero.len() as i32 & 65280, 8) as i8;
+    blob[1] = (enc_hero.len() as i32 & 255) as i8;
+    // System.arraycopy(encHero, 0, blob, 2, encHero.length);
+    blob[2..2 + enc_hero.len()].copy_from_slice(&enc_hero);
+    // int off1 = 2 + encHero.length; int off1b = off1 + 1;
+    let off1 = 2i32.wrapping_add(enc_hero.len() as i32);
+    let off1b = off1.wrapping_add(1);
+    // blob[off1] = (byte)((encBag.length & 65280) >> 8);
+    blob[off1 as usize] = ishr(enc_bag.len() as i32 & 65280, 8) as i8;
+    // int off2 = off1b + 1;
+    let off2 = off1b.wrapping_add(1);
+    // blob[off1b] = (byte)(encBag.length & 255);
+    blob[off1b as usize] = (enc_bag.len() as i32 & 255) as i8;
+    // System.arraycopy(encBag, 0, blob, off2, encBag.length);
+    blob[off2 as usize..off2 as usize + enc_bag.len()].copy_from_slice(&enc_bag);
+    // int off3 = off2 + encBag.length; int off3b = off3 + 1;
+    let off3 = off2.wrapping_add(enc_bag.len() as i32);
+    let off3b = off3.wrapping_add(1);
+    // blob[off3] = (byte)((encProgress.length & 65280) >> 8);
+    blob[off3 as usize] = ishr(enc_progress.len() as i32 & 65280, 8) as i8;
+    // int off4 = off3b + 1;
+    let off4 = off3b.wrapping_add(1);
+    // blob[off3b] = (byte)(encProgress.length & 255);
+    blob[off3b as usize] = (enc_progress.len() as i32 & 255) as i8;
+    // System.arraycopy(encProgress, 0, blob, off4, encProgress.length);
+    blob[off4 as usize..off4 as usize + enc_progress.len()].copy_from_slice(&enc_progress);
+    // int off5 = off4 + encProgress.length; int off5b = off5 + 1;
+    let off5 = off4.wrapping_add(enc_progress.len() as i32);
+    let off5b = off5.wrapping_add(1);
+    // blob[off5] = (byte)((encPos.length & 65280) >> 8);
+    blob[off5 as usize] = ishr(enc_pos.len() as i32 & 65280, 8) as i8;
+    // blob[off5b] = (byte)(encPos.length & 255);
+    blob[off5b as usize] = (enc_pos.len() as i32 & 255) as i8;
+    // System.arraycopy(encPos, 0, blob, off5b + 1, encPos.length);
+    let pos_dst = off5b.wrapping_add(1);
+    blob[pos_dst as usize..pos_dst as usize + enc_pos.len()].copy_from_slice(&enc_pos);
+    // RmsFile rms = new RmsFile(saveSlots[classId - 6], 0);
+    let class_id = g.game_state.class_id;
+    let slot = g.game_state.save_slots[(class_id as i32).wrapping_sub(6) as usize].clone();
+    let mut rms = rms_file::new_rms_file(&mut g.rms, &slot, 0)?;
+    // rms.write(blob, 0, blob.length); rms.close();
+    rms_file::write(&mut rms, &blob, 0, blob.len() as i32)?;
+    rms_file::close(&mut rms, &mut g.rms);
+    // byte[] encQuick = SaveCipher.encrypt(player.quickItems.serialize(), saveKey);
+    let quick_ser = {
+        let hero = g.entity_arena[id].as_hero().expect("Hero node");
+        item_bag::serialize(&hero.quick_items)
+    }
+    .ok_or(JavaError::NullPointer)?;
+    let enc_quick = save_cipher::encrypt(&quick_ser, &save_key);
+    // RmsFile quickRms = new RmsFile("/o", 0);
+    let mut quick_rms = rms_file::new_rms_file(&mut g.rms, "/o", 0)?;
+    // byte[] quickHeader = {(byte)((encQuick.length & 65280) >> 8), (byte)(encQuick.length & 255)};
+    let quick_header: Vec<i8> = vec![
+        ishr(enc_quick.len() as i32 & 65280, 8) as i8,
+        (enc_quick.len() as i32 & 255) as i8,
+    ];
+    // quickRms.write(quickHeader, 0, quickHeader.length);
+    rms_file::write(&mut quick_rms, &quick_header, 0, quick_header.len() as i32)?;
+    // quickRms.write(encQuick, 0, encQuick.length);
+    rms_file::write(&mut quick_rms, &enc_quick, 0, enc_quick.len() as i32)?;
+    // quickRms.close();
+    rms_file::close(&mut quick_rms, &mut g.rms);
+    Ok(())
+}
+
+/// `private static final void loadGame() throws Exception` (`n.r:()V => [isub,
+/// (iand,ishl,iand,ior)×5]`): reads and decrypts the save blob, restoring bag,
+/// progress, and position (plus the `/o` quick-item bar). Each slice length is the
+/// big-endian `((header[0] & 255) << 8) | (header[1] & 255)`.
+///
+/// DEFERRED: `hero.load(SaveCipher.decrypt(heroBytes, saveKey))` (Hero.load, `ao`) is
+/// unported, so the hero slice is still READ (to keep the RMS cursor aligned) and
+/// decrypted, but not applied. Exposed `pub` for the save/load oracle; the original's
+/// visibility is `private`.
+pub fn load_game(g: &mut Game) -> Result<(), JavaError> {
+    let id = g.game_state.hero.expect("GameState.hero null in loadGame");
+    let save_key = g.game_state.save_key.clone();
+    let class_id = g.game_state.class_id;
+    // byte[] header = new byte[2];
+    let mut header = vec![0i8; 2];
+    // `header.length` (constant 2) — hoisted so the read call does not borrow `header`
+    // both mutably (the buffer) and immutably (its length) at once.
+    let hlen = header.len() as i32;
+    // RmsFile rms = new RmsFile(saveSlots[classId - 6], 1);
+    let slot = g.game_state.save_slots[(class_id as i32).wrapping_sub(6) as usize].clone();
+    let mut rms = rms_file::new_rms_file(&mut g.rms, &slot, 1)?;
+    // rms.read(header, 0, header.length);
+    rms_file::read(&mut rms, &g.rms, &mut header, 0, hlen)?;
+    // byte[] heroBytes = new byte[((header[0] & 255) << 8) | (header[1] & 255)];
+    let hero_len = ishl(header[0] as i32 & 255, 8) | (header[1] as i32 & 255);
+    // rms.read(heroBytes, 0, heroBytes.length);
+    let mut hero_bytes = vec![0i8; hero_len as usize];
+    rms_file::read(&mut rms, &g.rms, &mut hero_bytes, 0, hero_len)?;
+    // hero.load(SaveCipher.decrypt(heroBytes, saveKey));
+    //   — DEFERRED: Hero.load (ao) unported; slice decrypted for parity but not applied.
+    let _ = save_cipher::decrypt(&hero_bytes, &save_key);
+    // rms.read(header, 0, header.length);
+    rms_file::read(&mut rms, &g.rms, &mut header, 0, hlen)?;
+    // byte[] bagBytes = new byte[((header[0] & 255) << 8) | (header[1] & 255)];
+    let bag_len = ishl(header[0] as i32 & 255, 8) | (header[1] as i32 & 255);
+    // rms.read(bagBytes, 0, bagBytes.length);
+    let mut bag_bytes = vec![0i8; bag_len as usize];
+    rms_file::read(&mut rms, &g.rms, &mut bag_bytes, 0, bag_len)?;
+    // hero.bag.deserialize(SaveCipher.decrypt(bagBytes, saveKey));
+    let dec_bag = save_cipher::decrypt(&bag_bytes, &save_key).ok_or(JavaError::NullPointer)?;
+    {
+        // ItemBag.deserialize needs &mut Game (item creation), so the bag is moved out
+        // of the hero, filled, and moved back — the store never aliases the arena.
+        let mut bag = {
+            let hero = g.entity_arena[id].as_hero_mut().expect("Hero node");
+            std::mem::replace(&mut hero.bag, item_bag::new(30))
+        };
+        item_bag::deserialize(&mut bag, g, &dec_bag);
+        g.entity_arena[id].as_hero_mut().expect("Hero node").bag = bag;
+    }
+    // rms.read(header, 0, header.length);
+    rms_file::read(&mut rms, &g.rms, &mut header, 0, hlen)?;
+    // byte[] progressBytes = new byte[((header[0] & 255) << 8) | (header[1] & 255)];
+    let progress_len = ishl(header[0] as i32 & 255, 8) | (header[1] as i32 & 255);
+    // rms.read(progressBytes, 0, progressBytes.length);
+    let mut progress_bytes = vec![0i8; progress_len as usize];
+    rms_file::read(&mut rms, &g.rms, &mut progress_bytes, 0, progress_len)?;
+    // unpackProgress(SaveCipher.decrypt(progressBytes, saveKey));
+    let dec_progress =
+        save_cipher::decrypt(&progress_bytes, &save_key).ok_or(JavaError::NullPointer)?;
+    unpack_progress(g, &dec_progress);
+    // rms.read(header, 0, header.length);
+    rms_file::read(&mut rms, &g.rms, &mut header, 0, hlen)?;
+    // byte[] posBytes = new byte[((header[0] & 255) << 8) | (header[1] & 255)];
+    let pos_len = ishl(header[0] as i32 & 255, 8) | (header[1] as i32 & 255);
+    // rms.read(posBytes, 0, posBytes.length);
+    let mut pos_bytes = vec![0i8; pos_len as usize];
+    rms_file::read(&mut rms, &g.rms, &mut pos_bytes, 0, pos_len)?;
+    // byte[] pos = SaveCipher.decrypt(posBytes, saveKey);
+    let pos = save_cipher::decrypt(&pos_bytes, &save_key).ok_or(JavaError::NullPointer)?;
+    // storyMapId = pos[0]; arg0 = pos[1]; arg1 = pos[2];
+    g.game_state.story_map_id = pos[0];
+    g.game_state.arg0 = pos[1];
+    g.game_state.arg1 = pos[2];
+    // rms.close();
+    rms_file::close(&mut rms, &mut g.rms);
+    // RmsFile quickRms = new RmsFile("/o", 1);
+    let mut quick_rms = rms_file::new_rms_file(&mut g.rms, "/o", 1)?;
+    // quickRms.read(header, 0, header.length);
+    rms_file::read(&mut quick_rms, &g.rms, &mut header, 0, hlen)?;
+    // byte[] quickBytes = new byte[((header[0] & 255) << 8) | (header[1] & 255)];
+    let quick_len = ishl(header[0] as i32 & 255, 8) | (header[1] as i32 & 255);
+    // quickRms.read(quickBytes, 0, quickBytes.length);
+    let mut quick_bytes = vec![0i8; quick_len as usize];
+    rms_file::read(&mut quick_rms, &g.rms, &mut quick_bytes, 0, quick_len)?;
+    // hero.quickItems.deserialize(SaveCipher.decrypt(quickBytes, saveKey));
+    let dec_quick = save_cipher::decrypt(&quick_bytes, &save_key).ok_or(JavaError::NullPointer)?;
+    {
+        let mut quick = {
+            let hero = g.entity_arena[id].as_hero_mut().expect("Hero node");
+            std::mem::replace(&mut hero.quick_items, item_bag::new(15))
+        };
+        item_bag::deserialize(&mut quick, g, &dec_quick);
+        g.entity_arena[id]
+            .as_hero_mut()
+            .expect("Hero node")
+            .quick_items = quick;
+    }
+    // quickRms.close();
+    rms_file::close(&mut quick_rms, &mut g.rms);
+    Ok(())
 }
 
 /// `public static final void setHeroTile(int tileX, int tileY)` (`n`): teleports the
