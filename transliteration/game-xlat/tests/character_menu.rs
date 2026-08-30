@@ -46,6 +46,12 @@ const KEY_LEFT: i32 = 52;
 /// unspent level-up points granted (a fresh `initClass` hero has 0). Returns its id.
 fn new_game_hero(g: &mut Game, class_id: i8, stat_points: i16) -> EntityId {
     g.byte_util = byte_util::ByteUtilState::seeded(GAME_RNG_SEED);
+    // initClass now creates the five equipment slots via Item.create(parse=true), which
+    // eagerly Item.load()s each `/itm/*` record (faithful to Java). Load the JAR so those
+    // records resolve — the same setup Hero's own `hero_persist` test uses.
+    for (name, bytes) in jar().matching(|_| true) {
+        g.resources.insert(name, to_i8(&bytes));
+    }
     // GameState.classId is read by StatusPage's className/lore lookups (DEFERRED) and
     // by CharacterMenu.open's equip-anim indices (DEFERRED); set it faithfully.
     g.game_state.class_id = class_id;
