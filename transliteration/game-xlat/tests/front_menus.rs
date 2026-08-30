@@ -74,6 +74,8 @@ fn menu_depth(g: &Game) -> u32 {
             MenuChild::SellList => g.sell_list.picker.base.child,
             MenuChild::ShopItemList => g.shop_item_list.base.child,
             MenuChild::BuySell => g.buy_sell_dialog.base.child,
+            MenuChild::Status => g.status_page.base.child,
+            MenuChild::StatAlloc => g.stat_alloc_menu.base.child,
         };
         depth += 1;
         child = next;

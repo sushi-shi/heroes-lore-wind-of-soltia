@@ -315,3 +315,23 @@ ShopMenu	a	panelX	I	ShopMenuState	panel_x
 ShopMenu	b	panelY	I	ShopMenuState	panel_y
 ShopMenu	a	text	Lz;	ShopMenuState	text
 ShopMenu	a	singleton	Lbp;	ShopMenuState	singleton
+#
+# obf class map (the character-stats menu cluster):
+#   CharacterMenu -> ai.class  (four static rows below; the obf names collide — panelX/
+#                              text/singleton are all `a`, panelY is `b` — disambiguated
+#                              by descriptor. The equipSnapshot (`h`, `[B`) /
+#                              guardianSnapshot (`c`, `B`) fields are per-INSTANCE on
+#                              CharacterMenuState.)
+#   StatusPage    -> q.class   (no rows: instance-only, no statics — className/classDesc
+#                              (`a`/`b`, `[C`) are per-INSTANCE on StatusPageState; the
+#                              flat model carries the reusable child slot as the
+#                              Game.status_page field, linked by CharacterMenu's Menu.child.)
+#   StatAllocMenu -> bi.class  (no rows: instance-only, no statics — remainingPoints
+#                              (`a`, `S`) / pending (`a`, `[S`) are per-INSTANCE on
+#                              StatAllocMenuState; the flat model carries the reusable
+#                              child slot as the Game.stat_alloc_menu field, linked by
+#                              StatusPage's Menu.child.)
+CharacterMenu	a	panelX	I	CharacterMenuState	panel_x
+CharacterMenu	b	panelY	I	CharacterMenuState	panel_y
+CharacterMenu	a	text	Lz;	CharacterMenuState	text
+CharacterMenu	a	singleton	Lai;	CharacterMenuState	singleton

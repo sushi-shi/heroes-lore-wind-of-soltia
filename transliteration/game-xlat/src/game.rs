@@ -29,6 +29,7 @@ use crate::audio_manager::AudioManagerState;
 use crate::base_canvas::BaseCanvasState;
 use crate::buy_sell_dialog::BuySellDialogState;
 use crate::byte_util::ByteUtilState;
+use crate::character_menu::CharacterMenuState;
 use crate::class_confirm_menu::ClassConfirmMenuState;
 use crate::class_select_menu::ClassSelectMenuState;
 use crate::confirm_dialog::ConfirmDialogState;
@@ -50,6 +51,8 @@ use crate::sell_list::SellListState;
 use crate::shop_item_list::ShopItemListState;
 use crate::shop_menu::ShopMenuState;
 use crate::start_trait_menu::StartTraitMenuState;
+use crate::stat_alloc_menu::StatAllocMenuState;
+use crate::status_page::StatusPageState;
 use crate::string_table::StringTableData;
 use crate::title_screen::TitleScreenState;
 
@@ -183,6 +186,22 @@ pub struct Game {
     /// `SellList`; the flat model carries the reusable child slot as a `Game` field,
     /// linked by the [`MenuChild`](crate::menu::MenuChild).
     pub buy_sell_dialog: BuySellDialogState,
+    /// `ai` / `CharacterMenu` state (the six-tab character-menu singleton — its `Menu`
+    /// base + the per-instance equip/guardian snapshots + the
+    /// `panelX`/`panelY`/`text`/`singleton` statics). A separate menu root from
+    /// `MainMenu`, reached via the world's screen-5 dispatch (that wiring is DEFERRED to
+    /// the game-state lane).
+    pub character_menu: CharacterMenuState,
+    /// `q` / `StatusPage` state (the character menu's status tab + its `cb`/`Menu` base
+    /// fields). Not a Java static — a per-instance child of `CharacterMenu` (or the
+    /// level-up flow); the flat model carries the reusable child slot as a `Game` field,
+    /// linked by the [`MenuChild`](crate::menu::MenuChild).
+    pub status_page: StatusPageState,
+    /// `bi` / `StatAllocMenu` state (the level-up stat-allocation dialog + its `cb`/`Menu`
+    /// base fields + the pending/remaining allocation). Not a Java static — a per-instance
+    /// child of `StatusPage`; the flat model carries the reusable child slot as a `Game`
+    /// field, linked by the [`MenuChild`](crate::menu::MenuChild).
+    pub stat_alloc_menu: StatAllocMenuState,
     /// `bw` / `AudioManager` state (the `snd/` clip pool + volume/mixer state).
     pub audio: AudioManagerState,
     /// `ce` / `AssetCache` state (PARTIAL — only the title/logo render-path banks
@@ -260,6 +279,9 @@ impl Game {
             shop_menu: ShopMenuState::default(),
             shop_item_list: ShopItemListState::default(),
             buy_sell_dialog: BuySellDialogState::default(),
+            character_menu: CharacterMenuState::default(),
+            status_page: StatusPageState::default(),
+            stat_alloc_menu: StatAllocMenuState::default(),
             asset_cache: AssetCacheState::new(),
             asset_loader: AssetLoaderState::default(),
             font_manager: FontManagerState::default(),
