@@ -6,10 +6,17 @@
 //! The localized-string table. A singleton holds the whole `lang/language.<suffix>`
 //! payload in memory (`blob`) and hands out strings by numeric id (`get`) via a
 //! per-id `u32` offset table followed by modified-UTF-8 records. This increment
-//! ports `load` + `get` — the path the title footer (`getString(3950)`) needs.
-//! `resolveLocale` is only reached when `load` is passed a negative index; the
+//! ports `load` + `get` — the path the title footer (`getString(3950)`) needs — and
+//! now also `resolveLocale` + `load`'s `index < 0` auto-locale branch.
+//! `resolveLocale` is reached only when `load` is passed a negative index; the
 //! title path calls `load("/lang/language","",1)` (fr-FR, the EN baseline's
-//! mislabeled English file), so it is DEFERRED.
+//! mislabeled English file, `index >= 0`), so that branch is off the captured route.
+//!
+//! `resolveLocale`'s `System.getProperty("microedition.locale")` fallback (taken
+//! only when the passed `locale` is null) is a device system-property read with no
+//! generic `j2me-me` op yet; it is unavailable in the headless transliteration —
+//! modelled as `None` (the property absent / the method's own `catch` null), so a
+//! null-locale resolve yields `-1` and `load` falls back to index 0.
 //!
 //! Opcode shapes (R8, `_reference/numeric_shapes.json`):
 //! `cj.a:(Ljava/lang/String;Ljava/lang/String;I)V => [iand,i2b,isub,iadd]` (load),
@@ -37,14 +44,78 @@ pub struct StringTableData {
 /// `fr-FR` holds English).
 pub const LOCALES: [&str; 5] = ["en-GB", "fr-FR", "de-DE", "it-IT", "es-ES"];
 
+/// `private int resolveLocale(String locale) throws IOException`
+/// (`cj.a:(Ljava/lang/String;)I`): resolves `locale` (or `microedition.locale` when
+/// null) to a [`LOCALES`] index — an exact case-insensitive match returns the plain
+/// index; a two-letter (language-code) prefix match returns the index OR'd with
+/// `0x8000` (`32768`); no match returns `-1`.
+///
+/// Private in Java; exposed here so the transliteration's behavioural gate can
+/// assert the match. `locale == null` would consult the device
+/// `microedition.locale` system property — unavailable in the headless port, so a
+/// `None` locale stays `None` (see the module header) and returns `-1`.
+pub fn resolve_locale(_s: &StringTableData, locale: Option<&str>) -> i32 {
+    // int index = -1;
+    let mut index: i32 = -1;
+    // if (locale == null) { try { locale = System.getProperty("microedition.locale"); }
+    //                       catch (Exception) { locale = null; } }
+    //   The device system property is unavailable headless; `locale` stays None.
+    let locale: Option<&str> = locale;
+    // if (locale != null) { ... }
+    if let Some(locale) = locale {
+        let locale_lower = locale.to_lowercase();
+        // for (i = 0; i < locales.length; i++) if (locales[i].toLowerCase().compareTo(locale.toLowerCase()) == 0) { index = i; break; }
+        let mut i: i32 = 0;
+        while i < LOCALES.len() as i32 {
+            if LOCALES[i as usize].to_lowercase() == locale_lower {
+                index = i;
+                break;
+            }
+            i = i.wrapping_add(1);
+        }
+        // if (index == -1) { for (i ...) if (locales[i].toLowerCase().substring(0,2).compareTo(locale.toLowerCase().substring(0,2)) == 0) { index = i | 32768; break; } }
+        if index == -1 {
+            let mut i: i32 = 0;
+            while i < LOCALES.len() as i32 {
+                if prefix2(&LOCALES[i as usize].to_lowercase()) == prefix2(&locale_lower) {
+                    index = i | 32768;
+                    break;
+                }
+                i = i.wrapping_add(1);
+            }
+        }
+    }
+    // return index;
+    index
+}
+
+/// `String.substring(0, 2)` — the first two UTF-16 code units. Java throws
+/// `StringIndexOutOfBoundsException` on a shorter string (an uncaught runtime
+/// exception here); reproduced as a panic on a <2-unit input.
+fn prefix2(s: &str) -> Vec<u16> {
+    let units: Vec<u16> = s.encode_utf16().collect();
+    assert!(
+        units.len() >= 2,
+        "String.substring(0, 2): index out of bounds"
+    );
+    units[0..2].to_vec()
+}
+
 /// `public final void load(String basePath, String locale, int index)`
 /// (`=> [iand,i2b,isub,iadd]`). Loads `basePath + "." + locales[index]` into
 /// `blob`. The `IOException` catch (log "Couldn't load babble file.") is subsumed
 /// — the resource is present on the title path.
-pub fn load(g: &mut Game, base_path: &str, _locale: &str, index: i32) {
+pub fn load(g: &mut Game, base_path: &str, locale: &str, index: i32) {
     // if (index < 0) { index = resolveLocale(locale); if (index == -1) index = 0; }
-    //   DEFERRED: the title path always passes index >= 0 (loadLanguage(1)).
-    let index: i32 = index;
+    let mut index: i32 = index;
+    if index < 0 {
+        // resolveLocale(locale) — `locale` is the String load received (the title
+        // path passes "" with index >= 0, so this branch is off the captured route).
+        index = resolve_locale(&g.string_table, Some(locale));
+        if index == -1 {
+            index = 0;
+        }
+    }
     // this.localeIndex = (byte) (index & 32767);
     g.string_table.locale_index = (index & 32767) as i8;
     // getResourceAsStream(basePath + "." + locales[localeIndex])
