@@ -115,4 +115,16 @@ pub mod effect;
 pub mod npc;
 pub mod projectile;
 
+// The concrete boss subclasses that extend the abstract `Boss` (`av`): the solo
+// `RockyBoss` (`cc`) and the three-part `Geb` family — `GebCore` (`bv`), `GebHead`
+// (`cg`), `GebHandLeft` (`ba`), `GebHandRight` (`ak`). Each is a `Boss` node tagged by
+// the `boss::BossSubclass` discriminant (no new `EntityData` variant); their virtual
+// overrides are wired through the `boss` dispatchers. The `Nord*` boss family is a
+// separate later lane.
+pub mod geb_core;
+pub mod geb_hand_left;
+pub mod geb_hand_right;
+pub mod geb_head;
+pub mod rocky_boss;
+
 pub use game::Game;

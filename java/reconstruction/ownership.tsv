@@ -380,3 +380,23 @@ RefineMenu	a	panelX	I	RefineMenuState	panel_x
 RefineMenu	b	panelY	I	RefineMenuState	panel_y
 RefineMenu	a	text	Lz;	RefineMenuState	text
 RefineMenu	a	singleton	Lax;	RefineMenuState	singleton
+#
+# obf class map (the concrete boss subclasses that extend Boss `av`):
+#   RockyBoss     -> cc.class  (two rows below: patternSequence/patternCooldowns, the two
+#                              `static final byte[]` attack schedules, reproduced as `const`
+#                              tables — the `attackHitFrame` precedent. The instance fields
+#                              patternIndex/attackPattern/attackFrameCount (`v`/`w`/`x`, `B`)
+#                              are per-INSTANCE on rocky_boss::RockyBossData, carried by the
+#                              boss::BossSubclass::RockyBoss tag inside boss::BossData.)
+#   GebCore       -> bv.class  (no rows: instance-only, no statics — it adds no fields; the
+#                              boss::BossSubclass::GebCore tag is a unit variant.)
+#   GebHead       -> cg.class  (no rows: instance-only, no statics — leftHand/rightHand
+#                              (`a`/`f238a`, `Lba;`/`Lak;`), collisionSealed (`g`, `Z`),
+#                              attackBurstCount (`v`, `B`) are per-INSTANCE on
+#                              geb_head::GebHeadData.)
+#   GebHandLeft   -> ba.class  (no rows: instance-only, no statics — ticksSinceHit (`v`, `B`)
+#                              is per-INSTANCE on geb_hand_left::GebHandLeftData.)
+#   GebHandRight  -> ak.class  (no rows: instance-only, no statics — ticksSinceHit/swingSide
+#                              (`v`/`w`, `B`) are per-INSTANCE on geb_hand_right::GebHandRightData.)
+RockyBoss	h	patternSequence	[B	rocky_boss	PATTERN_SEQUENCE
+RockyBoss	i	patternCooldowns	[B	rocky_boss	PATTERN_COOLDOWNS
