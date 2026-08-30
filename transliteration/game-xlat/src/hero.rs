@@ -8,13 +8,16 @@
 //! inventory and quick-item bags, equipment, guardian companions, the combo/attack
 //! animation state, and the RMS save format.
 //!
-//! **This slice ports the FIELD LAYER + the constructor + New Game class setup.**
-//! [`HeroData`] + [`new_hero`] (`new Hero(0,0,8,8,classId)`), plus [`init_class`]
-//! (class base stats/level/gold), [`recompute_stats`] (derived attack/defense/
-//! maxHp/maxMp/expToNext), [`init`] and [`reset_combo`] land here — enough to place
-//! a viable hero on the map. The guardian setup and the five starting
-//! `equipment` slots (`Item.create`) inside `init_class` are DEFERRED (see its doc),
-//! as are the combat FSM ([`update`]) and rendering ([`paint`]).
+//! **This slice ports the FIELD LAYER + the constructor + New Game class setup +
+//! the RMS save format.** [`HeroData`] + [`new_hero`] (`new Hero(0,0,8,8,classId)`),
+//! [`init_class`] (class base stats/level/gold **and the five starting `Item.create`
+//! equipment slots**), [`recompute_stats`] (derived attack/defense/maxHp/maxMp/
+//! expToNext **including the equipment gear bonuses**), [`init`], [`reset_combo`],
+//! and [`save`]/[`load`] (serialize/deserialize the hero core stats + equipment to/
+//! from bytes). The **guardian** companion setup inside `init_class`/`save`/`load` is
+//! DEFERRED (`// DEFERRED: Guardian` — a separate later batch; the `guardians`/
+//! `activeGuardian` slots are all-null in this slice), as are the combat FSM
+//! ([`update`]) and the attack/death poses in ([`paint`]).
 //!
 //! `Hero` has no mutable `static` fields; `COMBO_FRAMES_CLASS6/7/8` are
 //! `static final` constant tables, reproduced as `const` (crcTable/QUICK_TYPES
@@ -30,8 +33,11 @@ use crate::directions::{DIR_DX, DIR_DY, REVERSE};
 use crate::entity::{self, EntityArena, EntityData, EntityId, EntityNode};
 use crate::game::Game;
 use crate::game_screen;
+use crate::item::{self, Item};
 use crate::item_bag::{self, ItemBag, ItemRef};
-use j2me_jvm::{java_div, java_ldiv, Clock, VirtualClock};
+use j2me_jvm::{ishr, java_div, java_ldiv, Clock, VirtualClock};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 /// Warrior (class 6) combo frame table: `[attackType-1][comboStep]` durations.
 /// `private static final byte[][] COMBO_FRAMES_CLASS6` (`ao.b`).
@@ -281,19 +287,21 @@ pub fn new_hero(
 }
 
 /// `public final void initClass(byte classId)` (`ao.a:(B)V`) — sets the starting
-/// stats/level/gold for the chosen class and recomputes the derived stats.
+/// stats/level/gold for the chosen class, creates the five starting equipment items,
+/// and recomputes the derived stats.
 ///
-/// **Guardian + equipment DEFERRED.** The leading
-/// `Debug.assertTrue(guardians[0/1] != null)` + `setActiveGuardian(guardians[0])`
-/// and the five `equipment[i] = (Equipment) Item.create(...)` lines are the guardian
-/// / item setup, which are not driven in this minimal New Game slice (the guardian
-/// slots are populated by the DEFERRED guardian-summon path; `Item.create` is not
-/// driven). Skipping them leaves `activeGuardian`/`equipment` null, so
-/// [`recompute_stats`] adds no gear bonuses. The class base stats, `level`,
+/// **Guardian DEFERRED; equipment PORTED.** The leading
+/// `Debug.assertTrue(guardians[0/1] != null)` + `setActiveGuardian(guardians[0])` are
+/// the guardian setup (`guardians` all-null in this slice — the guardian-summon path
+/// that fills them is a later batch), DEFERRED with `// DEFERRED: Guardian`. The five
+/// `equipment[i] = (Equipment) Item.create(...)` slots ARE created here (via the
+/// ported [`item::create`], driving `AssetCache.loadItemRecord`), so
+/// [`recompute_stats`] now folds their gear bonuses. The class base stats, `level`,
 /// `maxCombo`, `gold`, `statPoints`, and `hp`/`mp`/`exp` are set faithfully.
 pub fn init_class(g: &mut Game, id: EntityId, class_id: i8) {
     // Debug.assertTrue(guardians[0] != null); Debug.assertTrue(guardians[1] != null);
-    // setActiveGuardian(guardians[0]);   — DEFERRED (guardian setup; see doc).
+    // setActiveGuardian(guardians[0]);   — DEFERRED: Guardian (guardian setup; the
+    //   `guardians` array is all-null in this slice, so these three lines are skipped).
     {
         let hero = g.entity_arena[id].as_hero_mut().expect("Hero node");
         // switch (classId) { case 6/7/8: strength/vitality/agility/spirit = ...; }
@@ -318,8 +326,28 @@ pub fn init_class(g: &mut Game, id: EntityId, class_id: i8) {
             }
             _ => {}
         }
-        // equipment[0]=class weapon; equipment[2..4]=armor/head/accessory (via
-        //   Item.create).  — DEFERRED (item creation not driven; slots stay null).
+    }
+    // switch (classId): the class weapon (slot 0), plus the mage's shield (slot 1).
+    match class_id {
+        // case 6: equipment[0] = (Equipment) Item.create((byte) 0, (byte) 0, true, false);
+        6 => create_starting_equipment(g, id, 0, 0, 0),
+        // case 7: equipment[0] = (Equipment) Item.create((byte) 2, (byte) 0, true, false);
+        7 => create_starting_equipment(g, id, 0, 2, 0),
+        // case 8: equipment[0] = Item.create((byte) 1, ...); equipment[1] = Item.create((byte) 3, ...);
+        8 => {
+            create_starting_equipment(g, id, 0, 1, 0);
+            create_starting_equipment(g, id, 1, 3, 0);
+        }
+        _ => {}
+    }
+    // equipment[2] = (Equipment) Item.create((byte) 5, (byte) 0, true, false);
+    create_starting_equipment(g, id, 2, 5, 0);
+    // equipment[3] = (Equipment) Item.create((byte) 6, (byte) 0, true, false);
+    create_starting_equipment(g, id, 3, 6, 0);
+    // equipment[4] = (Equipment) Item.create((byte) 4, (byte) 0, true, false);
+    create_starting_equipment(g, id, 4, 4, 0);
+    {
+        let hero = g.entity_arena[id].as_hero_mut().expect("Hero node");
         // this.level = 1; this.maxCombo = 1;
         hero.level = 1;
         hero.max_combo = 1;
@@ -339,24 +367,69 @@ pub fn init_class(g: &mut Game, id: EntityId, class_id: i8) {
     }
 }
 
-/// `public final void recomputeStats()` (`ao.a:()V`) — recomputes attack/defense/
-/// maxHp/maxMp/expToNext from the base stats + equipment enchants. All five
-/// `equipment` slots are null in this slice (item creation DEFERRED in
-/// [`init_class`]), so every `equip[i] != null` branch takes the null side (adds
-/// nothing); the branches are reproduced structurally. `GameLoop.gameScreen.markRedraw()`.
+/// The three-line `equipment[slot] = (Equipment) Item.create(type, subId, true, false);
+/// equipment[slot].identified = true; equipment[slot].quantity = (byte) 1;` idiom
+/// `initClass` repeats for each starting slot. The freshly-created item is not aliased
+/// anywhere until it is stored, so setting the two fields on it before wrapping it into
+/// the shared [`ItemRef`] slot is identical to the Java's store-then-mutate order.
+fn create_starting_equipment(g: &mut Game, id: EntityId, slot: usize, r#type: i8, sub_id: i8) {
+    // this.equipment[slot] = (Equipment) Item.create(type, subId, true, false);
+    let mut created: Item = item::create(g, r#type, sub_id, true, false);
+    // this.equipment[slot].identified = true;
+    created.identified = true;
+    // this.equipment[slot].quantity = (byte) 1;
+    created.quantity = 1;
+    let hero = g.entity_arena[id].as_hero_mut().expect("Hero node");
+    hero.equipment[slot] = Some(Rc::new(RefCell::new(created)));
+}
+
+/// `public final void recomputeStats()` (`ao.n:()V`) — recomputes attack/defense/
+/// maxHp/maxMp/expToNext from the base stats + the five equipment slots' enchant
+/// bonuses, per-slot `value`/`refineLevel`. Now that [`init_class`] creates the
+/// starting gear (item creation ported), the `equip[i] != null` branches fold in the
+/// real bonuses. `GameLoop.gameScreen.markRedraw()`.
+///
+/// The four divisions (`(refineLevel*5)/2`, `((strength+strengthBonus)*4)/5`,
+/// `(strength+strengthBonus)/5`, `level/3`) are the method's four `idiv`s in the R8
+/// shape; each divisor is a nonzero constant, so `java_div(...).expect(...)` is the
+/// faithful `ArithmeticException` site (never taken).
 pub fn recompute_stats(g: &mut Game, id: EntityId) {
     {
         let hero = g.entity_arena[id].as_hero_mut().expect("Hero node");
-        // Equipment[] equip = this.equipment;
+        // Equipment[] equip = this.equipment;  — snapshot the four gear fields the
+        // arithmetic below reads (value/refineLevel/enchant[0..4]), so the shared
+        // `RefCell` borrows do not overlap the `hero` mutations.
+        let mut eq_present = [false; 5];
+        let mut eq_value = [0i16; 5];
+        let mut eq_refine = [0i8; 5];
+        let mut eq_enchant = [[0i8; 4]; 5];
+        for i in 0..5 {
+            if let Some(eq) = hero.equipment[i].as_ref() {
+                let b = eq.borrow();
+                eq_present[i] = true;
+                eq_value[i] = b.value;
+                eq_refine[i] = b.refine_level;
+                eq_enchant[i] = [b.enchant[0], b.enchant[1], b.enchant[2], b.enchant[3]];
+            }
+        }
         // strengthBonus = vitalityBonus = agilityBonus = spiritBonus = 0;
         hero.strength_bonus = 0;
         hero.vitality_bonus = 0;
         hero.agility_bonus = 0;
         hero.spirit_bonus = 0;
-        // for (i=0;i<5;i++) if (equip[i]!=null) bonuses += equip[i].enchant[..];
+        // for (i=0;i<5;i++) if (equip[i]!=null) { strengthBonus = (byte)(strengthBonus +
+        //   equip[i].enchant[0]); vitalityBonus += enchant[1]; agilityBonus += enchant[2];
+        //   spiritBonus += enchant[3]; }
         for i in 0..5 {
-            if hero.equipment[i].is_some() {
-                // (DEFERRED: enchant-bonus accumulation — equipment null in this slice.)
+            if eq_present[i] {
+                hero.strength_bonus =
+                    (hero.strength_bonus as i32).wrapping_add(eq_enchant[i][0] as i32) as i8;
+                hero.vitality_bonus =
+                    (hero.vitality_bonus as i32).wrapping_add(eq_enchant[i][1] as i32) as i8;
+                hero.agility_bonus =
+                    (hero.agility_bonus as i32).wrapping_add(eq_enchant[i][2] as i32) as i8;
+                hero.spirit_bonus =
+                    (hero.spirit_bonus as i32).wrapping_add(eq_enchant[i][3] as i32) as i8;
             }
         }
         // maxHp = 0; maxMp = 0; expToNext = 0; attack = 0; defense = 0;
@@ -382,7 +455,17 @@ pub fn recompute_stats(g: &mut Game, id: EntityId) {
             .wrapping_mul(level)
             .wrapping_sub(level.wrapping_mul(level))
             .wrapping_add(80i32.wrapping_mul(level));
-        // attack += (equip[0]!=null ? equip[0].value + (equip[0].refineLevel*5)/2 : 0);  → +0
+        // attack = (short) (attack + (equip[0] != null ? equip[0].value +
+        //   ((equip[0].refineLevel * 5) / 2) : 0));
+        let attack_equip0: i32 = if eq_present[0] {
+            (eq_value[0] as i32).wrapping_add(
+                java_div((eq_refine[0] as i32).wrapping_mul(5), 2)
+                    .expect("(equip[0].refineLevel * 5) / 2"),
+            )
+        } else {
+            0
+        };
+        hero.attack = (hero.attack as i32).wrapping_add(attack_equip0) as i16;
         // attack = (short) (attack + ((strength + strengthBonus) * 4) / 5);
         let str_term = java_div(
             (hero.strength as i32)
@@ -392,7 +475,26 @@ pub fn recompute_stats(g: &mut Game, id: EntityId) {
         )
         .expect("((strength + strengthBonus) * 4) / 5");
         hero.attack = (hero.attack as i32).wrapping_add(str_term) as i16;
-        // defense += the four equip[1..4] terms  → +0 (all null)
+        // defense = (short) (defense + (equip[1] != null ? equip[1].value + equip[1].refineLevel : 0));
+        let def_equip1: i32 = if eq_present[1] {
+            (eq_value[1] as i32).wrapping_add(eq_refine[1] as i32)
+        } else {
+            0
+        };
+        hero.defense = (hero.defense as i32).wrapping_add(def_equip1) as i16;
+        // defense = (short) (defense + (equip[2] != null ? equip[2].value + (equip[2].refineLevel * 2) : 0));
+        let def_equip2: i32 = if eq_present[2] {
+            (eq_value[2] as i32).wrapping_add((eq_refine[2] as i32).wrapping_mul(2))
+        } else {
+            0
+        };
+        hero.defense = (hero.defense as i32).wrapping_add(def_equip2) as i16;
+        // defense = (short) (defense + (equip[3] != null ? equip[3].value : (short) 0));
+        let def_equip3: i32 = if eq_present[3] { eq_value[3] as i32 } else { 0 };
+        hero.defense = (hero.defense as i32).wrapping_add(def_equip3) as i16;
+        // defense = (short) (defense + (equip[4] != null ? equip[4].value : (short) 0));
+        let def_equip4: i32 = if eq_present[4] { eq_value[4] as i32 } else { 0 };
+        hero.defense = (hero.defense as i32).wrapping_add(def_equip4) as i16;
         // defense = (short) (defense + ((strength + strengthBonus) / 5));
         let def_str = java_div(
             (hero.strength as i32).wrapping_add(hero.strength_bonus as i32),
@@ -882,4 +984,246 @@ fn draw_attack_sprite(
         x,
         y,
     );
+}
+
+/// `public final byte[] save()` (`ao.a:()[B => [iinc, iinc, iadd, i2b, ldiv, i2l,
+/// lsub, l2i, iadd]`) — serializes the hero to a `byte[]` through a
+/// `DataOutputStream` over a `ByteArrayOutputStream`: `classId`/`level`, the four
+/// `int`s `hp`/`mp`/`exp` + the recomputable `maxHp`/`maxMp`/`expToNext`,
+/// `maxCombo`/`statPoints`, the four base stats, then five equipment slots
+/// (`[flag][10-byte Item.serialize]`) and five guardian slots (`[flag]…`), finally the
+/// accumulated `playSeconds`.
+///
+/// The `try { … } catch (IOException)` around the in-memory streams never throws (cf.
+/// [`crate::item_bag::serialize`]), so a `byte[]` is always produced (never null);
+/// modelled as an infallible `Vec<i8>` return. The `DataOutputStream` big-endian byte
+/// work is reproduced inline (as `item_bag` reproduces `writeInt`).
+///
+/// **Guardian DEFERRED.** The `guardians` slots are all-null in this slice, so the
+/// guardian presence loop writes a single `0` byte per slot (faithful for null
+/// guardians); the non-null else-branch (writing `type`/`level`/`exp`/`skillSlotA`/
+/// `skillSlotB` — reaching the unported `Guardian`) is unreachable and marked
+/// `// DEFERRED: Guardian`. The active-guardian block —
+/// `Debug.assertTrue(activeGuardian != null)`, the `activeIndex` search (whose
+/// `b3 = (byte)(b3 + 1)` is the shape's `iadd,i2b`), and `writeByte(activeIndex)` — is
+/// `// DEFERRED: Guardian`: `activeGuardian` is null here (its assignment is the
+/// deferred guardian-summon setup), so the assert would fire and no index is
+/// meaningful. That single `activeIndex` byte (and its `iadd,i2b`) is therefore
+/// omitted from the blob; [`load`] omits the matching read, so the pair round-trips.
+/// The trailing `playSeconds` `int` IS written faithfully (`ldiv/i2l/lsub/l2i/iadd`).
+pub fn save(g: &mut Game, id: EntityId) -> Vec<i8> {
+    // ByteArrayOutputStream + DataOutputStream — an in-memory byte sink.
+    let mut out: Vec<i8> = Vec::new();
+    {
+        let hero = g.entity_arena[id].as_hero().expect("Hero node");
+        // writeByte(this.classId); writeByte(this.level);
+        write_byte(&mut out, hero.class_id);
+        write_byte(&mut out, hero.level);
+        // writeInt(hp); writeInt(mp); writeInt(exp); writeInt(maxHp); writeInt(maxMp); writeInt(expToNext);
+        write_int(&mut out, hero.hp);
+        write_int(&mut out, hero.mp);
+        write_int(&mut out, hero.exp);
+        write_int(&mut out, hero.max_hp);
+        write_int(&mut out, hero.max_mp);
+        write_int(&mut out, hero.exp_to_next);
+        // writeByte(maxCombo);
+        write_byte(&mut out, hero.max_combo);
+        // writeShort(statPoints); writeShort(strength); writeShort(vitality); writeShort(agility); writeShort(spirit);
+        write_short(&mut out, hero.stat_points);
+        write_short(&mut out, hero.strength);
+        write_short(&mut out, hero.vitality);
+        write_short(&mut out, hero.agility);
+        write_short(&mut out, hero.spirit);
+        // for (int i = 0; i < 5; i++) { if (equipment[i] == null) writeByte(0);
+        //   else { writeByte(1); write(equipment[i].serialize()); } }
+        for i in 0..5 {
+            match hero.equipment[i].as_ref() {
+                None => write_byte(&mut out, 0),
+                Some(eq) => {
+                    write_byte(&mut out, 1);
+                    out.extend_from_slice(&item::serialize(&eq.borrow()));
+                }
+            }
+        }
+        // for (int i2 = 0; i2 < guardians.length; i2++) { if (guardians[i2] == null) writeByte(0);
+        //   else { writeByte(1); writeByte(type); writeShort(level); writeInt(1); writeInt(1);
+        //          writeInt(exp); writeByte(skillSlotA); writeByte(skillSlotB); } }
+        for i2 in 0..hero.guardians.len() {
+            if hero.guardians[i2].is_none() {
+                write_byte(&mut out, 0);
+            } else {
+                // DEFERRED: Guardian — the guardian-object fields reach the unported
+                //   `Guardian`; unreachable (guardians are all-null in this slice).
+                unreachable!("DEFERRED: Guardian — guardians[] are all null in this slice");
+            }
+        }
+        // Debug.assertTrue(activeGuardian != null); byte activeIndex = -1;
+        //   for (byte b3 = 0; b3 < guardians.length; b3 = (byte)(b3+1)) if (activeGuardian == guardians[b3]) { activeIndex = b3; break; }
+        //   Debug.assertTrue(activeIndex != -1); writeByte(activeIndex);
+        //   — DEFERRED: Guardian (activeGuardian null here; the index byte + its iadd,i2b are
+        //     omitted, and load omits the matching read).
+    }
+    // writeInt(this.playSeconds + ((int) ((System.currentTimeMillis() / 1000) - ((long) this.sessionStartSec))));
+    let (play_seconds, session_start_sec) = {
+        let hero = g.entity_arena[id].as_hero().expect("Hero node");
+        (hero.play_seconds, hero.session_start_sec)
+    };
+    let now_secs =
+        java_ldiv(g.clock.current_time_millis(), 1000).expect("currentTimeMillis / 1000");
+    let elapsed = now_secs.wrapping_sub(session_start_sec as i64) as i32;
+    write_int(&mut out, play_seconds.wrapping_add(elapsed));
+    // return byteArrayOutputStream.toByteArray();
+    out
+}
+
+/// `public final void load(byte[] bArr)` (`ao.a:([B)V => [iinc, iinc]`) — restores the
+/// hero from its [`save`] form through a `DataInputStream` over a
+/// `ByteArrayInputStream`, then `recomputeStats()`. The three `readInt()`s for
+/// `maxHp`/`maxMp`/`expToNext` are read and **discarded** (the values are recomputed);
+/// reproduced as read-and-drop.
+///
+/// The `try { … } catch (IOException)` never fires for the in-memory stream. The two
+/// `Debug.assertTrue(guardians[0] == null)` / `assertTrue(activeGuardian == null)`
+/// preconditions hold on a fresh hero (both null in this slice) and are reproduced.
+///
+/// **Guardian DEFERRED.** The guardian presence loop reads five `0` flags ([`save`]
+/// wrote `0` for every null guardian), so the `!= 0` body — `findOrCreateGuardian` +
+/// `Guardian` field restore — is unreachable and marked `// DEFERRED: Guardian`.
+/// `setActiveGuardian(guardians[readByte()])` — which would consume the `activeIndex`
+/// byte [`save`] omitted — is `// DEFERRED: Guardian` and reads no byte, keeping the
+/// cursor aligned with the writer.
+pub fn load(g: &mut Game, id: EntityId, data: &[i8]) {
+    // ByteArrayInputStream + DataInputStream — a cursor over `data`.
+    let mut pos: usize = 0;
+    // classId = readByte(); level = readByte();
+    let class_id = read_byte(data, &mut pos);
+    let level = read_byte(data, &mut pos);
+    // hp = readInt(); mp = readInt(); exp = readInt();
+    let hp = read_int(data, &mut pos);
+    let mp = read_int(data, &mut pos);
+    let exp = read_int(data, &mut pos);
+    // readInt(); readInt(); readInt();  — maxHp/maxMp/expToNext discarded (recomputed below).
+    let _ = read_int(data, &mut pos);
+    let _ = read_int(data, &mut pos);
+    let _ = read_int(data, &mut pos);
+    // maxCombo = readByte();
+    let max_combo = read_byte(data, &mut pos);
+    // statPoints = readShort(); strength = readShort(); vitality = readShort(); agility = readShort(); spirit = readShort();
+    let stat_points = read_short(data, &mut pos);
+    let strength = read_short(data, &mut pos);
+    let vitality = read_short(data, &mut pos);
+    let agility = read_short(data, &mut pos);
+    let spirit = read_short(data, &mut pos);
+    {
+        let hero = g.entity_arena[id].as_hero_mut().expect("Hero node");
+        hero.class_id = class_id;
+        hero.level = level;
+        hero.hp = hp;
+        hero.mp = mp;
+        hero.exp = exp;
+        hero.max_combo = max_combo;
+        hero.stat_points = stat_points;
+        hero.strength = strength;
+        hero.vitality = vitality;
+        hero.agility = agility;
+        hero.spirit = spirit;
+    }
+    // for (int i = 0; i < 5; i++) { if (readByte() != 0) {
+    //   byte[] itemBytes = new byte[10]; read(itemBytes); equipment[i] = (Equipment) Item.deserialize(itemBytes); } }
+    for i in 0..5 {
+        if read_byte(data, &mut pos) != 0 {
+            // byte[] bArr2 = new byte[10]; dataInputStream.read(bArr2);
+            let mut item_bytes = vec![0i8; 10];
+            item_bytes.copy_from_slice(&data[pos..pos + 10]);
+            pos += 10;
+            // this.equipment[i] = (Equipment) Item.deserialize(bArr2);
+            let it = item::deserialize(g, &item_bytes);
+            g.entity_arena[id]
+                .as_hero_mut()
+                .expect("Hero node")
+                .equipment[i] = Some(Rc::new(RefCell::new(it)));
+        }
+    }
+    // Debug.assertTrue(guardians[0] == null); Debug.assertTrue(activeGuardian == null);
+    {
+        let hero = g.entity_arena[id].as_hero().expect("Hero node");
+        crate::debug::assert_true(hero.guardians[0].is_none());
+        crate::debug::assert_true(hero.active_guardian.is_none());
+    }
+    // for (int i2 = 0; i2 < guardians.length; i2++) { if (readByte() != 0) { Guardian restore } }
+    let guardian_len = g.entity_arena[id]
+        .as_hero()
+        .expect("Hero node")
+        .guardians
+        .len();
+    for _i2 in 0..guardian_len {
+        if read_byte(data, &mut pos) != 0 {
+            // DEFERRED: Guardian — findOrCreateGuardian + level/exp/equipSkill restore reaches
+            //   the unported `Guardian`; unreachable (save wrote 0 for every null guardian).
+            unreachable!("DEFERRED: Guardian — save wrote 0 for every null guardian");
+        }
+    }
+    // setActiveGuardian(this.guardians[dataInputStream.readByte()]);
+    //   — DEFERRED: Guardian (the activeIndex byte was omitted by save; no read here).
+    // this.playSeconds = readInt();
+    let play_seconds = read_int(data, &mut pos);
+    g.entity_arena[id]
+        .as_hero_mut()
+        .expect("Hero node")
+        .play_seconds = play_seconds;
+    // recomputeStats();
+    recompute_stats(g, id);
+}
+
+/// `DataOutputStream.writeByte(int)` — the low 8 bits (JDK semantics). The port's
+/// callers pass an `i8` (a `byte` field, or a small `0`/`1` literal), which is exactly
+/// that low byte.
+fn write_byte(out: &mut Vec<i8>, v: i8) {
+    out.push(v);
+}
+
+/// `DataOutputStream.writeShort(int)` — big-endian 2-byte write (JDK semantics,
+/// inlined). `v` is a `short` sign-extended to `int`; `& 255` selects each byte.
+fn write_short(out: &mut Vec<i8>, v: i16) {
+    out.push((ishr(v as i32, 8) & 255) as i8);
+    out.push((v as i32 & 255) as i8);
+}
+
+/// `DataOutputStream.writeInt(int)` — big-endian 4-byte write (JDK semantics, inlined;
+/// cf. [`crate::item_bag`]'s `writeInt`).
+fn write_int(out: &mut Vec<i8>, v: i32) {
+    out.push((ishr(v, 24) & 255) as i8);
+    out.push((ishr(v, 16) & 255) as i8);
+    out.push((ishr(v, 8) & 255) as i8);
+    out.push((v & 255) as i8);
+}
+
+/// `DataInputStream.readByte()` — one signed byte (JDK semantics).
+fn read_byte(data: &[i8], pos: &mut usize) -> i8 {
+    let b = data[*pos];
+    *pos += 1;
+    b
+}
+
+/// `DataInputStream.readShort()` — big-endian signed 16-bit (JDK semantics, inlined).
+fn read_short(data: &[i8], pos: &mut usize) -> i16 {
+    let hi = (data[*pos] as i32) & 255;
+    *pos += 1;
+    let lo = (data[*pos] as i32) & 255;
+    *pos += 1;
+    ((hi << 8) | lo) as i16
+}
+
+/// `DataInputStream.readInt()` — big-endian signed 32-bit (JDK semantics, inlined; cf.
+/// [`crate::item_bag`]'s `readInt`).
+fn read_int(data: &[i8], pos: &mut usize) -> i32 {
+    let b0 = (data[*pos] as i32) & 255;
+    *pos += 1;
+    let b1 = (data[*pos] as i32) & 255;
+    *pos += 1;
+    let b2 = (data[*pos] as i32) & 255;
+    *pos += 1;
+    let b3 = (data[*pos] as i32) & 255;
+    *pos += 1;
+    (b0 << 24) | (b1 << 16) | (b2 << 8) | b3
 }

@@ -52,6 +52,14 @@ const WEAPON_FILES: [&str; 5] = ["w1", "w2", "w3", "w4", "w5"];
 const SHIELD_FILES: [&str; 5] = ["s1", "s2", "s3", "s4", "s5"];
 /// `public static final byte[] headAnim` (`bu.a`) — head-subId → atlas-file index.
 const HEAD_ANIM: [i8; 16] = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6];
+/// `public static final byte[][] armorAnim` (`bu.a`) — `[classId-6][subId]` → armor
+/// atlas-file index, or `-1` (no armor overlay → unload bank 0). Classes 6/7 share
+/// the leading `-1`; class 8 starts at `0`.
+const ARMOR_ANIM: [[i8; 19]; 3] = [
+    [-1, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 2, 0, 4, 5, 4, 3],
+    [-1, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 2, 0, 4, 5, 4, 3],
+    [0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 2, 0, 4, 5, 4, 3],
+];
 
 /// Java `bu` / `AssetLoader` state — **partial** (anti-bog). Only the `phase`
 /// static (which entry point a worker is running) is modelled; `commonLoaded` and
@@ -130,13 +138,13 @@ fn run_phase_resources(g: &mut Game) {
 /// frame table and loads the body/armor/head/shield sprite banks from the current
 /// equipment.
 ///
-/// **Equipment slots are all null in this slice** (`Hero.initClass`'s `Item.create`
-/// gear setup is DEFERRED — see [`crate::hero::init_class`]), so the accessory
-/// branches (`getAccessory1`/`getAccessory2`/`getArmor`) all take the null side: only
-/// the always-loaded **body** (`loadSpriteBank(classId, 1, 0, …)`) and the default
-/// **head** (`loadHeadSprite(classId, 0)`) land. The armor / class-8 shield loads are
-/// reproduced structurally but skipped (their `!= null` guard is false). Once the
-/// equipment lane fills the slots, the same branches load the gear layers.
+/// The accessory slots are now populated by `Hero.initClass` (`Item.create` gear
+/// setup ported — see [`crate::hero::init_class`]), so the armor (`getAccessory1`)
+/// and head (`getAccessory2`) branches take the non-null side: [`load_armor_sprite`]
+/// (bank 0, or an `unloadSpriteBank(0)` when the class/subId maps to `-1`) and
+/// [`load_head_sprite`] for the equipped head sub-index. The class-8 shield load
+/// (`getArmor` → `loadShieldSprite`) stays DEFERRED (the drive is class 6, and the
+/// shield loader is not yet ported).
 pub fn load_hero_equip_sprites(g: &mut Game) {
     // AssetCache.heroFrames = new Object[396];
     g.asset_cache.hero_frames = Some((0..396).map(|_| None).collect());
@@ -146,23 +154,94 @@ pub fn load_hero_equip_sprites(g: &mut Game) {
         .game_state
         .hero
         .expect("GameState.hero null in loadHeroEquipSprites");
-    // if (hero.getAccessory1() != null) loadArmorSprite(classId, getEquip(2).subId);
-    if g.entity_arena[id].as_hero().expect("Hero node").equipment[2].is_some() {
-        // (DEFERRED: loadArmorSprite — reached only once equipment[2] is non-null.)
-        unimplemented!("DEFERRED: loadArmorSprite — equipment[2] is null in this slice");
+    // if (hero.getAccessory1() != null) loadArmorSprite(classId, hero.getEquip(2).subId);
+    let accessory1_sub_id = g.entity_arena[id].as_hero().expect("Hero node").equipment[2]
+        .as_ref()
+        .map(|it| it.borrow().sub_id);
+    if let Some(sub_id) = accessory1_sub_id {
+        // (the StringBuffer log + BaseCanvas.yieldTick are no-ops.)
+        load_armor_sprite(g, class_id, sub_id);
     }
     // loadSpriteBank(classId, (byte) 1, (byte) 0, false, (byte) 0);  — the body layer.
     load_sprite_bank(g, class_id, 1, 0, false, 0);
-    // if (hero.getAccessory2() != null) loadHeadSprite(classId, getAccessory2().subId);
+    // if (hero.getAccessory2() != null) loadHeadSprite(classId, hero.getAccessory2().subId);
     // else loadHeadSprite(classId, (byte) 0);
-    if g.entity_arena[id].as_hero().expect("Hero node").equipment[3].is_some() {
-        // (DEFERRED: the equipped-head path — reached only once equipment[3] is non-null.)
-        unimplemented!("DEFERRED: equipped head — equipment[3] is null in this slice");
+    let accessory2_sub_id = g.entity_arena[id].as_hero().expect("Hero node").equipment[3]
+        .as_ref()
+        .map(|it| it.borrow().sub_id);
+    if let Some(sub_id) = accessory2_sub_id {
+        load_head_sprite(g, class_id, sub_id);
     } else {
         load_head_sprite(g, class_id, 0);
     }
     // if (classId == 8 && hero.getArmor() != null) loadShieldSprite(classId, getArmor().subId);
-    //   — DEFERRED (class 6 here, and equipment[1] null).
+    //   — DEFERRED (drive is class 6; loadShieldSprite/getArmor path not ported).
+}
+
+/// `public static final void loadArmorSprite(byte classId, byte subId)` (`bu.a:(BB)V`)
+/// — loads the armor overlay for armor sub-index `subId` (sprite bank 0), or clears
+/// bank 0 when `armorAnim[classId-6][subId] == -1` (no overlay). Class 6 / subId 0
+/// (the warrior's starting accessory) hits the `-1` arm → [`unload_sprite_bank`]`(0)`.
+pub fn load_armor_sprite(g: &mut Game, class_id: i8, sub_id: i8) {
+    let class_index = (class_id as i32).wrapping_sub(6) as usize;
+    // if (armorAnim[classId-6][subId] == -1) unloadSpriteBank(0);
+    if ARMOR_ANIM[class_index][sub_id as usize] == -1 {
+        unload_sprite_bank(g, 0);
+    } else {
+        // else loadSpriteBank(classId, (byte) 0, armorAnim[classId-6][subId], false, (byte) 0);
+        load_sprite_bank(
+            g,
+            class_id,
+            0,
+            ARMOR_ANIM[class_index][sub_id as usize],
+            false,
+            0,
+        );
+    }
+}
+
+/// `public static final void unloadSpriteBank(int bank)` (`bu.a:(I)V`) — clears sprite
+/// bank `bank` and its mirror (`bank + 6`), the weapon-preview frames for bank 3, and
+/// the per-layer `heroFrames` draw scripts the bank contributes (across the 11×4
+/// pose/direction grid). `bank`'s layer offsets: 0 → armor layers 2..5, 1 → body 0,
+/// 2 → aura 1, 3 → head 6, 4 → head-equip 7, 5 → weapon 8.
+pub fn unload_sprite_bank(g: &mut Game, bank: i32) {
+    // AssetCache.spriteBanks[bank] = null; AssetCache.spriteBanks[bank + 6] = null;
+    g.asset_cache.sprite_banks[bank as usize] = None;
+    g.asset_cache.sprite_banks[bank.wrapping_add(6) as usize] = None;
+    // if (bank == 3) AssetCache.weaponPreviewFrames = null;
+    if bank == 3 {
+        g.asset_cache.weapon_preview_frames = None;
+    }
+    let hero_frames = g
+        .asset_cache
+        .hero_frames
+        .as_mut()
+        .expect("heroFrames null in unloadSpriteBank");
+    // for (row = 0; row < 11; row++) for (col = 0; col < 4; col++) switch (bank) { ... }
+    let mut row: i32 = 0;
+    while row < 11 {
+        let mut col: i32 = 0;
+        while col < 4 {
+            let base = (row.wrapping_mul(36)).wrapping_add(col.wrapping_mul(9));
+            match bank {
+                0 => {
+                    hero_frames[base.wrapping_add(2) as usize] = None;
+                    hero_frames[base.wrapping_add(3) as usize] = None;
+                    hero_frames[base.wrapping_add(4) as usize] = None;
+                    hero_frames[base.wrapping_add(5) as usize] = None;
+                }
+                1 => hero_frames[base as usize] = None,
+                2 => hero_frames[base.wrapping_add(1) as usize] = None,
+                3 => hero_frames[base.wrapping_add(6) as usize] = None,
+                4 => hero_frames[base.wrapping_add(7) as usize] = None,
+                5 => hero_frames[base.wrapping_add(8) as usize] = None,
+                _ => {}
+            }
+            col = col.wrapping_add(1);
+        }
+        row = row.wrapping_add(1);
+    }
 }
 
 /// `public static final void loadHeadSprite(byte classId, byte subId)` (`bu.b:(BB)V`)
