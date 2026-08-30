@@ -9,14 +9,15 @@
 //! paints it front to back; depth is the entity's foot line `halfH + pixelY`, and
 //! [`reorder_by_depth`] slides a single moved node back into sorted position.
 //!
-//! An **instance** class (no `static` fields → no `ownership.tsv` rows). `Entity`
-//! (`ck`) is not yet ported; the transliteration seam for the shared `Entity`
-//! heap is [`EntityArena`], a slab of [`EntityNode`]s carrying exactly the fields
-//! `aq` reads or writes (`next`, `prev`, `halfH`, `pixelY`, `removed`). A Java
-//! reference is a slab **index** ([`EntityId`]); `node.equals(target)` (Object
-//! identity — `Entity` overrides nothing) becomes index equality. The methods take
-//! `&mut EntityListState` and `&mut EntityArena`, never `self` (contract:
-//! *Statics and ownership*).
+//! An **instance** class (no `static` fields → no `ownership.tsv` rows). The shared
+//! `Entity` (`ck`) heap seam — [`EntityArena`] / [`EntityNode`] / [`EntityId`] — now
+//! lives in [`crate::entity`] (the ported `Entity` base and its subclass records)
+//! and is re-exported here unchanged; this module keeps only the list
+//! endpoint/relocation logic, which reads the base fields `next`, `prev`, `halfH`,
+//! `pixelY`, `removed`. A Java reference is a slab **index** ([`EntityId`]);
+//! `node.equals(target)` (Object identity — `Entity` overrides nothing) becomes
+//! index equality. The methods take `&mut EntityListState` and `&mut EntityArena`,
+//! never `self` (contract: *Statics and ownership*).
 //!
 //! Opcode shapes (R8, `_reference/numeric_shapes.json`):
 //! `aq.a:(Lck;)V (addFront) => ["iadd"]` (count++),
@@ -26,68 +27,10 @@
 //! depth sums, each side of the four comparisons — recomputed, never hoisted, to
 //! preserve the multiset).
 
-/// A node in the [`EntityArena`] — the slab index that stands in for an `Entity`
-/// (`ck`) reference. Identity is the index (`node.equals(target)` → `a == b`).
-pub type EntityId = usize;
-
-/// The subset of `Entity` (`ck`) fields the `aq` list touches. The full entity is
-/// not ported; this carries only what the linked-list logic reads or writes.
-#[derive(Debug, Clone, Default)]
-pub struct EntityNode {
-    /// `public Entity next;`
-    pub next: Option<EntityId>,
-    /// `public Entity prev;`
-    pub prev: Option<EntityId>,
-    /// `public byte halfH;` — collision box half-height (depth term).
-    pub half_h: i8,
-    /// `public short pixelY;` — pixel Y (depth term).
-    pub pixel_y: i16,
-    /// `public boolean removed;` — set once unlinked (see [`reorder_by_depth`]).
-    pub removed: bool,
-}
-
-/// The shared `Entity` heap seam: a slab of nodes addressed by [`EntityId`].
-#[derive(Debug, Default)]
-pub struct EntityArena {
-    nodes: Vec<EntityNode>,
-}
-
-impl EntityArena {
-    /// A fresh, empty arena.
-    pub fn new() -> Self {
-        Self { nodes: Vec::new() }
-    }
-
-    /// Allocates a node with the given depth terms and returns its [`EntityId`]
-    /// (like `new Entity(...)` handing back a reference).
-    pub fn spawn(&mut self, half_h: i8, pixel_y: i16) -> EntityId {
-        let id = self.nodes.len();
-        self.nodes.push(EntityNode {
-            half_h,
-            pixel_y,
-            ..EntityNode::default()
-        });
-        id
-    }
-
-    /// Read access to a node (`arena.node(id).next`, etc.).
-    pub fn node(&self, id: EntityId) -> &EntityNode {
-        &self.nodes[id]
-    }
-}
-
-impl std::ops::Index<EntityId> for EntityArena {
-    type Output = EntityNode;
-    fn index(&self, id: EntityId) -> &EntityNode {
-        &self.nodes[id]
-    }
-}
-
-impl std::ops::IndexMut<EntityId> for EntityArena {
-    fn index_mut(&mut self, id: EntityId) -> &mut EntityNode {
-        &mut self.nodes[id]
-    }
-}
+// The shared `Entity` heap seam ([`EntityArena`] / [`EntityNode`] / [`EntityId`])
+// lives in [`crate::entity`]; re-exported so this module's public surface (and the
+// EntityList oracle) is unchanged.
+pub use crate::entity::{EntityArena, EntityId, EntityNode};
 
 /// Java `aq` / `EntityList` instance state (all fields instance, not `static`).
 #[derive(Debug, Default)]
