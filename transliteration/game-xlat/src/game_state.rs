@@ -23,11 +23,11 @@
 //!   the slice (advancing the RMS cursor) but does not apply it. The
 //!   bag/quick-item/progress/position slices round-trip in full (their
 //!   serialisers are ported).
-//! - **`processStateRequest`** cases 11 (Shop/Refine/Blacksmith), 13/14
-//!   (CharacterMenu), and case 12's inner Refine/Blacksmith switch reach unported
-//!   menus and stay DEFERRED; case 21's `CharacterMenu.closeMenu` +
-//!   `AssetLoader.loadMainMenu` and `startNewCharacter`'s `GameLoop.saveOptions`
-//!   are likewise DEFERRED (each marked at its site).
+//! - **`processStateRequest`** cases 11/13/14 now open+close the ported ShopMenu
+//!   (screen 6) and CharacterMenu (screen 5); only their Refine/Blacksmith
+//!   (screens 7/8) sub-arms, case 12's inner Refine/Blacksmith close-switch, the
+//!   case-14/case-21 quit `AssetLoader.loadMainMenu`, and `startNewCharacter`'s
+//!   `GameLoop.saveOptions` remain DEFERRED (each marked at its site).
 //!
 //! Opcode shapes (R8, `_reference/numeric_shapes.json`): `n.<clinit>:()V => []`;
 //! `progressBonus n.a:(B)B`, `isSwitch n.a:(I)Z` / `isFlag n.b:(I)Z`,
@@ -39,6 +39,7 @@ use crate::asset_cache;
 use crate::asset_loader;
 use crate::audio_manager;
 use crate::battler;
+use crate::character_menu;
 use crate::directions;
 use crate::entity::{self, EntityId};
 use crate::game::Game;
@@ -50,6 +51,7 @@ use crate::item_bag;
 use crate::main_menu;
 use crate::rms_file;
 use crate::save_cipher;
+use crate::shop_menu;
 use j2me_jvm::{ishl, ishr, java_div, java_rem, JavaError};
 
 /// Java `n` / `GameState` state. Every field is `static` (see
@@ -272,12 +274,16 @@ pub fn request_map_warp(g: &mut Game, map_id: i8, a0: i8, a1: i8, a2: i8) {
 
 /// `public static final void processStateRequest()` (`n.processStateRequest`):
 /// dispatches the queued `nextState`. Ported: `case 1` (kick the map loader),
-/// `case 2` (set-screen + FPS), `case 12` (return to the world; its inner
-/// Refine/Blacksmith close-switch is DEFERRED), `case 15` (warp the map to the
-/// world), `case 16` (game-over fade + sfx) and `case 21` (New Game /
-/// continue / new character). The shop / character-menu transitions (cases 11,
-/// 13, 14) reach unported menus and stay DEFERRED. State `0` (no request) falls
-/// through to a no-op.
+/// `case 2` (set-screen + FPS), `case 11` (open the shop — `arg0 == 0` → screen 6 +
+/// [`shop_menu::load_strings`]; the Refine/Blacksmith sub-arms stay DEFERRED),
+/// `case 12` (return to the world; its inner Refine/Blacksmith close-switch is
+/// DEFERRED), `case 13` (open the character menu — screen 5 +
+/// [`character_menu::open`], with the full-version quit escape via
+/// [`character_menu::open_system_quit`]), `case 14` (close the character menu via
+/// [`character_menu::close_menu`]; the quit-to-main-menu `AssetLoader.loadMainMenu`
+/// stays DEFERRED), `case 15` (warp the map to the world), `case 16` (game-over
+/// fade + sfx) and `case 21` (New Game / continue / new character). State `0` (no
+/// request) falls through to a no-op.
 pub fn process_state_request(g: &mut Game) {
     // if (nextState == 0) {}   — empty statement (decompiler noise).
     // byte state = nextState; nextState = (byte) 0;
@@ -309,6 +315,29 @@ pub fn process_state_request(g: &mut Game) {
                 game_loop::set_fast_fps(g);
             }
         }
+        // case 11: switch (arg0) { 0: open shop; 1: Refine; 2: Blacksmith }
+        11 => {
+            // switch (arg0)
+            match g.game_state.arg0 {
+                // case 0: setScreen(6); ShopMenu.instance().loadStrings();
+                0 => {
+                    // setScreen(6);
+                    set_screen(g, 6);
+                    // ShopMenu.instance().loadStrings();
+                    shop_menu::instance(g);
+                    shop_menu::load_strings(g);
+                }
+                // case 1: setScreen(7); RefineMenu.instance().open();
+                1 => {
+                    // DEFERRED: RefineMenu (bd) not yet ported (target screen 7 unported).
+                }
+                // case 2: setScreen(8); BlacksmithMenu.instance().open();
+                2 => {
+                    // DEFERRED: BlacksmithMenu (bc) not yet ported (target screen 8 unported).
+                }
+                _ => {}
+            }
+        }
         // case 12: setScreen(2); switch (arg0) { RefineMenu/BlacksmithMenu close }
         12 => {
             // setScreen(2);
@@ -316,6 +345,50 @@ pub fn process_state_request(g: &mut Game) {
             // switch (arg0) { case 1: RefineMenu.instance().closeRefine();
             //   case 2: BlacksmithMenu.instance().closeBlacksmith(); }
             //   — DEFERRED: RefineMenu (bd) / BlacksmithMenu (bc) not yet ported.
+        }
+        // case 13: setScreen(5); CharacterMenu.instance().open(); <full-version quit escape>
+        13 => {
+            // setScreen(5);
+            set_screen(g, 5);
+            // CharacterMenu.instance().open();
+            character_menu::instance(g);
+            character_menu::open(g);
+            // if ((Debug.fullVersion && arg0 == 1) || (AppConfig.fullVersion && hero.level >= 8)) {
+            //   CharacterMenu.instance().openSystemQuit(); break; }
+            //   — the `||`/`&&` short-circuit is preserved: hero.level is read only when
+            //   Debug's disjunct is false AND AppConfig.fullVersion holds.
+            let debug_full = g.debug.full_version;
+            let arg0 = g.game_state.arg0;
+            let app_full = g.app_config.full_version;
+            let system_quit = (debug_full && arg0 == 1)
+                || (app_full && {
+                    let id = g
+                        .game_state
+                        .hero
+                        .expect("GameState.hero null in processStateRequest case 13");
+                    let level = g.entity_arena[id].as_hero().expect("Hero node").level;
+                    (level as i32) >= 8
+                });
+            if system_quit {
+                // CharacterMenu.instance().openSystemQuit();
+                character_menu::instance(g);
+                character_menu::open_system_quit(g);
+            }
+        }
+        // case 14: CharacterMenu close (arg0 != 1: apply + return to world; else quit to menu)
+        14 => {
+            // if (arg0 != 1) CharacterMenu.instance().closeMenu(true);
+            if g.game_state.arg0 != 1 {
+                character_menu::instance(g);
+                character_menu::close_menu(g, true);
+            } else {
+                // else { CharacterMenu.instance().closeMenu(false); setScreen(1); AssetLoader.loadMainMenu(); }
+                character_menu::instance(g);
+                character_menu::close_menu(g, false);
+                // setScreen(1);
+                set_screen(g, 1);
+                // AssetLoader.loadMainMenu();  — DEFERRED (AssetLoader.loadMainMenu unported).
+            }
         }
         // case 15: warpMap();
         15 => {
@@ -345,7 +418,9 @@ pub fn process_state_request(g: &mut Game) {
             } else if g.game_state.arg0 == 2 {
                 // startNewCharacter();
                 start_new_character(g);
-                // CharacterMenu.instance().closeMenu(false);  — DEFERRED (CharacterMenu unported).
+                // CharacterMenu.instance().closeMenu(false);
+                character_menu::instance(g);
+                character_menu::close_menu(g, false);
                 // setScreen(1);
                 set_screen(g, 1);
                 // AssetLoader.loadMainMenu();  — DEFERRED (AssetLoader.loadMainMenu unported).
@@ -357,8 +432,10 @@ pub fn process_state_request(g: &mut Game) {
             game_loop::set_loading_fps(g);
             asset_loader::load_resources(g);
         }
-        // (DEFERRED: cases 11,13,14 — shop-refine-blacksmith / character-menu open /
-        // character-menu close; reach still-unported menus.)
+        // (No further cases: state 0 is the no-request idle; the shop/character-menu
+        // open+close transitions (11/13/14) are now ported above, with only their
+        // Refine/Blacksmith (screens 7/8) sub-arms and the quit-path `loadMainMenu`
+        // DEFERRED at their sites.)
         _ => {}
     }
 }
