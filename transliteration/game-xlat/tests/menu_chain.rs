@@ -212,7 +212,10 @@ fn full_chain_reaches_confirming_and_launches_new_game() {
         g.game_state.hero.is_some(),
         "startGame launched newGame — the Hero was created"
     );
-    assert_eq!(g.game_state.class_id, 6, "newGame recorded the chosen class");
+    assert_eq!(
+        g.game_state.class_id, 6,
+        "newGame recorded the chosen class"
+    );
     assert_eq!(
         g.game_state.screen, 0,
         "newGame left the front menu (screen 9 → 0; the New Game load is pending)"
