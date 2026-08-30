@@ -26,6 +26,7 @@ use crate::asset_cache::AssetCacheState;
 use crate::audio_manager::AudioManagerState;
 use crate::base_canvas::BaseCanvasState;
 use crate::byte_util::ByteUtilState;
+use crate::class_confirm_menu::ClassConfirmMenuState;
 use crate::class_select_menu::ClassSelectMenuState;
 use crate::debug::DebugState;
 use crate::entity::{EntityArena, EntityState};
@@ -37,6 +38,7 @@ use crate::game_screen::GameScreenState;
 use crate::game_state::GameStateData;
 use crate::main_menu::MainMenuState;
 use crate::resources::ResourceBank;
+use crate::start_trait_menu::StartTraitMenuState;
 use crate::string_table::StringTableData;
 use crate::title_screen::TitleScreenState;
 
@@ -109,6 +111,17 @@ pub struct Game {
     /// `MainMenu`; the flat model carries the reusable child slot as a `Game` field,
     /// linked/unlinked by `MainMenu`'s [`MenuChild`](crate::menu::MenuChild).
     pub class_select_menu: ClassSelectMenuState,
+    /// `by` / `ClassConfirmMenu` state (the class Yes/No confirm + its `cb`/`Menu`
+    /// base fields + the chosen `classId`). Not a Java static — a per-instance child
+    /// of `ClassSelectMenu`; the flat model carries the reusable child slot as a
+    /// `Game` field, linked/unlinked by the [`MenuChild`](crate::menu::MenuChild).
+    pub class_confirm_menu: ClassConfirmMenuState,
+    /// `bk` / `StartTraitMenu` state (the starting-guardian picker + its `cb`/`Menu`
+    /// base fields + the guardian/confirmation state + the DEFERRED-SEAM
+    /// `pending_new_game` launch record). Not a Java static — a per-instance child of
+    /// `ClassConfirmMenu`; the flat model carries the reusable child slot as a `Game`
+    /// field, linked/unlinked by the [`MenuChild`](crate::menu::MenuChild).
+    pub start_trait_menu: StartTraitMenuState,
     /// `bw` / `AudioManager` state (the `snd/` clip pool + volume/mixer state).
     pub audio: AudioManagerState,
     /// `ce` / `AssetCache` state (PARTIAL — only the title/logo render-path banks
@@ -171,6 +184,8 @@ impl Game {
             game_screen: GameScreenState::default(),
             main_menu: MainMenuState::default(),
             class_select_menu: ClassSelectMenuState::default(),
+            class_confirm_menu: ClassConfirmMenuState::default(),
+            start_trait_menu: StartTraitMenuState::default(),
             asset_cache: AssetCacheState::new(),
             font_manager: FontManagerState::default(),
             string_table: StringTableData::default(),

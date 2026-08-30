@@ -18,10 +18,11 @@
 //! the class-name labels, and the soft keys cross into as-yet-unported statics
 //! (`AssetCache.classFaces` / `AssetCache.commonText` / `FontManager.labelBack`)
 //! and the class-select art is not oracle-captured, so they are DEFERRED). In
-//! `handleKey`, the two `child = new ClassConfirmMenu(...)` sites and the
-//! `showMessage` popup set the [`MenuChild`] discriminant faithfully but DEFER the
-//! child construction (`ClassConfirmMenu` / `PopupMenu` are next-lane); `onPopupResult`
-//! and `parent.close()` are DEFERRED too.
+//! `handleKey`, the two `child = new ClassConfirmMenu(...)` sites are now **real**
+//! (the flat model materialises the [`ClassConfirmMenu`](crate::class_confirm_menu)
+//! child state and links it via the [`MenuChild`] discriminant); the `showMessage`
+//! popup sets its discriminant faithfully but DEFERs the child construction
+//! (`PopupMenu` is next-lane); `onPopupResult` and `parent.close()` are DEFERRED too.
 //!
 //! `ClassSelectMenu` has **no `static` fields** (its `Menu` base fields are
 //! per-instance), so it contributes no `java/reconstruction/ownership.tsv` rows.
@@ -32,6 +33,7 @@
 //! (paint — the ported subset is the `(x+155)>>1` heading centre + the `y+…`
 //! offsets; the remaining iadds live in the DEFERRED faces/labels).
 
+use crate::class_confirm_menu;
 use crate::font_manager;
 use crate::game::Game;
 use crate::main_menu;
@@ -83,21 +85,24 @@ pub fn handle_key(g: &mut Game, action: i32, key_code: i32) -> bool {
         && (g.class_select_menu.base.cursor_index as i32) != 1
     {
         // (byte) (6 + (2 - cursorIndex))
-        let _class_id: i8 = 6i32
+        let class_id: i8 = 6i32
             .wrapping_add(2i32.wrapping_sub(g.class_select_menu.base.cursor_index as i32))
             as i8;
         // ((Menu) this).child = new ClassConfirmMenu(this, classId);
-        // (DEFERRED: ClassConfirmMenu construction — next lane; discriminant set faithfully.)
+        // — materialise the child state (with the computed classId), then link it.
+        class_confirm_menu::construct(g, class_id);
         g.class_select_menu.base.child = MenuChild::ClassConfirm;
         return true;
     }
     // if (GameLoop.instance.hasCreatedCharacter) { child = new ClassConfirmMenu(this, (byte)(6 + (2 - cursorIndex))); return true; }
     if g.game_loop.has_created_character {
         // (byte) (6 + (2 - cursorIndex))
-        let _class_id: i8 = 6i32
+        let class_id: i8 = 6i32
             .wrapping_add(2i32.wrapping_sub(g.class_select_menu.base.cursor_index as i32))
             as i8;
-        // (DEFERRED: ClassConfirmMenu construction — next lane; discriminant set faithfully.)
+        // ((Menu) this).child = new ClassConfirmMenu(this, classId);
+        // — materialise the child state (with the computed classId), then link it.
+        class_confirm_menu::construct(g, class_id);
         g.class_select_menu.base.child = MenuChild::ClassConfirm;
         return true;
     }
