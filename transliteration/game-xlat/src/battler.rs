@@ -19,11 +19,19 @@
 //! the AI helpers) is DEFERRED to a later world-logic lane. `Battler` has no
 //! `static` fields (no `ownership.tsv` rows).
 //!
+//! **The overlay lane also lands here.** The `floaters`/`statuses` lists are the
+//! real [`Overlay`] union (see [`crate::overlay`]), and the create/tick/draw
+//! methods over them — [`clear_floaters`], [`add_floater`], [`apply_status`],
+//! [`draw_floaters`], [`draw_status_icons`] — are ported. (Their drawing bottoms out
+//! in DEFERRED `AssetCache` overlay banks; see [`crate::floater`]/[`crate::status_icon`].)
+//!
 //! Opcode shapes (R8): `o.<init>:(SSBB)V => []`, `o.a:()V (init) => []`.
 
 use crate::debug;
 use crate::entity::{self, EntityId};
 use crate::game::Game;
+use crate::overlay::{self, Overlay};
+use crate::status_icon;
 
 // --- FSM state constants (`BattlerData::state`) ------------------------------
 // From `Battler.state` (`o.h`): "1 idle/walk, 2 stepping, 3 attacking, 4
@@ -41,26 +49,25 @@ pub const STATE_DYING: i8 = 5;
 /// `state == 6` — dead.
 pub const STATE_DEAD: i8 = 6;
 
-/// DEFERRED placeholder for a `Floater`/`Overlay` (`y`/`bb`) heap object — those
-/// classes are not ported. The list is empty in this slice (never pushed).
-#[derive(Debug)]
-pub struct OverlayRef;
-
-/// DEFERRED placeholder for a `StatusIcon` (`bp`) heap object — not ported. The
-/// list is empty in this slice.
-#[derive(Debug)]
-pub struct StatusIconRef;
-
 /// The `Battler` (`o`) base fields — the "super" of every combatant subclass.
 /// Embedded in each subclass's data (e.g. [`crate::hero::HeroData::battler`]).
 #[derive(Debug)]
 pub struct BattlerData {
     /// `public Vector floaters;` (`o.a`) — floating-text overlays on this actor
-    /// (`new Vector(2)`; DEFERRED element type — empty in this slice).
-    pub floaters: Vec<OverlayRef>,
+    /// (`new Vector(2)`). Java's untyped `Vector` holds `Overlay`s (a [`Floater`],
+    /// a [`StatusIcon`], or a DEFERRED `GuardianCastFx`); modelled as the real
+    /// [`Overlay`] union.
+    ///
+    /// [`Floater`]: crate::floater
+    /// [`StatusIcon`]: crate::status_icon
+    pub floaters: Vec<Overlay>,
     /// `public Vector statuses;` (`o.b`) — active status-effect icons
-    /// (`new Vector(3)`; DEFERRED element type — empty in this slice).
-    pub statuses: Vec<StatusIconRef>,
+    /// (`new Vector(3)`). Java's untyped `Vector` holds `StatusIcon`s; modelled as
+    /// the [`Overlay`] union (every element is an [`OverlayData::StatusIcon`], the
+    /// `(StatusIcon)` downcast [`apply_status`]/[`draw_status_icons`] apply).
+    ///
+    /// [`OverlayData::StatusIcon`]: crate::overlay::OverlayData::StatusIcon
+    pub statuses: Vec<Overlay>,
     /// `public byte state;` (`o.h`) — FSM state (see the `STATE_*` constants).
     pub state: i8,
     /// `public byte facing;` (`o.i`) — 1 up, 2 down, 3 left, 4 right (`Directions`).
@@ -344,4 +351,110 @@ pub fn move_(g: &mut Game, id: EntityId, step_pixels: i32) {
 /// (enemy AI; not on the player-movement path).
 pub fn approach(_g: &mut Game, _id: EntityId, _target: EntityId, _range: i8) {
     unimplemented!("DEFERRED: Battler.approach — not ported in this slice")
+}
+
+// --- The overlay lane: create / apply / draw the per-actor `floaters`/`statuses`.
+//     These touch only the `Battler`'s own overlay lists, so they take the
+//     `&mut BattlerData` "this" directly (like `set_state`/`set_facing`). --------
+
+/// `public final void clearFloaters()` (`o.c:()V => []`). Discards all pending
+/// floating-text overlays.
+pub fn clear_floaters(b: &mut BattlerData) {
+    // this.floaters = new Vector(2);
+    b.floaters = Vec::new();
+}
+
+/// `public final void addFloater(Overlay overlay)` (`o.a:(Lf;)V => []`). Pushes a
+/// floating-text overlay above this actor.
+pub fn add_floater(b: &mut BattlerData, overlay: Overlay) {
+    // this.floaters.addElement(overlay);
+    b.floaters.push(overlay);
+}
+
+/// `public final boolean applyStatus(byte statusKind)` (`o.a:(B)Z => ["iinc"]`).
+/// Applies status effect `statusKind` (0..7): refreshes an existing icon of that
+/// kind, or adds a new one. Returns `true` if it was a refresh.
+// The two comparisons are faithful to Java `statusKind >= 0 && statusKind < 8`.
+#[allow(clippy::manual_range_contains)]
+pub fn apply_status(b: &mut BattlerData, status_kind: i8) -> bool {
+    // Debug.assertTrue(statusKind >= 0 && statusKind < 8);
+    debug::assert_true(status_kind >= 0 && status_kind < 8);
+    // boolean refreshed = false;
+    let mut refreshed = false;
+    // for (int i = 0; i < this.statuses.size(); i++) {
+    let mut i = 0;
+    while i < b.statuses.len() {
+        // StatusIcon icon = (StatusIcon) this.statuses.elementAt(i);
+        let icon = &mut b.statuses[i];
+        let finished = icon.finished;
+        let kind = icon
+            .as_status_icon()
+            .expect("ClassCastException: statuses element is not a StatusIcon")
+            .kind;
+        // if (!icon.finished && icon.kind == statusKind) {
+        if !finished && kind == status_kind {
+            // icon.reset(); refreshed = true; break;
+            status_icon::reset(icon);
+            refreshed = true;
+            break;
+        }
+        i += 1;
+    }
+    // if (!refreshed) this.statuses.addElement(new StatusIcon(statusKind));
+    if !refreshed {
+        b.statuses.push(status_icon::new(status_kind));
+    }
+    // return refreshed;
+    refreshed
+}
+
+/// `public final void drawFloaters(Graphics graphics, int originX, int originY)`
+/// (`o.b:(Ljavax/microedition/lcdui/Graphics;II)V => ["isub","iinc"]`). Draws (and
+/// reaps finished) floating-text overlays at the screen origin.
+pub fn draw_floaters(
+    b: &mut BattlerData,
+    graphics: &mut j2me_me::Graphics,
+    origin_x: i32,
+    origin_y: i32,
+) {
+    // for (int i = this.floaters.size() - 1; i >= 0; i--) {
+    let mut i = (b.floaters.len() as i32).wrapping_sub(1);
+    while i >= 0 {
+        // Overlay overlay = (Overlay) this.floaters.elementAt(i);
+        // overlay.paint(graphics, originX, originY);
+        overlay::paint(&mut b.floaters[i as usize], graphics, origin_x, origin_y);
+        // if (overlay.finished) this.floaters.removeElementAt(i);
+        if b.floaters[i as usize].finished {
+            b.floaters.remove(i as usize);
+        }
+        i = i.wrapping_sub(1);
+    }
+}
+
+/// `public final void drawStatusIcons(Graphics graphics, int originX, int originY)`
+/// (`o.c:(Ljavax/microedition/lcdui/Graphics;II)V
+/// => ["isub","imul","isub","iadd","iinc","iinc"]`). Draws the row of active
+/// status-effect icons centred at the origin.
+pub fn draw_status_icons(
+    b: &BattlerData,
+    graphics: &mut j2me_me::Graphics,
+    origin_x: i32,
+    origin_y: i32,
+) {
+    // int offsetX = (-6) * (this.statuses.size() - 1);
+    let mut offset_x = (-6i32).wrapping_mul((b.statuses.len() as i32).wrapping_sub(1));
+    // for (int i = this.statuses.size() - 1; i >= 0; i--) {
+    let mut i = (b.statuses.len() as i32).wrapping_sub(1);
+    while i >= 0 {
+        // ((StatusIcon) this.statuses.elementAt(i)).paint(graphics, originX + offsetX, originY);
+        status_icon::paint(
+            &b.statuses[i as usize],
+            graphics,
+            origin_x.wrapping_add(offset_x),
+            origin_y,
+        );
+        // offsetX += 12;
+        offset_x = offset_x.wrapping_add(12);
+        i = i.wrapping_sub(1);
+    }
 }
