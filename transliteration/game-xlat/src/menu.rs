@@ -33,10 +33,15 @@
 //! [`on_popup_result`] (+ [`on_popup_result_base`]), [`close`], [`invalidate_up`],
 //! and the [`parent_of`] parent scan — plus the shared panel draw kit the front-menu
 //! dialogs need ([`draw_panel_frame`]/[`fill_panel_interior`] over
-//! [`draw_bevel_box`]/[`fill_inset2`]). The remaining static draw kit
-//! (`drawButton`/`drawSelectableBox`/`drawTabButton`/`drawTextField`/`drawListPage`,
-//! the pagination helpers, the item/gold widgets) is not reached by the ported menus
-//! and is **DEFERRED**.
+//! [`draw_bevel_box`]/[`fill_inset2`]). A later increment adds the paginated
+//! scrollable-list kit the item pickers (`ItemPickerList`/`SellList`) need
+//! ([`current_page`]/[`page_count`]/[`page_first_index`]/[`page_last_index`],
+//! [`draw_inset_panel`] over [`draw_bevel_outline`]/[`fill_inset1`],
+//! [`fill_outlined_rect`], [`draw_tab_button`], [`draw_list_page`]) plus
+//! [`move_cursor_vertical_no_wrap`]. The remaining static draw kit
+//! (`drawButton`/`drawSelectableBox`/`drawTextField`, the item/gold widgets
+//! `drawItemIcon`/`drawItemInfo`/`drawQuickSlotRow`/`drawGold`) is not reached by the
+//! ported menus and is **DEFERRED**.
 //!
 //! Menu has **no `static` fields** (every field is per-instance), so it contributes
 //! no `java/reconstruction/ownership.tsv` rows.
@@ -48,15 +53,19 @@
 //! (passKeyToChild), `cb.b:(…Graphics;II)V => []` (render — no arithmetic),
 //! `cb.c:()V => []` (invalidateDown).
 
+use crate::about_screen;
 use crate::class_confirm_menu;
 use crate::class_select_menu;
 use crate::confirm_dialog;
 use crate::continue_menu;
 use crate::game::Game;
+use crate::item_picker_list;
 use crate::main_menu;
 use crate::options_menu;
 use crate::popup_menu;
+use crate::sell_list;
 use crate::start_trait_menu;
+use j2me_jvm::{java_div, java_rem};
 
 /// The pushed sub-screen of a menu — the flat model of the polymorphic
 /// `Menu.child` reference (`null` → [`MenuChild::None`]). Each non-`None` variant
@@ -83,6 +92,12 @@ pub enum MenuChild {
     Continue,
     /// `child instanceof OptionsMenu` (`be`) — the options screen.
     Options,
+    /// `child instanceof AboutScreen` (`bl`) — the credits/about screen.
+    About,
+    /// `child instanceof ItemPickerList` (`m`) — the generic scrollable item-slot picker.
+    ItemPicker,
+    /// `child instanceof SellList` (`bb`) — the shop's sell-from-bag list.
+    SellList,
 }
 
 /// Identifies a *concrete* menu that owns a `MenuBase` + `paint`/`handleKey` — the
@@ -107,12 +122,18 @@ pub enum MenuNode {
     Continue,
     /// `OptionsMenu` (`be`) — pushed as `MainMenu`'s (or `SystemTab`'s) child by Options.
     Options,
+    /// `AboutScreen` (`bl`) — pushed as `MainMenu`'s child by FIRE-select case 4.
+    About,
+    /// `ItemPickerList` (`m`) — the generic item-slot picker (pushed by equip/craft menus).
+    ItemPicker,
+    /// `SellList` (`bb`) — the shop sell list (pushed by the shop menu; extends `ItemPickerList`).
+    SellList,
 }
 
 /// Every concrete [`MenuNode`], for the parent-scan ([`parent_of`]). The flat model
 /// is a singleton stack, so a node's parent is the unique node whose resolved
 /// [`child_node`] is that node.
-const ALL_NODES: [MenuNode; 8] = [
+const ALL_NODES: [MenuNode; 11] = [
     MenuNode::Main,
     MenuNode::ClassSelect,
     MenuNode::ClassConfirm,
@@ -121,6 +142,9 @@ const ALL_NODES: [MenuNode; 8] = [
     MenuNode::Confirm,
     MenuNode::Continue,
     MenuNode::Options,
+    MenuNode::About,
+    MenuNode::ItemPicker,
+    MenuNode::SellList,
 ];
 
 /// The instance fields of a `Menu` (`cb`), carried by each concrete menu's state
@@ -179,6 +203,9 @@ fn node_base(g: &Game, node: MenuNode) -> &MenuBase {
         MenuNode::Confirm => &g.confirm_dialog.base,
         MenuNode::Continue => &g.continue_menu.base,
         MenuNode::Options => &g.options_menu.base,
+        MenuNode::About => &g.about_screen.base,
+        MenuNode::ItemPicker => &g.item_picker_list.base,
+        MenuNode::SellList => &g.sell_list.picker.base,
     }
 }
 
@@ -193,6 +220,9 @@ fn node_base_mut(g: &mut Game, node: MenuNode) -> &mut MenuBase {
         MenuNode::Confirm => &mut g.confirm_dialog.base,
         MenuNode::Continue => &mut g.continue_menu.base,
         MenuNode::Options => &mut g.options_menu.base,
+        MenuNode::About => &mut g.about_screen.base,
+        MenuNode::ItemPicker => &mut g.item_picker_list.base,
+        MenuNode::SellList => &mut g.sell_list.picker.base,
     }
 }
 
@@ -208,6 +238,9 @@ fn child_node(child: MenuChild) -> Option<MenuNode> {
         MenuChild::Confirm => Some(MenuNode::Confirm),
         MenuChild::Continue => Some(MenuNode::Continue),
         MenuChild::Options => Some(MenuNode::Options),
+        MenuChild::About => Some(MenuNode::About),
+        MenuChild::ItemPicker => Some(MenuNode::ItemPicker),
+        MenuChild::SellList => Some(MenuNode::SellList),
     }
 }
 
@@ -238,6 +271,9 @@ fn paint_node(g: &mut Game, node: MenuNode, origin_x: i32, origin_y: i32) {
         MenuNode::Confirm => confirm_dialog::paint(g, origin_x, origin_y),
         MenuNode::Continue => continue_menu::paint(g, origin_x, origin_y),
         MenuNode::Options => options_menu::paint(g, origin_x, origin_y),
+        MenuNode::About => about_screen::paint(g, origin_x, origin_y),
+        MenuNode::ItemPicker => item_picker_list::paint(g, origin_x, origin_y),
+        MenuNode::SellList => sell_list::paint(g, origin_x, origin_y),
     }
 }
 
@@ -252,6 +288,9 @@ fn dispatch_handle_key(g: &mut Game, node: MenuNode, action: i32, key_code: i32)
         MenuNode::Confirm => confirm_dialog::handle_key(g, action, key_code),
         MenuNode::Continue => continue_menu::handle_key(g, action, key_code),
         MenuNode::Options => options_menu::handle_key(g, action, key_code),
+        MenuNode::About => about_screen::handle_key(g, action, key_code),
+        MenuNode::ItemPicker => item_picker_list::handle_key(g, action, key_code),
+        MenuNode::SellList => sell_list::handle_key(g, action, key_code),
     }
 }
 
@@ -303,6 +342,15 @@ pub fn move_cursor_vertical(base: &mut MenuBase, action: i32, key_code: i32, wra
             _ => false,
         },
     }
+}
+
+/// `public final boolean moveCursorVerticalNoWrap(int action, int keyCode)`
+/// (`cb.c:(II)Z => []`): [`move_cursor_vertical`] without wrap-around (stops at the
+/// ends). Used by the scrollable leaf lists (`AboutScreen`, `ItemPickerList`,
+/// `SellList`).
+pub fn move_cursor_vertical_no_wrap(base: &mut MenuBase, action: i32, key_code: i32) -> bool {
+    // return moveCursorVertical(action, keyCode, false);
+    move_cursor_vertical(base, action, key_code, false)
 }
 
 /// `public final boolean moveCursorHorizontal(int action, int keyCode)`
@@ -454,6 +502,7 @@ pub fn on_popup_result_base(g: &mut Game, node: MenuNode, _tag: i8, _result: i8)
 pub fn on_popup_result(g: &mut Game, node: MenuNode, tag: i8, result: i8) {
     match node {
         MenuNode::Main => main_menu::on_popup_result(g, tag, result),
+        MenuNode::SellList => sell_list::on_popup_result(g, tag, result),
         _ => on_popup_result_base(g, node, tag, result),
     }
 }
@@ -640,4 +689,271 @@ pub fn fill_inset2(
         width.wrapping_sub(4),
         height.wrapping_sub(4),
     );
+}
+
+// --------------------------------------------------------------------------
+// Scrollable-list pagination + draw kit (the five-entry paginated list the item
+// pickers use: `ItemPickerList` / `SellList`)
+// --------------------------------------------------------------------------
+
+/// `public final int currentPage()` (`cb`): the one-based page the cursor sits on
+/// (five entries per page): `(cursorIndex / 5) + 1`.
+pub fn current_page(base: &MenuBase) -> i32 {
+    // return (this.cursorIndex / 5) + 1;
+    java_div(base.cursor_index as i32, 5)
+        .expect("cursorIndex / 5")
+        .wrapping_add(1)
+}
+
+/// `public final int pageCount()` (`cb`): total number of five-entry pages:
+/// `((itemCount - 1) / 5) + 1`.
+pub fn page_count(base: &MenuBase) -> i32 {
+    // return ((this.itemCount - 1) / 5) + 1;
+    java_div((base.item_count as i32).wrapping_sub(1), 5)
+        .expect("(itemCount - 1) / 5")
+        .wrapping_add(1)
+}
+
+/// `public final int pageFirstIndex()` (`cb`): index of the first entry shown on
+/// the current page: `(currentPage() - 1) * 5`.
+pub fn page_first_index(base: &MenuBase) -> i32 {
+    // return (currentPage() - 1) * 5;
+    current_page(base).wrapping_sub(1).wrapping_mul(5)
+}
+
+/// `public final int pageLastIndex()` (`cb`): index of the last entry shown on the
+/// current page, clamped to the list end.
+pub fn page_last_index(base: &MenuBase) -> i32 {
+    // int last = (currentPage() * 5) - 1;
+    let last = current_page(base).wrapping_mul(5).wrapping_sub(1);
+    // return last > this.itemCount - 1 ? this.itemCount - 1 : last;
+    if last > (base.item_count as i32).wrapping_sub(1) {
+        (base.item_count as i32).wrapping_sub(1)
+    } else {
+        last
+    }
+}
+
+/// `private static final void drawBevelOutline(Graphics graphics, int x, int y, int width, int height, int lightColor, int darkColor)`
+/// (`cb`): a two-tone rectangle outline — `lightColor` top/left, `darkColor`
+/// bottom/right.
+pub fn draw_bevel_outline(
+    graphics: &mut j2me_me::Graphics,
+    x: i32,
+    y: i32,
+    width: i32,
+    height: i32,
+    light_color: i32,
+    dark_color: i32,
+) {
+    // graphics.setColor(lightColor);
+    graphics.set_color(light_color);
+    // graphics.drawLine(x + 1, y, (x + width) - 2, y);
+    graphics.draw_line(
+        x.wrapping_add(1),
+        y,
+        x.wrapping_add(width).wrapping_sub(2),
+        y,
+    );
+    // graphics.drawLine(x, y + 1, x, (y + height) - 2);
+    graphics.draw_line(
+        x,
+        y.wrapping_add(1),
+        x,
+        y.wrapping_add(height).wrapping_sub(2),
+    );
+    // graphics.setColor(darkColor);
+    graphics.set_color(dark_color);
+    // graphics.drawLine((x + width) - 1, y + 1, (x + width) - 1, (y + height) - 1);
+    graphics.draw_line(
+        x.wrapping_add(width).wrapping_sub(1),
+        y.wrapping_add(1),
+        x.wrapping_add(width).wrapping_sub(1),
+        y.wrapping_add(height).wrapping_sub(1),
+    );
+    // graphics.drawLine(x + 1, (y + height) - 1, (x + width) - 2, (y + height) - 1);
+    graphics.draw_line(
+        x.wrapping_add(1),
+        y.wrapping_add(height).wrapping_sub(1),
+        x.wrapping_add(width).wrapping_sub(2),
+        y.wrapping_add(height).wrapping_sub(1),
+    );
+}
+
+/// `private static final void fillInset1(Graphics graphics, int x, int y, int width, int height, int color)`
+/// (`cb`): fills a `width`×`height` box inset by one pixel with `color`.
+pub fn fill_inset1(
+    graphics: &mut j2me_me::Graphics,
+    x: i32,
+    y: i32,
+    width: i32,
+    height: i32,
+    color: i32,
+) {
+    // graphics.setColor(color);
+    graphics.set_color(color);
+    // graphics.fillRect(x + 1, y + 1, width - 2, height - 2);
+    graphics.fill_rect(
+        x.wrapping_add(1),
+        y.wrapping_add(1),
+        width.wrapping_sub(2),
+        height.wrapping_sub(2),
+    );
+}
+
+/// `public static final void fillOutlinedRect(Graphics graphics, int x, int y, int width, int height, int color)`
+/// (`cb`): a single-colour rectangle outline plus filled interior.
+pub fn fill_outlined_rect(
+    graphics: &mut j2me_me::Graphics,
+    x: i32,
+    y: i32,
+    width: i32,
+    height: i32,
+    color: i32,
+) {
+    // graphics.setColor(color);
+    graphics.set_color(color);
+    // graphics.drawLine(x + 1, y, (x + width) - 2, y);
+    graphics.draw_line(
+        x.wrapping_add(1),
+        y,
+        x.wrapping_add(width).wrapping_sub(2),
+        y,
+    );
+    // graphics.drawLine(x, y + 1, x, (y + height) - 2);
+    graphics.draw_line(
+        x,
+        y.wrapping_add(1),
+        x,
+        y.wrapping_add(height).wrapping_sub(2),
+    );
+    // graphics.drawLine((x + width) - 1, y + 1, (x + width) - 1, (y + height) - 2);
+    graphics.draw_line(
+        x.wrapping_add(width).wrapping_sub(1),
+        y.wrapping_add(1),
+        x.wrapping_add(width).wrapping_sub(1),
+        y.wrapping_add(height).wrapping_sub(2),
+    );
+    // graphics.drawLine(x + 1, (y + height) - 1, (x + width) - 2, (y + height) - 1);
+    graphics.draw_line(
+        x.wrapping_add(1),
+        y.wrapping_add(height).wrapping_sub(1),
+        x.wrapping_add(width).wrapping_sub(2),
+        y.wrapping_add(height).wrapping_sub(1),
+    );
+    // graphics.fillRect(x + 1, y + 1, width - 2, height - 2);
+    graphics.fill_rect(
+        x.wrapping_add(1),
+        y.wrapping_add(1),
+        width.wrapping_sub(2),
+        height.wrapping_sub(2),
+    );
+}
+
+/// `public static final void drawInsetPanel(Graphics graphics, int x, int y, int width, int height)`
+/// (`cb`): a two-tone bevel outline over a filled interior.
+pub fn draw_inset_panel(graphics: &mut j2me_me::Graphics, x: i32, y: i32, width: i32, height: i32) {
+    // drawBevelOutline(graphics, x, y, width, height, 16768959, 12558207);
+    draw_bevel_outline(graphics, x, y, width, height, 16768959, 12558207);
+    // fillInset1(graphics, x, y, width, height, 14663551);
+    fill_inset1(graphics, x, y, width, height, 14663551);
+}
+
+/// `public static final void drawTabButton(Graphics graphics, int x, int y, byte index, boolean selected)`
+/// (`cb`): the selection-slot cursor box for tab/row `index`; `selected` chooses the
+/// lit palette.
+pub fn draw_tab_button(
+    graphics: &mut j2me_me::Graphics,
+    x: i32,
+    y: i32,
+    index: i8,
+    selected: bool,
+) {
+    // int slotX = x + 3;
+    let slot_x = x.wrapping_add(3);
+    // int slotY = y + 10 + (index * 23);
+    let slot_y = y
+        .wrapping_add(10)
+        .wrapping_add((index as i32).wrapping_mul(23));
+    // graphics.setColor(selected ? 4136767 : 6242111);
+    graphics.set_color(if selected { 4136767 } else { 6242111 });
+    // graphics.fillRect(slotX + 1, slotY, 24, 1);
+    graphics.fill_rect(slot_x.wrapping_add(1), slot_y, 24, 1);
+    // graphics.fillRect(slotX, slotY + 1, 1, 16);
+    graphics.fill_rect(slot_x, slot_y.wrapping_add(1), 1, 16);
+    // graphics.fillRect(slotX + 1, slotY + 17, 24, 1);
+    graphics.fill_rect(slot_x.wrapping_add(1), slot_y.wrapping_add(17), 24, 1);
+    // graphics.setColor(selected ? 10452799 : 14663551);
+    graphics.set_color(if selected { 10452799 } else { 14663551 });
+    // graphics.fillRect(slotX + 1, slotY + 1, 24, 1);
+    graphics.fill_rect(slot_x.wrapping_add(1), slot_y.wrapping_add(1), 24, 1);
+    // graphics.fillRect(slotX + 1, slotY + 1, 1, 16);
+    graphics.fill_rect(slot_x.wrapping_add(1), slot_y.wrapping_add(1), 1, 16);
+    // graphics.setColor(selected ? 4144959 : 8347519);
+    graphics.set_color(if selected { 4144959 } else { 8347519 });
+    // graphics.fillRect(slotX + 2, slotY + 16, 23, 1);
+    graphics.fill_rect(slot_x.wrapping_add(2), slot_y.wrapping_add(16), 23, 1);
+    // graphics.setColor(selected ? 6242111 : 10452863);
+    graphics.set_color(if selected { 6242111 } else { 10452863 });
+    // graphics.fillRect(slotX + 2, slotY + 2, 24, 14);
+    graphics.fill_rect(slot_x.wrapping_add(2), slot_y.wrapping_add(2), 24, 14);
+}
+
+/// `public final void drawListPage(Graphics graphics, int x, int y, boolean arrows)`
+/// (`cb`): draws the current page of a scrolling five-slot list. **PARTIAL** — the
+/// up/down scroll arrows (`AssetCache.scrollUpArrow`/`scrollDownArrow`) are DEFERRED
+/// (that art bank is unported); the tab buttons and the content box are drawn.
+pub fn draw_list_page(
+    graphics: &mut j2me_me::Graphics,
+    base: &MenuBase,
+    x: i32,
+    y: i32,
+    arrows: bool,
+) {
+    // byte selected = (byte) (this.cursorIndex % 5);
+    let selected = java_rem(base.cursor_index as i32, 5).expect("cursorIndex % 5") as i8;
+    // int remaining = this.itemCount - ((currentPage() - 1) * 5);
+    let remaining =
+        (base.item_count as i32).wrapping_sub(current_page(base).wrapping_sub(1).wrapping_mul(5));
+    // int rowsOnPage = remaining; if (remaining > 5) rowsOnPage = 5;
+    let mut rows_on_page = remaining;
+    if remaining > 5 {
+        rows_on_page = 5;
+    }
+    // for (byte row = 0; row < rowsOnPage; row = (byte) (row + 1)) if (row != selected) drawTabButton(...false);
+    let mut row: i8 = 0;
+    while (row as i32) < rows_on_page {
+        if row != selected {
+            draw_tab_button(graphics, x, y, row, false);
+        }
+        row = (row as i32).wrapping_add(1) as i8;
+    }
+    // drawBevelBox(graphics, x + 27, y + 10, 120, 137, 4136767, 10452799, 4144959);
+    draw_bevel_box(
+        graphics,
+        x.wrapping_add(27),
+        y.wrapping_add(10),
+        120,
+        137,
+        4136767,
+        10452799,
+        4144959,
+    );
+    // fillInset2(graphics, x + 27, y + 10, 120, 137, 6242111);
+    fill_inset2(
+        graphics,
+        x.wrapping_add(27),
+        y.wrapping_add(10),
+        120,
+        137,
+        6242111,
+    );
+    // drawTabButton(graphics, x, y, selected, true);
+    draw_tab_button(graphics, x, y, selected, true);
+    // if (arrows) { if (currentPage() > 1) drawImage(scrollUpArrow, x+70, y+4, 20);
+    //               if (currentPage() < pageCount()) drawImage(scrollDownArrow, x+70, y+148, 20); }
+    if arrows {
+        // (DEFERRED: AssetCache.scrollUpArrow / scrollDownArrow — that art bank is not
+        //  modelled in the partial AssetCache; the page-arrow overlays are skipped.)
+    }
 }

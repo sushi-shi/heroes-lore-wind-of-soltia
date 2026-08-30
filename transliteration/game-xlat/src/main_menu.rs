@@ -13,9 +13,10 @@
 //!   skip + `logoFrame` reset) plus the FIRE-select `switch(cursorIndex)`: **case 0
 //!   ("New Game")** pushes `ClassSelectMenu` (fresh install) or the save-overwrite
 //!   `showPopup`; **case 1 ("Continue")** pushes `ContinueMenu`; **case 2
-//!   ("Options")** pushes `OptionsMenu`; the `default` about/exit + buy `showPopup`s
-//!   and the `keyCode == -8` exit-`showPopup` are wired. Only cases 3/4 (`HelpMenu` /
-//!   `AboutScreen`) remain DEFERRED (their screens are not ported);
+//!   ("Options")** pushes `OptionsMenu`; **case 4 ("About")** pushes `AboutScreen`;
+//!   the `default` about/exit + buy `showPopup`s and the `keyCode == -8`
+//!   exit-`showPopup` are wired. Only case 3 (`HelpMenu`) remains DEFERRED (its screen
+//!   is not ported);
 //! - `onPopupResult` — the popup-result callback (`super` dismiss + the
 //!   `pendingAction` switch: case 0 → `ClassSelectMenu`, case 2 → the demo-splash
 //!   arm); the full-version buy popup (case 2 else) and the buy-and-exit (cases 3/4)
@@ -40,6 +41,7 @@
 //! `bf.b:(…Graphics;III)V => [iinc×…,iadd×…,imul×…]` (drawMenuPanel),
 //! `bf.c:(…Graphics;II)V => [iinc,iinc,iinc,iinc,iadd,iinc,iadd,iinc,iadd,iinc,iinc,iadd]` (drawTitlePlate).
 
+use crate::about_screen;
 use crate::asset_cache::{self, AssetCacheState};
 use crate::class_select_menu;
 use crate::continue_menu;
@@ -253,7 +255,10 @@ pub fn handle_key(g: &mut Game, action: i32, key_code: i32) -> bool {
         }
         // case 4: child = new AboutScreen(this, false);
         4 => {
-            // (DEFERRED: AboutScreen — not ported.)
+            // new AboutScreen(this, false)  — materialise + link the about screen.
+            about_screen::construct(g, false);
+            g.main_menu.base.child = MenuChild::About;
+            // return false;
             false
         }
         // default:

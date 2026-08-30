@@ -21,6 +21,7 @@
 //! static `create()` call); `GameState`'s is not reached until a later
 //! menu/world use, exactly as the JVM would defer it.
 
+use crate::about_screen::AboutScreenState;
 use crate::app_config::AppConfigState;
 use crate::asset_cache::AssetCacheState;
 use crate::asset_loader::AssetLoaderState;
@@ -39,10 +40,12 @@ use crate::game_map::GameMapClassState;
 use crate::game_midlet::ApplicationState;
 use crate::game_screen::GameScreenState;
 use crate::game_state::GameStateData;
+use crate::item_picker_list::ItemPickerListState;
 use crate::main_menu::MainMenuState;
 use crate::options_menu::OptionsMenuState;
 use crate::popup_menu::PopupMenuState;
 use crate::resources::ResourceBank;
+use crate::sell_list::SellListState;
 use crate::start_trait_menu::StartTraitMenuState;
 use crate::string_table::StringTableData;
 use crate::title_screen::TitleScreenState;
@@ -147,6 +150,21 @@ pub struct Game {
     /// model carries the reusable child slot as a `Game` field, linked by the
     /// [`MenuChild`](crate::menu::MenuChild).
     pub options_menu: OptionsMenuState,
+    /// `bl` / `AboutScreen` state (the credits/about screen + its `cb`/`Menu` base
+    /// fields). Not a Java static — a per-instance child of `MainMenu` (FIRE case 4);
+    /// the flat model carries the reusable child slot as a `Game` field, linked by the
+    /// [`MenuChild`](crate::menu::MenuChild).
+    pub about_screen: AboutScreenState,
+    /// `m` / `ItemPickerList` state (the generic scrollable item-slot picker + its
+    /// `cb`/`Menu` base fields). Not a Java static — a per-instance child pushed by the
+    /// (unported) equip/craft menus; the flat model carries the reusable child slot as
+    /// a `Game` field, linked by the [`MenuChild`](crate::menu::MenuChild).
+    pub item_picker_list: ItemPickerListState,
+    /// `bb` / `SellList` state (the shop's sell-from-bag list; extends
+    /// `ItemPickerList`). Not a Java static — a per-instance child pushed by the
+    /// (unported) shop menu; the flat model carries the reusable child slot as a `Game`
+    /// field, linked by the [`MenuChild`](crate::menu::MenuChild).
+    pub sell_list: SellListState,
     /// `bw` / `AudioManager` state (the `snd/` clip pool + volume/mixer state).
     pub audio: AudioManagerState,
     /// `ce` / `AssetCache` state (PARTIAL — only the title/logo render-path banks
@@ -218,6 +236,9 @@ impl Game {
             confirm_dialog: ConfirmDialogState::default(),
             continue_menu: ContinueMenuState::default(),
             options_menu: OptionsMenuState::default(),
+            about_screen: AboutScreenState::default(),
+            item_picker_list: ItemPickerListState::default(),
+            sell_list: SellListState::default(),
             asset_cache: AssetCacheState::new(),
             asset_loader: AssetLoaderState::default(),
             font_manager: FontManagerState::default(),
