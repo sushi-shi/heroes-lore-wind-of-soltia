@@ -27,6 +27,7 @@ use crate::asset_cache::AssetCacheState;
 use crate::asset_loader::AssetLoaderState;
 use crate::audio_manager::AudioManagerState;
 use crate::base_canvas::BaseCanvasState;
+use crate::buy_sell_dialog::BuySellDialogState;
 use crate::byte_util::ByteUtilState;
 use crate::class_confirm_menu::ClassConfirmMenuState;
 use crate::class_select_menu::ClassSelectMenuState;
@@ -46,6 +47,8 @@ use crate::options_menu::OptionsMenuState;
 use crate::popup_menu::PopupMenuState;
 use crate::resources::ResourceBank;
 use crate::sell_list::SellListState;
+use crate::shop_item_list::ShopItemListState;
+use crate::shop_menu::ShopMenuState;
 use crate::start_trait_menu::StartTraitMenuState;
 use crate::string_table::StringTableData;
 use crate::title_screen::TitleScreenState;
@@ -165,6 +168,21 @@ pub struct Game {
     /// (unported) shop menu; the flat model carries the reusable child slot as a `Game`
     /// field, linked by the [`MenuChild`](crate::menu::MenuChild).
     pub sell_list: SellListState,
+    /// `bp` / `ShopMenu` state (the merchant shop singleton — its `Menu` base +
+    /// `shopStock` instance field + the `panelX`/`panelY`/`text`/`singleton` statics).
+    /// A separate menu root from `MainMenu`, reached via the world's screen-6 dispatch
+    /// (that wiring is DEFERRED to the game-state lane).
+    pub shop_menu: ShopMenuState,
+    /// `v` / `ShopItemList` state (the shop's per-category stock list + its `cb`/`Menu`
+    /// base fields). Not a Java static — a per-instance child of `ShopMenu`; the flat
+    /// model carries the reusable child slot as a `Game` field, linked by the
+    /// [`MenuChild`](crate::menu::MenuChild).
+    pub shop_item_list: ShopItemListState,
+    /// `ab` / `BuySellDialog` state (the buy/sell confirm dialog + its `cb`/`Menu` base
+    /// fields). Not a Java static — a per-instance child pushed by `ShopItemList`/
+    /// `SellList`; the flat model carries the reusable child slot as a `Game` field,
+    /// linked by the [`MenuChild`](crate::menu::MenuChild).
+    pub buy_sell_dialog: BuySellDialogState,
     /// `bw` / `AudioManager` state (the `snd/` clip pool + volume/mixer state).
     pub audio: AudioManagerState,
     /// `ce` / `AssetCache` state (PARTIAL — only the title/logo render-path banks
@@ -239,6 +257,9 @@ impl Game {
             about_screen: AboutScreenState::default(),
             item_picker_list: ItemPickerListState::default(),
             sell_list: SellListState::default(),
+            shop_menu: ShopMenuState::default(),
+            shop_item_list: ShopItemListState::default(),
+            buy_sell_dialog: BuySellDialogState::default(),
             asset_cache: AssetCacheState::new(),
             asset_loader: AssetLoaderState::default(),
             font_manager: FontManagerState::default(),

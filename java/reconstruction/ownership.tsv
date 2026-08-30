@@ -301,3 +301,15 @@ Floater	h	DEFAULT_LIFETIME	[B	floater	DEFAULT_LIFETIME
 #                              the Battler base BattlerData as its "super".)
 Effect	a	FRAME_COUNTS	[S	effect	FRAME_COUNTS
 Effect	i	TYPE_SPRITE_INDEX	[B	effect	TYPE_SPRITE_INDEX
+# obf class map (the shop-screen trio):
+#   BuySellDialog -> ab.class (no rows: instance-only, no statics — item/quantity/
+#                              buying are per-INSTANCE on buy_sell_dialog::BuySellDialogState.)
+#   ShopItemList  -> v.class   (no rows: instance-only, no statics — items/category
+#                              are per-INSTANCE on shop_item_list::ShopItemListState.)
+#   ShopMenu      -> bp.class  (four static rows below; the obf names collide — panelX/
+#                              text/singleton are all `a`, panelY is `b` — disambiguated
+#                              by descriptor. The shopStock field is per-INSTANCE.)
+ShopMenu	a	panelX	I	ShopMenuState	panel_x
+ShopMenu	b	panelY	I	ShopMenuState	panel_y
+ShopMenu	a	text	Lz;	ShopMenuState	text
+ShopMenu	a	singleton	Lbp;	ShopMenuState	singleton
