@@ -78,4 +78,13 @@ pub mod game_map;
 pub mod hero;
 pub mod map_object;
 
+// The on-battler overlay family: the abstract `Overlay` base (`f`) and its two leaf
+// subclasses — the floating damage/heal popups (`Floater`, `aw`) and the buff/debuff
+// status icons (`StatusIcon`, `cf`). These are the real tagged union backing a
+// `Battler`'s `floaters`/`statuses` lists (`GuardianCastFx`, the third subclass, is
+// DEFERRED). Their drawing bottoms out in DEFERRED `AssetCache` overlay banks.
+pub mod floater;
+pub mod overlay;
+pub mod status_icon;
+
 pub use game::Game;

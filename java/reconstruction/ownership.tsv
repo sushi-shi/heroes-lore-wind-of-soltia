@@ -258,3 +258,17 @@ Entity	a	rng	Ljava/util/Random;	EntityState	rng
 GameMap	c	minimapScale	B	GameMapClassState	minimap_scale
 GameMap	d	lastTilesetId	B	GameMapClassState	last_tileset_id
 AssetLoader	a	phase	B	AssetLoaderState	phase
+#
+# obf class map (the on-battler overlay family):
+#   Overlay     -> f.class    (no rows: the abstract overlay base has NO static
+#                              fields — lifetime/frame/finished are per-INSTANCE on
+#                              overlay::Overlay, the flattened union base)
+#   StatusIcon  -> cf.class   (one row: DURATION_BY_KIND, the per-kind lifetime
+#                              table, a `static final short[]` -> module const; the
+#                              `kind` field is per-INSTANCE on StatusIconData)
+#   Floater     -> aw.class   (one row: DEFAULT_LIFETIME, the per-kind default
+#                              lifetime table, a `static final byte[]` -> module
+#                              const; frames/spriteScript/kind/value are per-INSTANCE
+#                              on FloaterData)
+StatusIcon	a	DURATION_BY_KIND	[S	status_icon	DURATION_BY_KIND
+Floater	h	DEFAULT_LIFETIME	[B	floater	DEFAULT_LIFETIME
