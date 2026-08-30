@@ -17,26 +17,30 @@
 //! ([`GameHost::advance_clock`]) — the same deterministic time base the reference
 //! capture's substituted clock uses.
 //!
-//! ## What actually runs — and where the port stops
-//! The transliteration currently ports the FIRST-FRAME render path: boot entry
-//! (`GameMIDlet` → `GameLoop`), the `TitleScreen` constructor (its `Canvas` +
-//! framebuffer), `AssetCache.loadLogo` (`/img/logo`), `startLogo` (arms the state-10
-//! logo animation), and `paint`'s **state-10** branch — the Hands-On Mobile
-//! publisher splash sliding to centre. The **state-1** title draw (the "Heroes Lore"
-//! logo, birds, PRESS-ANY-KEY, version) and `keyPressed`/`enterStoryMode` are
-//! DEFERRED (the other lane). So this host boots straight to the publisher splash
-//! (no async loader, no sound prompt — the declared boot deviation, mirroring the
-//! reference route's `port=skip`), animates the splash, and — because `keyPressed`
-//! is not yet ported — does NOT respond to input: input is enqueued on the serial
-//! queue (the real path is exercised) but not yet consumed. That input gap, and the
-//! deferred state-1 title, are limits of the port, not of the host, and are exactly
-//! what the frame oracle reports honestly against the reference.
+//! ## What actually runs
+//! The transliteration ports the whole boot → title → main-menu → New-Game chain:
+//! boot entry (`GameMIDlet` → `GameLoop`), the `TitleScreen` constructor (its
+//! `Canvas` + framebuffer), the logo/title/font/label loaders, `startLogo` (arms the
+//! state-10 logo animation), `paint`'s **state-10** branch (the Hands-On Mobile
+//! publisher splash sliding to centre), the `startTitle` state-10 → state-1
+//! transition, `paint`'s **state-1** title draw, `keyPressed`/`enterStoryMode`, and
+//! the `GameScreen` main menu with its ported New-Game chain (`MainMenu` →
+//! `ClassSelectMenu` → `ClassConfirmMenu` → `StartTraitMenu`). So this host boots
+//! straight to the publisher splash (no async loader, no sound prompt — the declared
+//! boot deviation, mirroring the reference route's `port=skip`), animates it, flips
+//! to the title on its own, and — because input IS consumed — responds to keys:
+//! [`GameHost::tick`]'s events flow through the R9 serial queue into the current
+//! screen's `keyPressed`, driving the menu chain. The host loads the title-screen
+//! prerequisites at boot (see [`boot_to_logo`]) so the title paints instead of
+//! panicking when the splash finishes; the main-menu atlas loads later, on the
+//! any-key `enterStoryMode` transition, exactly as on the device.
 
 use std::path::Path;
 
 use heroes_lore_wind_of_soltia_game_xlat::byte_util::ByteUtilState;
+use heroes_lore_wind_of_soltia_game_xlat::menu::MenuChild;
 use heroes_lore_wind_of_soltia_game_xlat::{
-    asset_cache, base_canvas, game_loop, game_midlet, title_screen, Game,
+    asset_cache, base_canvas, font_manager, game_loop, game_midlet, title_screen, Game,
 };
 use j2me_me::Image;
 
@@ -135,11 +139,13 @@ impl GameHost {
     /// single frame-drive entry [`run_one_frame`](game_loop::run_one_frame) once: it
     /// runs the `synchronized (lock)` critical section (`markFrameStart` →
     /// `flushKey` → `requestRepaint`) and MIDP's serialized dispatch of the owed
-    /// repaint into one `TitleScreen.paint`.
+    /// repaint plus each queued key into the current screen's `paint`/`keyPressed`.
     ///
-    /// The game's `keyPressed` is DEFERRED in the current transliteration, so the
-    /// enqueued keys are not yet consumed (the recorded input gap) — enqueuing keeps
-    /// the real input PATH exercised for when it lands.
+    /// The enqueued keys ARE consumed: `run_one_frame` drains the R9 queue and
+    /// dispatches each `keyPressed(code)` to the current screen — `TitleScreen` on
+    /// the splash/title, then `GameScreen` (→ `MainMenu` → the New-Game chain) after
+    /// the any-key `enterStoryMode`. So feeding, e.g., FIRE on NEW GAME advances the
+    /// menu chain (this is what the `menu_nav` test drives headlessly).
     pub fn tick(&mut self, inputs: &[InputEvent]) {
         if let Some(canvas) = self.game.canvas.as_mut() {
             for ev in inputs {
@@ -168,6 +174,26 @@ impl GameHost {
         self.game.title_screen.state
     }
 
+    /// How deep the pushed New-Game menu chain currently is: 0 = the main menu alone
+    /// (or the pre-menu title), 1 = `ClassSelectMenu` open, 2 = `ClassConfirmMenu`,
+    /// 3 = `StartTraitMenu`. Walks the `Menu.child` discriminants exactly as the
+    /// ported recursive menu descent does. Surfaced so the menu-nav smoke can assert
+    /// the chain advances as keys are fed — the definitive input-reached-the-chain
+    /// witness for the deeper screens whose distinguishing art is still deferred (so
+    /// they do not yet differ pixel-for-pixel).
+    pub fn menu_depth(&self) -> u32 {
+        if self.game.main_menu.base.child != MenuChild::ClassSelect {
+            return 0;
+        }
+        if self.game.class_select_menu.base.child != MenuChild::ClassConfirm {
+            return 1;
+        }
+        if self.game.class_confirm_menu.base.child != MenuChild::StartTrait {
+            return 2;
+        }
+        3
+    }
+
     /// Advance the injected game clock by `ms`. The route driver calls this per
     /// command so the port's game-time tracks the reference's deterministic clock.
     pub fn advance_clock(&self, ms: i64) {
@@ -187,19 +213,34 @@ impl GameHost {
     }
 }
 
-/// Boot the transliteration to the state-10 publisher splash, ready to paint —
-/// exactly the sequence `tests/first_frame.rs` drives (which stands in for the
-/// deferred async `boot()` loader by porting only the loaders the splash paint
-/// touches).
+/// Boot the transliteration to the state-10 publisher splash, ready to paint, with
+/// every prerequisite the *later* screens need already in place — the same boot
+/// sequence `tests/menu_chain.rs`'s `drive_to_main_menu` uses (which stands in for
+/// the deferred async `boot()` loader by driving the loaders directly).
+///
+/// The splash slides for a few seconds and then `startTitle` flips to the state-1
+/// title on its own (no input needed); that title's `paint` reads the title-screen
+/// atlas, the fonts, and the title/version/footer labels. Loading only the logo
+/// (as an earlier increment did) therefore booted a host that PANICKED the instant
+/// the splash finished — so the full title prerequisites are loaded here at boot,
+/// making the live window drivable all the way through: splash → title → any-key →
+/// main menu → the New-Game chain. The main-menu atlas itself
+/// (`load_main_menu_assets`) is loaded later, by the any-key `enterStoryMode`
+/// transition, exactly as on the device.
 fn boot_to_logo(game: &mut Game) {
     // Boot entry (ported): GameMIDlet -> GameLoop.create/start.
     game_midlet::construct(game);
     game_midlet::start_app(game);
 
     // Title render setup: materialise the Canvas + framebuffer + BaseCanvas
-    // geometry, load the /img/logo atlas, arm the state-10 logo animation.
+    // geometry, then load every asset the state-10 splash AND the state-1 title
+    // paint read — the /img/logo atlas, the title-screen atlas, the six fonts, and
+    // the title labels — before arming the state-10 logo animation.
     title_screen::construct(game);
     asset_cache::load_logo(game);
+    asset_cache::load_title_screen(game);
+    font_manager::init_fonts(game);
+    font_manager::load_title_labels(game);
     title_screen::start_logo(game);
 
     // Display.setCurrent(titleScreen) — schedules the first (owed) paint.
