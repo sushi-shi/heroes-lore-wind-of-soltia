@@ -53,6 +53,7 @@ pub mod menu;
 pub mod options_menu;
 pub mod popup_menu;
 pub mod resources;
+pub mod scroll_caption;
 pub mod sell_list;
 pub mod sound_player;
 pub mod start_trait_menu;
