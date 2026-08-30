@@ -10,13 +10,17 @@
 //! ## ANTI-BOG boundary
 //!
 //! This increment ports the constructor's screen geometry, the `case 9`
-//! (main-menu) branches of `paint`/`keyPressed`, and the world-render entry —
-//! `paint` `case 1` (loading overlay) and `case 2` (`GameMap.paint` → the tiles).
+//! (main-menu) branches of `paint`/`keyPressed`, the world-render entry —
+//! `paint` `case 1` (loading overlay) and `case 2` (`GameMap.paint` → the tiles) —
+//! and the two in-game menu screens wired this lane: `case 5` (CharacterMenu) and
+//! `case 6` (ShopMenu), each dispatching `paint`/`keyPressed` to the ported menu.
 //! Inside `case 2` the pre-render `GameState.update()` (world sim + the unported
 //! Guardian), the follow-camera easing (`scrollCamera`) and `drawHud` (which derefs
-//! the Guardian) are DEFERRED; so are every other `screen` case (character/shop/
-//! refine/blacksmith menus, minimap, game-over, credits, endings, paused overlay)
-//! and the whole HUD / ending / staff-roll machinery.
+//! the Guardian) are DEFERRED; `drawWorldBehindMenu`'s `drawHud` is likewise DEFERRED
+//! (and its body is unreached while `worldVisible` is false — `activate` is unported).
+//! Still DEFERRED: the remaining `screen` cases (event scenes, refine/blacksmith
+//! menus, minimap, game-over, credits, endings, paused overlay) and the whole
+//! HUD / ending / staff-roll machinery.
 //!
 //! Opcode shapes (R8, `_reference/numeric_shapes.json`): `as.<init>:()V` (the
 //! geometry `idiv`s — `width/2`, `worldHeight/2`, `(width-74)/6`),
@@ -25,6 +29,7 @@
 
 use crate::asset_cache::AssetCacheState;
 use crate::asset_loader;
+use crate::character_menu;
 use crate::game::Game;
 use crate::game_loop;
 use crate::game_map;
@@ -32,6 +37,7 @@ use crate::game_state;
 use crate::item_bag;
 use crate::main_menu;
 use crate::menu;
+use crate::shop_menu;
 use j2me_jvm::java_div;
 
 /// Java `as` / `GameScreen` state — the class `static` geometry (obf `a`/`b`/`c`/`d`
@@ -107,14 +113,14 @@ pub fn mark_redraw(g: &mut Game) {
 }
 
 /// `public final void paint(Graphics graphics)` (`as.a:(…Graphics;)V`): the ported
-/// `case 1`/`case 2`/`case 9` dispatch. `synchronized (GameLoop.lock)` is a no-op in
-/// the single-threaded transliteration.
+/// `case 1`/`case 2`/`case 5`/`case 6`/`case 9` dispatch. `synchronized (GameLoop.lock)`
+/// is a no-op in the single-threaded transliteration.
 pub fn paint(g: &mut Game) {
     // GameState.processStateRequest();
     game_state::process_state_request(g);
     // switch (GameState.screen)  — a 15-case switch; this slice ports `case 1`
-    // (loading overlay), `case 2` (world tiles) and `case 9` (main menu); the rest
-    // are DEFERRED to the default arm.
+    // (loading overlay), `case 2` (world tiles), `case 5` (CharacterMenu), `case 6`
+    // (ShopMenu) and `case 9` (main menu); the rest are DEFERRED to the default arm.
     match g.game_state.screen {
         // case 1: AssetLoader.drawLoadingOverlay(graphics);
         1 => {
@@ -152,6 +158,30 @@ pub fn paint(g: &mut Game) {
                 // (DEFERRED: the Debug.fullVersion level-8 requestState(13,1) escape.)
             }
         }
+        // case 5: the character menu (six-tab panel). Invalidate up+down, then draw the
+        // whole tree at its centred origin. The three `CharacterMenu.instance()` calls
+        // are the singleton fetch — a no-op once open (case 13 created it).
+        5 => {
+            // CharacterMenu.instance().invalidateUp();
+            character_menu::instance(g);
+            menu::invalidate_up(g, menu::MenuNode::Character);
+            // CharacterMenu.instance().invalidateDown();
+            character_menu::instance(g);
+            menu::invalidate_down(g, menu::MenuNode::Character);
+            // CharacterMenu.instance().draw(graphics);
+            character_menu::instance(g);
+            character_menu::draw(g);
+        }
+        // case 6: the shop menu. Draw the world behind it (a no-op while worldVisible is
+        // false — GameScreen.activate is unported this slice), then the shop panel.
+        6 => {
+            // drawWorldBehindMenu(graphics, ShopMenu.instance());
+            shop_menu::instance(g);
+            draw_world_behind_menu(g, Some(menu::MenuNode::ShopMenu));
+            // ShopMenu.instance().draw(graphics);
+            shop_menu::instance(g);
+            shop_menu::draw(g);
+        }
         9 => {
             // MainMenu.instance().invalidateDown();
             debug_assert!(
@@ -162,15 +192,36 @@ pub fn paint(g: &mut Game) {
             // MainMenu.instance().draw(graphics);
             main_menu::draw(g);
         }
-        // (DEFERRED: cases 4,5,6,7,8,10,11,12,13,14,15 — event scenes,
-        // character/shop/refine/blacksmith menus, game-over, minimap, credits,
-        // endings, paused overlay.)
+        // (DEFERRED: cases 4,7,8,10,11,12,13,14,15 — event scenes,
+        // refine/blacksmith menus, game-over, minimap, credits, endings, paused
+        // overlay.)
         _ => {}
     }
     // graphics.setColor(16777215);  — a trailing pen-colour set with no draw (the
     //   MainMenu paint's Graphics already flushed); a dead store, modelled as a no-op.
     // GameLoop.instance.throttle();
     game_loop::throttle(g);
+}
+
+/// `private final void drawWorldBehindMenu(Graphics graphics, Menu menu)` (`as`):
+/// when the world layer is active, repaints the world tiles + HUD behind an open
+/// world-menu (shop/minimap) and marks the passed `menu` dirty. `worldVisible` is set
+/// only by the unported `GameScreen.activate`, so it is `false` in this slice and the
+/// body is skipped; ported faithfully so the shop's screen-6 dispatch is exact. The
+/// `drawHud(graphics)` call derefs the unported Guardian (`getActiveGuardian`) and
+/// stays DEFERRED inside the (unreached) guarded body. `menu` may be Java `null`
+/// (screen-11 minimap passes null) → [`None`].
+fn draw_world_behind_menu(g: &mut Game, node: Option<menu::MenuNode>) {
+    // if (this.worldVisible) {
+    if g.game_screen.world_visible {
+        // GameState.map.paint(graphics);
+        game_map::paint(g);
+        // drawHud(graphics);  — DEFERRED (derefs the unported Guardian via getActiveGuardian).
+        // if (menu != null) menu.invalidateDown();
+        if let Some(n) = node {
+            menu::invalidate_down(g, n);
+        }
+    }
 }
 
 /// `public static final void drawFrame(Graphics graphics, byte[] frames, byte
@@ -292,8 +343,9 @@ pub fn draw_frame_group(
 }
 
 /// `public final void keyPressed(int keyCode)` (`as.keyPressed:(I)V`): the ported
-/// `case 9` (main menu) key dispatch. The soft-key remaps (`-6 → 53`, `-7 → -8`)
-/// and the `getGameAction` decode are preserved; `synchronized` is a no-op.
+/// `case 2` (world), `case 5` (CharacterMenu), `case 6` (ShopMenu) and `case 9`
+/// (main menu) key dispatch. The soft-key remaps (`-6 → 53`, `-7 → -8`) and the
+/// `getGameAction` decode are preserved; `synchronized` is a no-op.
 pub fn key_pressed(g: &mut Game, key_code: i32) {
     let mut key_code = key_code;
     // if (keyCode == -6) keyCode = 53;
@@ -312,19 +364,30 @@ pub fn key_pressed(g: &mut Game, key_code: i32) {
     g.base_canvas.key_down = true;
     // int gameAction = getGameAction(keyCode);
     let game_action = j2me_me::Canvas::common_game_action(key_code);
-    // switch (GameState.screen)  — `case 2` (world/play) and `case 9` (main menu) are
-    // ported; the rest are DEFERRED to the default arm.
+    // switch (GameState.screen)  — `case 2` (world/play), `case 5` (CharacterMenu),
+    // `case 6` (ShopMenu) and `case 9` (main menu) are ported; the rest are DEFERRED
+    // to the default arm.
     match g.game_state.screen {
         // case 2: handlePlayKey(gameAction, keyCode);
         2 => {
             handle_play_key(g, game_action, key_code);
         }
+        // case 5: CharacterMenu.instance().handleKey(gameAction, keyCode);
+        5 => {
+            character_menu::instance(g);
+            character_menu::handle_key(g, game_action, key_code);
+        }
+        // case 6: ShopMenu.instance().handleKey(gameAction, keyCode);
+        6 => {
+            shop_menu::instance(g);
+            shop_menu::handle_key(g, game_action, key_code);
+        }
         9 => {
             // MainMenu.instance().handleKey(gameAction, keyCode);
             main_menu::handle_key(g, game_action, key_code);
         }
-        // (DEFERRED: the event / character / shop / refine / blacksmith /
-        // minimap / credits / clear / paused key handling.)
+        // (DEFERRED: the event / refine / blacksmith / minimap / credits / clear /
+        // paused key handling — cases 4/7/8/11/12/14/15.)
         _ => {}
     }
 }
