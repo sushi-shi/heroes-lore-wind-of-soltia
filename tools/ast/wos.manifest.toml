@@ -13,7 +13,7 @@ schema_version = 2
 build = "heroes-lore-wind-of-soltia v2.0.7 named-Java oracle"
 total_body_count = 90
 reviewed_body_count = 30
-crosswalked_body_count = 1
+crosswalked_body_count = 5
 
 [policy]
 blanket_max_span = 48
@@ -25,7 +25,8 @@ opcode_sha256 = "bd77af6522513dc98025020f9f4c41fdc485b249e6d23e919a7b4aafe067f1e
 java_ast_sha256 = "0d90eb2ab6e2d318d72b5f45ccea6cdc1b8c529c8c283ceef785f997d25cc496"
 java_nodes_sha256 = "0ab349eea9981205c08c02c2105964aab19343fd1bc483e115c2a8a44e712098"
 java_node_count = 69
-review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+semantic_status = "crosswalked"
+review = "MIDlet-1 entry point, crosswalked node-for-node (69 Java / 61 Rust nodes, each decided exactly once). REPRESENTATION SHAPE (faithfully carried, not a defect): the two Java reference fields `static GameMIDlet instance` and `private Display display` are modelled in Rust as `bool` presence flags — `true` once the (Java-null-default) reference is non-null — because the referenced objects live elsewhere (the Display on Game::display, the singleton is the Game itself). Thus `instance = this` becomes `g.application.instance = true`, and `this.display = Display.getDisplay(this)` becomes `g.application.display = true` (the getDisplay object-acquisition is represented by flipping the flag). The GameMIDlet() constructor folds the `started = false` field-initializer into <init> ahead of the explicit `instance = this`, matched by construct()'s two assignments; the SYNTHETIC_SUPER_CONSTRUCTOR and field/paren MODIFIERS are erased. startApp() is idempotent via `started`; System.out.println → println!; GameLoop.create/instance.start → game_loop::create/start(g). exit()'s notifyDestroyed() is a MIDlet-lifecycle terminator (a host callback into the AMS) with no observable state in this runtime, so the port leaves exit() an empty body and the call is adapted host-adapter. No arithmetic anywhere, so there are no operator-parity nodes."
 rust = [
   { file = "transliteration/game-xlat/src/game_midlet.rs", item = "field:ApplicationState::instance", ast_sha256 = "8959b9bb03c8625a495b53721cce740171444333127cc8a1cf8d51cde638743a", nodes_sha256 = "78751240abb5b0bed6e906ad1227613deaf115dcf8d98f5e8a7b21b33647bcb6", node_count = 2 },
   { file = "transliteration/game-xlat/src/game_midlet.rs", item = "field:ApplicationState::display", ast_sha256 = "8f8be2e5e70400d54e6f011fb94c3a766b12e47d123dbc703d70b5cfa78ae9a3", nodes_sha256 = "1242f12325b0e58a8bd2e36794ec6a1a87c02c6bd19153711d7eba22893e03c2", node_count = 2 },
@@ -37,8 +38,30 @@ rust = [
   { file = "transliteration/game-xlat/src/game_midlet.rs", item = "fn:destroy_app", ast_sha256 = "7c642884992eb1d666011cdc85477358f75f83b2276e111d1ac14baf7a386290", nodes_sha256 = "c0e5a824bdb732d622a54a6aa1afbb8fbf6d58b710634e459c6091c8042a4042", node_count = 6 },
   { file = "transliteration/game-xlat/src/game_midlet.rs", item = "fn:exit", ast_sha256 = "e84f688f17d1f93cc670bc2249c7fa408d1365fa305303bcff7fbe81d1312138", nodes_sha256 = "b89098b9dd830256f0110b0418531a680e0205d7fe1fb1fb4688bba57ff72953", node_count = 1 },
 ]
-op = []
-adapt = []
+op = [
+  { semantic = "field decl: `public static GameMIDlet instance` (name + reference type) <-> struct field `instance: bool` — the object reference is modelled as a presence flag (FIELD_DECL + PATH bool)", java = [0, 2], rust = ["0:0", "0:1"] },
+  { semantic = "field decl: `private Display display` (name + reference type) <-> struct field `display: bool` — presence flag for the LCDUI display owned by Game", java = [3, 5], rust = ["1:0", "1:1"] },
+  { semantic = "field decl: `public boolean started` (name + type) <-> struct field `started: bool`", java = [6, 8], rust = ["2:0", "2:1"] },
+  { semantic = "GameMIDlet() <init>: the `started = false` field-initializer, folded into the constructor ahead of the body <-> construct(): g.application.started = false", java = [9, 11], rust = ["4:1", "4:2", "4:3", "4:4", "4:5", "4:6"] },
+  { semantic = "GameMIDlet() constructor body block; `instance = this` <-> construct() body block; g.application.instance = true (reference→presence flag: constructing marks the singleton present)", java = [12, 13, 14, 15, 16], rust = ["4:0", "4:7", "4:8", "4:9", "4:10", "4:11", "4:12"] },
+  { semantic = "startApp() method body block", java = [17], rust = ["5:0"] },
+  { semantic = "System.out.println(\"startApp\") <-> println!(\"startApp\")", java = [18, 19, 20, 21, 22, 23], rust = ["5:1", "5:2"] },
+  { semantic = "if (this.started) return; <-> if g.application.started { return; } — the idempotency guard", java = [24, 26, 27, 28, 29], rust = ["5:3", "5:4", "5:5", "5:6", "5:7", "5:8", "5:9"] },
+  { semantic = "this.started = true <-> g.application.started = true", java = [30, 31, 32, 33, 34], rust = ["5:10", "5:11", "5:12", "5:13", "5:14", "5:15"] },
+  { semantic = "this.display = Display.getDisplay(this) <-> g.application.display = true — the Display object is owned by Game, so the getDisplay acquisition is realized by setting the presence flag true", java = [35, 36, 37, 38, 39, 40, 41, 42], rust = ["5:16", "5:17", "5:18", "5:19", "5:20", "5:21"] },
+  { semantic = "GameLoop.create(this.display) <-> game_loop::create(g) — the display arg is carried by the &mut Game", java = [43, 44, 45, 46, 47, 48], rust = ["5:22", "5:23", "5:24", "5:25", "5:26"] },
+  { semantic = "GameLoop.instance.start() <-> game_loop::start(g)", java = [49, 50, 51, 52, 53], rust = ["5:27", "5:28", "5:29", "5:30", "5:31"] },
+  { semantic = "pauseApp() method body block", java = [54], rust = ["6:0"] },
+  { semantic = "System.out.println(\"pauseApp\") <-> println!(\"pauseApp\")", java = [55, 56, 57, 58, 59, 60], rust = ["6:1", "6:2"] },
+  { semantic = "destroyApp(unconditional) body; exit() <-> destroy_app(g, _unconditional): exit(g) — the unused `unconditional` param carries no body node", java = [61, 62, 63, 64], rust = ["7:0", "7:1", "7:2", "7:3", "7:4", "7:5"] },
+  { semantic = "exit() method body block <-> exit(g): empty body (its only statement, notifyDestroyed(), is adapted away below)", java = [65], rust = ["8:0"] },
+]
+adapt = [
+  { category = "erased", reason = "javac field MODIFIERS metadata: `public static` on instance, `private` on display, `public` on started; Rust encodes visibility/mutability without distinct AST nodes", java = [1, 4, 7] },
+  { category = "erased", reason = "the SYNTHETIC_SUPER_CONSTRUCTOR (implicit super() call) javac inserts at the head of the explicit GameMIDlet() constructor; no Rust counterpart", java = [10] },
+  { category = "erased", reason = "redundant javac PARENTHESIZED grouping around the `this.started` if-condition; Rust carries it unparenthesized", java = [25] },
+  { category = "host-adapter", reason = "notifyDestroyed() (EXPRESSION_STATEMENT + METHOD_INVOCATION + IDENTIFIER) is a MIDlet-lifecycle terminator — a host callback into the AMS requesting teardown — with no observable state in this runtime; the port elides it, leaving exit() an empty body", java = [66, 67, 68] },
+]
 
 [[body]]
 java_item = "defpackage.GameLoop"
@@ -378,7 +401,8 @@ opcode_sha256 = "80393da7e88a2a45afa51f97214dd140971e5b2beb85730701a5857e5f2df4d
 java_ast_sha256 = "68348d1bef1101f8c10e527e4e3fb47ac8d6a8dfc730869c2d21969a1f7f94ad"
 java_nodes_sha256 = "8e73a3c147b6108c8222e92ab7bc8e5292e67597736a427e480ae7500333c0e7"
 java_node_count = 135
-review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+semantic_status = "crosswalked"
+review = "Table-driven CRC-32 (ISO 3309 / zlib variant, reversed polynomial 0xEDB88320), crosswalked node-for-node (135 Java / 204 Rust nodes, each decided exactly once). Two representation shapes dominate. (1) `private static final int[] TABLE = new int[256]`, built eagerly in <clinit>, becomes a lazily-initialized `fn table() -> &'static [i32;256]` backed by OnceLock: the field declaration + its declared `new int[256]` are representation-adapter, the OnceLock scaffold and the closure's tail `t` are Rust-only representation-adapter, and the real 256-int allocation pairs the <clinit>-folded `new int[256]` against `let mut t = [0i32;256]` — observationally equivalent (built once before first use; deterministic pure table). (2) `private int crc = -1` seeds through the field-initializer + synthetic <init> into `impl Default { Crc32State { crc: -1 } }`, with the idiomatic new() wrapper adapted, exactly as Adler32. OPERATOR PARITY: every Java UNSIGNED_RIGHT_SHIFT is realized by j2me_jvm::iushr — `this.crc >>> 8` in update() and the two `c >>> 1` arms of the <clinit> ternary — so the parity teeth are satisfied by genuine unsigned-shift helpers (no shape_note, no blanket). The two C-style `for` loops are lowered to `while` with explicit init/step; `short n`/`byte bit` widen with `as i32` for their `< 256`/`< 9` tests and narrow back via `(… as i16)`/`(… as i8)` on the step, faithful to Java short/byte arithmetic-in-int. update()'s single Java statement is split so the TABLE index `(this.crc ^ data[i]) & 255` is hoisted into `let idx` (baload sign-extends the byte, `& 255` re-zero-extends); `length + offset` and `i++` use wrapping_add (faithful signed wrap); `data[i]` is unguarded, so a Rust panic on a bad index is the faithful uncaught ArrayIndexOutOfBoundsException. PRESERVED AS-IS: the `& 16777215` (0x00FFFFFF) after `>>> 8` is redundant (the unsigned shift already zeroes the top byte) yet kept verbatim; the reversed polynomial `-306674912` (0xEDB88320) and the `-1` seed/complement are Java single INT_LITERALs realized as Rust UNARY `-` on the positive literal."
 rust = [
   { file = "transliteration/game-xlat/src/crc32.rs", item = "fn:table", ast_sha256 = "d0da147b26a345e45ef99a2618027dc5548e5a0ad8792058c67254fc7bfe4fb7", nodes_sha256 = "98192698fda7d28a6d0633f2193f241fe528a988d2d5bdcf7b11135c8d952761", node_count = 113 },
   { file = "transliteration/game-xlat/src/crc32.rs", item = "field:Crc32State::crc", ast_sha256 = "c7efe2d7360b25be6f2d014163a0f2073d7a9c79f51a80da497e9762d3ce829e", nodes_sha256 = "34a32cd0dd181eead91b2f9728e8c0ba4aeaf376ead78ea319b961eeda163103", node_count = 2 },
@@ -389,8 +413,34 @@ rust = [
   { file = "transliteration/game-xlat/src/crc32.rs", item = "fn:update", ast_sha256 = "343e2a22e112ba80964f90c5b862b3457f1a96279bb794d61f0dc5b3353565c0", nodes_sha256 = "4ec49660419e64eb356cc1b6a341f68bf3171071d2a74de3420ea54855074ae3", node_count = 64 },
   { file = "transliteration/game-xlat/src/crc32.rs", item = "fn:get_value", ast_sha256 = "115962b5304cc4e076ed9b1eccc116e1e5bbba641be116f61c3051dd32fdc391", nodes_sha256 = "311aa0a21180362bb8968656acc37f932072a9d8384d2583aa4c40b9879b0763", node_count = 8 },
 ]
-op = []
-adapt = []
+op = [
+  { semantic = "field decl: `private int crc` (name + type) <-> struct field `crc: i32`", java = [7, 9], rust = ["1:0", "1:1"] },
+  { semantic = "seed crc = -1: the field initializer `= -1` + the synthetic <init> that folds it in <-> impl Default { Crc32State { crc: -1 } } — Java INT_LITERAL -1 realized as Rust UNARY `-` on LITERAL 1", java = [10, 12], rust_range = [{ target = 3, start = 0, end = 5 }] },
+  { semantic = "reset(): this.crc = -1 <-> s.crc = -1 (+ body block); the -1 realized as UNARY `-` on LITERAL 1", java_range = [[13, 18]], rust_range = [{ target = 5, start = 0, end = 6 }] },
+  { semantic = "update(): for (int i = offset; i < length + offset; i++) <-> let mut i: i32 = offset; while i < length.wrapping_add(offset) — C-for lowered to while; the Java int `+` realized as wrapping_add (faithful signed overflow)", java = [19, 20, 21, 23, 24, 25, 26, 27, 28, 29], rust_range = [{ target = 6, start = 0, end = 13 }] },
+  { semantic = "update loop step i++ <-> i = i.wrapping_add(1)", java_range = [[30, 32]], rust_range = [{ target = 6, start = 57, end = 63 }] },
+  { semantic = "update for-body block", java = [33], rust = ["6:14"] },
+  { semantic = "hoisted TABLE index: (this.crc ^ data[i]) & 255 <-> let idx: i32 = (s.crc ^ (data[i as usize] as i32)) & 255 — the baload sign-extends the signed byte (as i32) before the XOR, then `& 255` re-zero-extends it to a table index; the `&`/`^` are realized as bare Rust operators", java_range = [[49, 57]], rust_range = [{ target = 6, start = 15, end = 33 }] },
+  { semantic = "update fold: this.crc = ((this.crc >>> 8) & 16777215) ^ TABLE[idx] <-> s.crc = (iushr(s.crc, 8) & 16777215) ^ table()[idx as usize] — the `>>> 8` realized by j2me_jvm::iushr; the `& 16777215` (0x00FFFFFF, redundant after the unsigned shift but preserved verbatim) then the XOR folds in the table entry via the hoisted idx", java_range = [[34, 48]], rust_range = [{ target = 6, start = 34, end = 56 }] },
+  { semantic = "getValue(): return this.crc ^ (-1) <-> s.crc ^ (-1) — the final ones-complement; XOR realized as bare Rust `^`, the -1 as UNARY `-` on LITERAL 1", java_range = [[58, 64]], rust_range = [{ target = 7, start = 0, end = 7 }] },
+  { semantic = "<clinit> TABLE allocation: new int[256] (zero-filled) <-> let mut t = [0i32; 256] — the folded <clinit> copy of the field allocation pairs the real one-time Rust build inside the OnceLock closure", java_range = [[65, 67]], rust_range = [{ target = 0, start = 13, end = 16 }] },
+  { semantic = "<clinit> outer loop header: for (short n = 0; n < 256; …) <-> the get_or_init closure body block + let mut n: i16 = 0; while (n as i32) < 256 — C-for lowered to while, short n widened to i32 for the `<` test", java = [68, 69, 70, 72, 73, 74, 75, 76], rust = ["0:12"], rust_range = [{ target = 0, start = 17, end = 27 }] },
+  { semantic = "<clinit> outer loop step: n = (short)(n + 1) <-> n = (n as i32 + 1) as i16 — n+1 computed in int then narrowed back to short/i16", java_range = [[77, 85]], rust_range = [{ target = 0, start = 99, end = 110 }] },
+  { semantic = "<clinit> outer for-body block", java = [86], rust = ["0:28"] },
+  { semantic = "int c = n <-> let mut c: i32 = n as i32 (short n widened to int)", java = [87, 89, 90], rust_range = [{ target = 0, start = 29, end = 34 }] },
+  { semantic = "<clinit> inner loop header: for (byte bit = 1; bit < 9; …) <-> let mut bit: i8 = 1; while (bit as i32) < 9 — byte bit widened to i32 for the `<` test; iterates 8 times", java = [91, 92, 94, 95, 96, 97, 98], rust_range = [{ target = 0, start = 35, end = 45 }] },
+  { semantic = "<clinit> inner loop step: bit = (byte)(bit + 1) <-> bit = (bit as i32 + 1) as i8", java_range = [[99, 107]], rust_range = [{ target = 0, start = 77, end = 88 }] },
+  { semantic = "<clinit> inner for-body block", java = [108], rust = ["0:46"] },
+  { semantic = "<clinit> polynomial fold: c = (c & 1) == 1 ? (c >>> 1) ^ (-306674912) : c >>> 1 <-> c = if (c & 1) == 1 { iushr(c, 1) ^ (-306674912) } else { iushr(c, 1) } — BOTH `>>> 1` arms realized by j2me_jvm::iushr; ternary lowered to an if-expression; the reversed polynomial -306674912 (0xEDB88320) is a Java INT_LITERAL realized as UNARY `-` on LITERAL 306674912", java_range = [[109, 128]], rust_range = [{ target = 0, start = 47, end = 76 }] },
+  { semantic = "TABLE[n] = c <-> t[n as usize] = c", java_range = [[129, 134]], rust_range = [{ target = 0, start = 89, end = 98 }] },
+]
+adapt = [
+  { category = "erased", reason = "javac MODIFIERS metadata: `private static final` on TABLE, `private` on crc, and the (bare) modifiers of the loop locals i/n/c/bit; Rust encodes visibility/const-ness/mutability without distinct AST nodes", java = [1, 8, 22, 71, 88, 93] },
+  { category = "erased", reason = "the SYNTHETIC_SUPER_CONSTRUCTOR (implicit super() in the generated <init>); no Rust counterpart — the crc seed itself pairs in the Default op above", java = [11] },
+  { category = "representation-adapter", reason = "the `static final int[] TABLE = new int[256]` field declaration (VARIABLE name + ARRAY_TYPE/PRIMITIVE_TYPE type nodes) and its declared `new int[256]` initializer (NEW_ARRAY/PRIMITIVE_TYPE/INT_LITERAL 256): the Rust port models the class-static store as a lazily-initialized `fn table()` returning `&'static [i32;256]`, so the field decl + declared allocation have no direct Rust value node — the one-time allocation is realized inside the lazy closure and paired via the <clinit>-folded `new int[256]` copy", java = [0, 2, 3, 4, 5, 6] },
+  { category = "representation-adapter", reason = "the OnceLock lazy-init scaffold (fn body block, `static TABLE: OnceLock<[i32;256]>`, OnceLock::new(), the `.get_or_init(closure)` call and closure header) plus the closure's tail expression `t` that returns the built table: Rust-only machinery realizing Java's implicit build-once-at-class-load semantics for the static TABLE", rust = ["0:0", "0:1", "0:2", "0:3", "0:4", "0:5", "0:6", "0:7", "0:8", "0:9", "0:10", "0:11", "0:111", "0:112"] },
+  { category = "representation-adapter", reason = "the idiomatic `Crc32State::new()` wrapper (BLOCK + call to Crc32State::default()): a Rust-only representation of Java's `new Crc32()` construction convention — the seed value pairs in the Default op above", rust = ["4:0", "4:1", "4:2", "4:3"] },
+]
 
 [[body]]
 java_item = "defpackage.BitmapFont"
@@ -666,7 +716,8 @@ opcode_sha256 = "d463f9268c6891b62bf4526a9cee5e9cbfa075f036e5a078113788b66345cba
 java_ast_sha256 = "ef5301c6bf1398ead5a10cc2b7613792c78a23a71fc15fe7cfc9f9976ff91a40"
 java_nodes_sha256 = "a942c9a259a7d6c84f25dc0fa67b360c94ede01dda8687f57fe2bba9d69415ba"
 java_node_count = 200
-review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+semantic_status = "crosswalked"
+review = "Shared direction lookup tables, crosswalked node-for-node (200 Java / 83 Rust nodes, each decided exactly once). This is a pure-constant Java `interface`: nine `public static final` arrays that every entity/menu class inherits. REPRESENTATION SHAPE (the dominant pattern here): each Java constant appears TWICE in the javac AST — once as the field declaration (VARIABLE + MODIFIERS + array/primitive type nodes + its `new …[]{…}` initializer) and once folded into the synthetic <clinit> (the bare initializer arrays, nodes 119-199). The Rust port materialises each as one module-level `pub const NAME: TYPE = […]`, whose name and type live OUTSIDE the syn initializer-body node inventory. So each op pairs the Java field-declaration's array initializer against the Rust const's ARRAY/LITERAL value nodes; the declaration shells (name + array/primitive TYPE nodes) and the entire folded <clinit> duplicate are one-sided Java nodes adapted as representation-adapter, and the `public static final` MODIFIERS plus the interface's SYNTHETIC_SUPER_CONSTRUCTOR marker are erased. Two faithful cross-language shapes are noted per-op: (1) Java `byte`/`byte[][]` becomes Rust `i8`/`[[i8;4];4]` — every value (10, 13, 6, 0, ±1 …) fits i8, so no truncation/defect; (2) a Java INT_LITERAL `-1` is a single node, realised in Rust as UNARY `-` applied to LITERAL `1` (DIR_DX/DIR_DY) — a representation difference, NOT an operator-parity construct (no DIVIDE/REMAINDER/shift exists anywhere in this body, `u.<clinit> => []`). The four `new byte[]` element-type PRIMITIVE_TYPE nodes inside elementDamageMultiplier's initializer are absorbed into its table op (Rust rows carry no element-type node)."
 rust = [
   { file = "transliteration/game-xlat/src/directions.rs", item = "const:ELEMENT_DAMAGE_MULTIPLIER", ast_sha256 = "02957f9645c716ce1c485a5967d645b186886f2e050e46963262f9a021c08b54", nodes_sha256 = "0e6c32712b5c6da02dc3931aa0dd78750838655ec4a1424182158212fef671fa", node_count = 21 },
   { file = "transliteration/game-xlat/src/directions.rs", item = "const:DIR_DX", ast_sha256 = "abee0d64a1626f0da20fbc9654dba296d2e3ffab811cef028ea6866d39a4bf77", nodes_sha256 = "daab0cd172a2d6764df1f7615662ee8f35e758d797f979c62a1e1ca5b55e5ea1", node_count = 13 },
@@ -678,8 +729,23 @@ rust = [
   { file = "transliteration/game-xlat/src/directions.rs", item = "const:ROTATE_CCW", ast_sha256 = "33a80322458ff8ead6e994388e9c49e52f159ad482f07756ac807ab4864d3ad6", nodes_sha256 = "13ca725e279f3c603c7e5831c0f5c238288e0203608641616b5b000bef42be12", node_count = 6 },
   { file = "transliteration/game-xlat/src/directions.rs", item = "const:REVERSE", ast_sha256 = "2e16dbf6882e976c4cf0d4aa5e2aa7da8e201fc88af69d046d94332a4873283d", nodes_sha256 = "d09bbbf66fe997cf654356b1e54d80fb2642d9692b59eb39d2520cd93b264887", node_count = 6 },
 ]
-op = []
-adapt = []
+op = [
+  { semantic = "elementDamageMultiplier = {{10,10,10,10},{10,10,6,13},{10,13,10,6},{10,6,13,10}} (byte[][] 4x4, damage x10 table) <-> ELEMENT_DAMAGE_MULTIPLIER: [[i8;4];4] — the outer `new [][]` + four `new byte[]` rows and their 16 byte literals; the four inner-`new byte[]` PRIMITIVE_TYPE element-type nodes are absorbed (Rust rows carry no element-type node)", java_range = [[5, 29]], rust_range = [{ target = 0, start = 0, end = 20 }] },
+  { semantic = "dirDx = {0,0,0,-1,1,-1,1,-1,1} (byte[9] x-step per step-direction 0-8) <-> DIR_DX: [i8;9] — each Java INT_LITERAL -1 is realised as Rust UNARY `-` on LITERAL 1 (representation shape, no operator-parity node)", java_range = [[34, 43]], rust_range = [{ target = 1, start = 0, end = 12 }] },
+  { semantic = "dirDy = {0,-1,1,0,0,-1,-1,1,1} (byte[9] y-step, positive = downward) <-> DIR_DY: [i8;9] — same signed-literal-to-unary-negation shape as DIR_DX", java_range = [[48, 57]], rust_range = [{ target = 2, start = 0, end = 12 }] },
+  { semantic = "facingIsHorizontal = {false,false,false,true,true} (boolean[5], true for left/right facings 3-4) <-> FACING_IS_HORIZONTAL: [bool;5]", java_range = [[62, 67]], rust_range = [{ target = 3, start = 0, end = 5 }] },
+  { semantic = "diagCW = {0,6,7,5,8} (byte[5] facing 0-4 -> forward diagonal step 45deg CW) <-> DIAG_CW: [i8;5]", java_range = [[72, 77]], rust_range = [{ target = 4, start = 0, end = 5 }] },
+  { semantic = "diagCCW = {0,5,8,7,6} (byte[5] facing 0-4 -> forward diagonal step 45deg CCW) <-> DIAG_CCW: [i8;5]", java_range = [[82, 87]], rust_range = [{ target = 5, start = 0, end = 5 }] },
+  { semantic = "rotateCW = {0,4,3,1,2} (byte[5] facing 0-4 rotated 90deg CW) <-> ROTATE_CW: [i8;5]", java_range = [[92, 97]], rust_range = [{ target = 6, start = 0, end = 5 }] },
+  { semantic = "rotateCCW = {0,3,4,2,1} (byte[5] facing 0-4 rotated 90deg CCW) <-> ROTATE_CCW: [i8;5]", java_range = [[102, 107]], rust_range = [{ target = 7, start = 0, end = 5 }] },
+  { semantic = "reverse = {0,2,1,4,3} (byte[5] facing 0-4 reversed 180deg) <-> REVERSE: [i8;5]", java_range = [[112, 117]], rust_range = [{ target = 8, start = 0, end = 5 }] },
+]
+adapt = [
+  { category = "erased", reason = "javac `public static final` MODIFIERS metadata on all nine interface constants; Rust encodes const-ness/visibility on the `pub const` declaration, not as AST body nodes", java = [1, 31, 45, 59, 69, 79, 89, 99, 109] },
+  { category = "representation-adapter", reason = "the nine field-declaration shells (VARIABLE name node + the ARRAY_TYPE/PRIMITIVE_TYPE declared-type nodes: `byte[][]` for elementDamageMultiplier, `byte[]`/`boolean[]` for the rest); each becomes the name + type of a Rust `pub const NAME: TYPE`, which sits outside the syn initializer-body node inventory the Rust evidence enumerates", java = [0, 2, 3, 4, 30, 32, 33, 44, 46, 47, 58, 60, 61, 68, 70, 71, 78, 80, 81, 88, 90, 91, 98, 100, 101, 108, 110, 111] },
+  { category = "erased", reason = "the SYNTHETIC_SUPER_CONSTRUCTOR marker javac emits ahead of the folded static initializers; a pure-constant interface has no real constructor and Rust module consts have no such node", java = [118] },
+  { category = "representation-adapter", reason = "the entire <clinit>-folded duplicate of all nine array initializers (nodes 119-199): javac lists each constant's `new …[]{…}` a second time as the body of the synthetic static initializer that assigns the interface fields. The Rust `pub const` values carry each table exactly once, so this folded duplicate has no Rust counterpart — it is the same constants already paired in the ops above", java_range = [[119, 199]] },
+]
 
 [[body]]
 java_item = "defpackage.AppConfig"
@@ -722,14 +788,26 @@ opcode_sha256 = "b343c1691910d734de0abf1e3b3d05fcef9a3215235ccd9304746ddf37de6e7
 java_ast_sha256 = "c6f1cf37b4cab8d05b61da105cf206691da9fbd268509db8213291a05f641197"
 java_nodes_sha256 = "1f1240d0781813c9d3b32efa2965a462e1860ca6423d41e11d07b717dc0b385f"
 java_node_count = 31
-review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+semantic_status = "crosswalked"
+review = "Tiny assert/build-flag helper, crosswalked node-for-node (31 Java / 10 Rust nodes, each decided exactly once). The single observable state `static boolean fullVersion = false` pairs its VARIABLE+PRIMITIVE_TYPE against the Rust `full_version: bool` FIELD_DECL/PATH; the `= false` initializer (node 3) and its <clinit>-folded copy (node 15) carry no distinct Rust node because `#[derive(Default)]` yields bool's default `false`, so both are adapted faithful-noop. assertTrue's `if (!condition) throw new RuntimeException(\"ASSERT FAILED\")` maps onto `if !condition { panic!(\"ASSERT FAILED\") }` — the throw is uncaught at the engine call sites, so the Rust panic is the faithful termination. The static initializer's dead residue (`byte[] unused = {7,9,13,16,19}`, never read; `System.currentTimeMillis()`, result discarded) has no observable effect and is elided by the port, adapted faithful-noop. No arithmetic, hence no operator-parity nodes; the only erased nodes are the field MODIFIERS, the SYNTHETIC_SUPER_CONSTRUCTOR, and the `(!condition)` grouping paren."
 rust = [
   { file = "transliteration/game-xlat/src/debug.rs", item = "field:DebugState::full_version", ast_sha256 = "97e068422057162346f33705bb6b065a976b58ad64840ea431a5fe230e25d59d", nodes_sha256 = "527bc1ce027798b8f24813142f594f5021c1f7ec088760611b739a9c080fc134", node_count = 2 },
   { file = "transliteration/game-xlat/src/debug.rs", item = "struct:DebugState", ast_sha256 = "8e7b69944c130380815d7260c6d2ffc42cca54bf0ccccb2196f27fbf569cddbe", nodes_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", node_count = 0 },
   { file = "transliteration/game-xlat/src/debug.rs", item = "fn:assert_true", ast_sha256 = "b51eaeb7b3339ac1ae90752587d8047c29e690fc3c904abc63ce4fb45439a5a7", nodes_sha256 = "02963f23e3275307ceda0a2d51da91787b432c105eb33033e6d794d7013be46f", node_count = 8 },
 ]
-op = []
-adapt = []
+op = [
+  { semantic = "field decl: `static boolean fullVersion` (name + type) <-> struct field `pub full_version: bool`", java = [0, 2], rust = ["0:0", "0:1"] },
+  { semantic = "assertTrue(condition) method body block", java = [5], rust = ["2:0"] },
+  { semantic = "if (!condition) <-> if !condition — LOGICAL_COMPLEMENT `!` applied to the `condition` identifier", java = [6, 8, 9], rust = ["2:1", "2:2", "2:3", "2:4"] },
+  { semantic = "throw new RuntimeException(\"ASSERT FAILED\") <-> panic!(\"ASSERT FAILED\") — the uncaught engine-level throw is faithfully a Rust panic (if-body block + throw + new-class + string literal)", java = [10, 11, 12, 13, 14], rust = ["2:5", "2:6", "2:7"] },
+]
+adapt = [
+  { category = "erased", reason = "javac metadata: the field's `public static` MODIFIERS; Rust encodes visibility as `pub`/module scope, not a distinct AST node", java = [1] },
+  { category = "erased", reason = "the SYNTHETIC_SUPER_CONSTRUCTOR javac inserts for the implicit no-arg constructor; the Rust struct has no corresponding node", java = [4] },
+  { category = "erased", reason = "redundant javac PARENTHESIZED grouping around the `!condition` if-condition; Rust carries the same condition unparenthesized", java = [7] },
+  { category = "faithful-noop", reason = "the `= false` field initializer (node 3) and its <clinit>-folded copy (node 15): bool's `#[derive(Default)]` reproduces exactly `false`, so the explicit initializer is a faithful no-op with no distinct Rust node", java = [3, 15] },
+  { category = "faithful-noop", reason = "the static initializer's dead residue: `byte[] unused = {7, 9, 13, 16, 19}` (BLOCK/VARIABLE/MODIFIERS/ARRAY_TYPE/PRIMITIVE_TYPE/NEW_ARRAY + five INT_LITERALs) is never read, and `System.currentTimeMillis()` (EXPRESSION_STATEMENT/METHOD_INVOCATION/MEMBER_SELECT/IDENTIFIER) discards its result; the port elides both as no-ops with no observable effect", java_range = [[16, 30]] },
+]
 
 [[body]]
 java_item = "defpackage.EntityList"
