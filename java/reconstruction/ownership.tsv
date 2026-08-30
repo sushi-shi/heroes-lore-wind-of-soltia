@@ -362,6 +362,53 @@ CharacterMenu	a	singleton	Lai;	CharacterMenuState	singleton
 #                              remain per-INSTANCE-of-the-static on AssetCacheState.)
 AssetCache	d	guardianFrames	[Ljava/lang/Object;	AssetCacheState	guardian_frames
 #
+#   AssetCache    -> ce.class  (in-game UI / HUD image-bank increment: loadInGameUi +
+#                              loadItemIcons/loadGuardianIcons/loadGlobalUi/loadGameMenuIcons/
+#                              loadShopUi/loadStatusEffectIcons. Same obf letter recurs across
+#                              distinct descriptors — e.g. `r` is both numberFont0 (Image) and
+#                              dialogBorder ([Image); `d` is itemIcons/guardianIcons-`b`/
+#                              cursorArrow/shopSellIcon-`c` — disambiguated by descriptor.
+#                              The FontManager.loadLocaleImage-fed floaterIcon2/3/statPointAlert/
+#                              shopBuyIcon/shopSellIcon and TitleScreen-fed commonText are
+#                              modelled but their assignment is DEFERRED.)
+AssetCache	q	hudFrame	[Ljavax/microedition/lcdui/Image;	AssetCacheState	hud_frame
+AssetCache	r	dialogBorder	[Ljavax/microedition/lcdui/Image;	AssetCacheState	dialog_border
+AssetCache	s	floaterIcon3	Ljavax/microedition/lcdui/Image;	AssetCacheState	floater_icon3
+AssetCache	t	floaterIcon2	Ljavax/microedition/lcdui/Image;	AssetCacheState	floater_icon2
+AssetCache	v	statPointAlert	Ljavax/microedition/lcdui/Image;	AssetCacheState	stat_point_alert
+AssetCache	w	numberFont1	Ljavax/microedition/lcdui/Image;	AssetCacheState	number_font1
+AssetCache	x	numberFont2	Ljavax/microedition/lcdui/Image;	AssetCacheState	number_font2
+AssetCache	y	numberFont3	Ljavax/microedition/lcdui/Image;	AssetCacheState	number_font3
+AssetCache	z	numberFont4	Ljavax/microedition/lcdui/Image;	AssetCacheState	number_font4
+AssetCache	A	dropItemMarker	Ljavax/microedition/lcdui/Image;	AssetCacheState	drop_item_marker
+AssetCache	B	dropGoldMarker	Ljavax/microedition/lcdui/Image;	AssetCacheState	drop_gold_marker
+AssetCache	C	skillChargeFill	Ljavax/microedition/lcdui/Image;	AssetCacheState	skill_charge_fill
+AssetCache	h	levelUpScript	[B	AssetCacheState	level_up_script
+AssetCache	d	itemIcons	[Ljavax/microedition/lcdui/Image;	AssetCacheState	item_icons
+AssetCache	b	guardianIcons	[Ljavax/microedition/lcdui/Image;	AssetCacheState	guardian_icons
+AssetCache	c	guardianSkillIcons	[Ljavax/microedition/lcdui/Image;	AssetCacheState	guardian_skill_icons
+AssetCache	k	scrollUpArrow	Ljavax/microedition/lcdui/Image;	AssetCacheState	scroll_up_arrow
+AssetCache	n	scrollDownArrow	Ljavax/microedition/lcdui/Image;	AssetCacheState	scroll_down_arrow
+AssetCache	o	slotFrame	Ljavax/microedition/lcdui/Image;	AssetCacheState	slot_frame
+AssetCache	d	cursorArrow	Ljavax/microedition/lcdui/Image;	AssetCacheState	cursor_arrow
+AssetCache	r	numberFont0	Ljavax/microedition/lcdui/Image;	AssetCacheState	number_font0
+AssetCache	l	portraitFrame	Ljavax/microedition/lcdui/Image;	AssetCacheState	portrait_frame
+AssetCache	m	goldIcon	Ljavax/microedition/lcdui/Image;	AssetCacheState	gold_icon
+AssetCache	a	statusPanelIcon	Ljavax/microedition/lcdui/Image;	AssetCacheState	status_panel_icon
+AssetCache	i	fractionSlash	Ljavax/microedition/lcdui/Image;	AssetCacheState	fraction_slash
+AssetCache	e	helpText	Lz;	AssetCacheState	help_text
+AssetCache	n	menuTabIcons	[Ljavax/microedition/lcdui/Image;	AssetCacheState	menu_tab_icons
+AssetCache	o	equipSlotIcons	[Ljavax/microedition/lcdui/Image;	AssetCacheState	equip_slot_icons
+AssetCache	p	shopCategoryIcons	[Ljavax/microedition/lcdui/Image;	AssetCacheState	shop_category_icons
+AssetCache	q	shopCoinIcon	Ljavax/microedition/lcdui/Image;	AssetCacheState	shop_coin_icon
+AssetCache	p	shopSelectBox	Ljavax/microedition/lcdui/Image;	AssetCacheState	shop_select_box
+AssetCache	b	shopBuyIcon	Ljavax/microedition/lcdui/Image;	AssetCacheState	shop_buy_icon
+AssetCache	c	shopSellIcon	Ljavax/microedition/lcdui/Image;	AssetCacheState	shop_sell_icon
+AssetCache	D	emoticonBubble	Ljavax/microedition/lcdui/Image;	AssetCacheState	emoticon_bubble
+AssetCache	v	statusIcons	[Ljavax/microedition/lcdui/Image;	AssetCacheState	status_icons
+AssetCache	w	emoticons	[Ljavax/microedition/lcdui/Image;	AssetCacheState	emoticons
+AssetCache	g	commonText	Lz;	AssetCacheState	common_text
+#
 # obf class map (the craft/refine menu cluster):
 #   RefineMenu       -> ax.class (four static rows below; the obf names collide — panelX/
 #                              text/singleton are all `a`, panelY is `b` — disambiguated
