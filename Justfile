@@ -105,8 +105,12 @@ java-me-frames-check:
 # manifest (tools/ast/wos.manifest.toml — the authored op/adapt decisions, like
 # the shipped fixture) against that fresh evidence under --strict. It is RED
 # (nonzero) until EVERY node of EVERY reviewed body is decided — the honest
-# baseline — so it is intentionally NOT part of `check` yet. Authored decisions
-# persist: this path regenerates evidence only and never rewrites the manifest.
+# baseline. As of the 30-body burn-down (2026-08-30) ALL 30 reviewed bodies are
+# GREEN (54050/54050 nodes decided), so it is now an ENFORCED gate in `check`; it
+# goes RED again the moment a ported body or its named-Java oracle changes (a
+# broken hash-lock, forcing re-review) or a newly-ported class is added undecided.
+# Authored decisions persist: this path regenerates evidence only and never
+# rewrites the manifest.
 crosswalk: build-java
     cargo build -p j2me-ast-audit
     python3 tools/ast/wos_crosswalk.py --strict --coverage
@@ -165,6 +169,7 @@ check:
     just crosswalk-canfail
     just crosswalk-fixture-canfail
     just crosswalk-wos-canfail
+    just crosswalk
     if [ -d tools/tests ]; then python3 -m unittest discover -s tools/tests; fi
     if [ -f Cargo.toml ]; then cargo fmt --all --check; fi
     if [ -f Cargo.toml ]; then cargo clippy --workspace --all-targets -- -D warnings; fi
