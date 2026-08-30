@@ -30,6 +30,7 @@
 use crate::asset_cache;
 use crate::base_canvas::BaseCanvasState;
 use crate::battler;
+use crate::boss;
 use crate::effect;
 use crate::enemy;
 use crate::entity::{EntityId, EntityKind};
@@ -317,9 +318,15 @@ fn update_combatants(g: &mut Game) {
         // else if ((ckVar instanceof Enemy) && !ckVar.removed) {
         //   Enemy alVar = (Enemy) ckVar; alVar.update(); ckVar = ckVar.next;
         //   this.entities.reorderByDepth(alVar); if (alVar.state == 6) removeEntity(alVar); }
-        } else if node_kind == EntityKind::Enemy && !removed {
-            // alVar.update();
-            enemy::update(g, cur);
+        // `Boss instanceof Enemy`, so Java's single `instanceof Enemy` arm handles a
+        // Boss too; the virtual `update()` dispatches to Boss.update for a Boss node.
+        } else if (node_kind == EntityKind::Enemy || node_kind == EntityKind::Boss) && !removed {
+            // alVar.update();   (virtual — Boss.update for a Boss, else Enemy.update)
+            if node_kind == EntityKind::Boss {
+                boss::update(g, cur);
+            } else {
+                enemy::update(g, cur);
+            }
             // ckVar = ckVar.next;  (read before reorder/remove — update may relink it.)
             cursor = g.entity_arena[cur].next;
             // this.entities.reorderByDepth(alVar);
@@ -637,6 +644,8 @@ pub fn draw_entities(g: &mut Game, i: i32, i2: i32) {
             EntityKind::Hero => hero::paint(g, id, i, i2),
             EntityKind::Npc => npc::paint(g, id, i, i2),
             EntityKind::Enemy => enemy::paint(g, id, i, i2),
+            // `Boss instanceof Enemy`, so Java's virtual Entity.paint reaches Boss.paint.
+            EntityKind::Boss => boss::paint(g, id, i, i2),
             EntityKind::Effect => effect::paint(g, id, i, i2),
             EntityKind::Projectile => projectile::paint(g, id, i, i2),
             // (MapObject.paint DEFERRED — the render lane; Bare synthetic.)

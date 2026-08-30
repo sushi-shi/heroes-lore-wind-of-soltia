@@ -112,6 +112,11 @@ pub struct AssetCacheState {
     /// `public static Object[] bossFrames = new Object[80];` (obf `ce.h`) — boss
     /// sprite frame scripts, keyed `(slot*16)+(group*4)+dir`.
     pub boss_frames: Option<Vec<Option<Vec<i8>>>>,
+    /// `public static Object[] guardianFrames = new Object[3];` (obf `ce.d`) — guardian
+    /// pose frame-group scripts, indexed by skill slot. Captured by `GuardianCastFx`;
+    /// the per-element load (`AssetCache.loadGuardianSprites`) is DEFERRED, so every
+    /// element stays null (`None`) in this slice, matching the `<clinit>` allocation.
+    pub guardian_frames: Option<Vec<Option<Vec<i8>>>>,
 }
 
 impl AssetCacheState {
@@ -140,6 +145,9 @@ impl AssetCacheState {
             attack_effect_scripts: Some((0..5).map(|_| None).collect()),
             death_fx_scripts: Some((0..3).map(|_| None).collect()),
             boss_frames: Some((0..80).map(|_| None).collect()),
+            // guardianFrames = new Object[3];  (<clinit>; every element null until the
+            // DEFERRED guardian-sprite load).
+            guardian_frames: Some((0..3).map(|_| None).collect()),
         }
     }
 }
