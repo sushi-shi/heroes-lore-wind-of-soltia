@@ -31,6 +31,7 @@
 
 use crate::byte_util::JavaRandom;
 use crate::effect::EffectData;
+use crate::enemy::EnemyData;
 use crate::hero::HeroData;
 use crate::map_object::MapObjectData;
 use crate::npc::NpcData;
@@ -55,6 +56,8 @@ pub enum EntityKind {
     Hero,
     /// `Npc` (`ac`) — a town/quest actor (a `Battler`).
     Npc,
+    /// `Enemy` (`al`) — a hostile monster actor (a `Battler`; base of every `Boss`).
+    Enemy,
     /// `Effect` (`y`) — a transient animated visual effect.
     Effect,
     /// `Projectile` (`i`) — a moving ranged-attack effect (an `Effect`).
@@ -79,6 +82,10 @@ pub enum EntityData {
     Hero(Box<HeroData>),
     /// `Npc` (`ac`) instance data (embeds the `Battler` base). Boxed like `Hero`.
     Npc(Box<NpcData>),
+    /// `Enemy` (`al`) instance data (embeds the `Battler` base). Boxed like `Hero`:
+    /// a Java `Enemy` is itself a heap object and the leaf (with its cloned stat
+    /// template) is large; boxing keeps it off the shared [`EntityNode`] size.
+    Enemy(Box<EnemyData>),
     /// `Effect` (`y`) instance data. Boxed: the effect carries an (unloaded here)
     /// image bank + sprite script, kept off the shared [`EntityNode`] size.
     Effect(Box<EffectData>),
@@ -150,6 +157,7 @@ impl EntityNode {
             EntityData::MapObject(_) => EntityKind::MapObject,
             EntityData::Hero(_) => EntityKind::Hero,
             EntityData::Npc(_) => EntityKind::Npc,
+            EntityData::Enemy(_) => EntityKind::Enemy,
             EntityData::Effect(_) => EntityKind::Effect,
             EntityData::Projectile(_) => EntityKind::Projectile,
         }
@@ -180,6 +188,7 @@ impl EntityNode {
         match &self.data {
             EntityData::Hero(h) => Some(&h.battler),
             EntityData::Npc(n) => Some(&n.battler),
+            EntityData::Enemy(e) => Some(&e.battler),
             _ => None,
         }
     }
@@ -189,6 +198,7 @@ impl EntityNode {
         match &mut self.data {
             EntityData::Hero(h) => Some(&mut h.battler),
             EntityData::Npc(n) => Some(&mut n.battler),
+            EntityData::Enemy(e) => Some(&mut e.battler),
             _ => None,
         }
     }
@@ -213,6 +223,24 @@ impl EntityNode {
     pub fn as_npc_mut(&mut self) -> Option<&mut NpcData> {
         match &mut self.data {
             EntityData::Npc(n) => Some(n.as_mut()),
+            _ => None,
+        }
+    }
+
+    /// `this instanceof Enemy` → the borrowed [`EnemyData`], or `None`. (A `Boss`
+    /// node would also answer here once `Boss` lands — a later batch; no `Boss`
+    /// variant exists yet.)
+    pub fn as_enemy(&self) -> Option<&EnemyData> {
+        match &self.data {
+            EntityData::Enemy(e) => Some(e.as_ref()),
+            _ => None,
+        }
+    }
+
+    /// Mutable [`Self::as_enemy`].
+    pub fn as_enemy_mut(&mut self) -> Option<&mut EnemyData> {
+        match &mut self.data {
+            EntityData::Enemy(e) => Some(e.as_mut()),
             _ => None,
         }
     }

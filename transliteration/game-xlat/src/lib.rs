@@ -80,6 +80,8 @@ pub mod weapon;
 // extends `entity_list`), plus the per-level `GameMap`. Field-layer foundation for
 // the render + world-logic lanes.
 pub mod battler;
+pub mod enemy;
+pub mod enemy_type;
 pub mod entity;
 pub mod game_map;
 pub mod hero;

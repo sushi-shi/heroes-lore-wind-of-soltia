@@ -91,6 +91,27 @@ pub struct AssetCacheState {
     /// `public static byte[] readBuffer = new byte[512];` (obf `ce.n`) — the
     /// shared 512-byte scratch [`read_resource`] slurps through.
     pub read_buffer: Vec<i8>,
+
+    // ---- Enemy/boss sprite-script banks (appended for the Enemy lane) ----
+    // Each is `new Object[N]` in `<clinit>` (a non-null array of null elements),
+    // read by [`crate::enemy_type`] (bind*) and [`crate::enemy::paint`] /
+    // [`crate::enemy::resolve_attack`] / [`crate::enemy::death_effect`]. The
+    // element load (`AssetLoader.loadSpriteBank`) is DEFERRED, so every element
+    // stays null (`None`) in this slice; the array itself is allocated to match the
+    // `<clinit>`, so an `enemyFrames[i]` read yields null (a no-op draw), not an NPE.
+    /// `public static Object[] enemyFrames = new Object[60];` (obf `ce.e`) — enemy
+    /// sprite frame scripts, keyed `(slot*12)+group` (0 walk, 4 attack, 8 cast). Each
+    /// element is a `byte[]` draw script or Java null.
+    pub enemy_frames: Option<Vec<Option<Vec<i8>>>>,
+    /// `public static Object[] attackEffectScripts = new Object[5];` (obf `ce.f`) —
+    /// enemy/boss attack-effect frame scripts, indexed by enemy/boss slot.
+    pub attack_effect_scripts: Option<Vec<Option<Vec<i8>>>>,
+    /// `public static Object[] deathFxScripts = new Object[3];` (obf `ce.g`) — enemy
+    /// death/explosion frame scripts, indexed by `stats.size`.
+    pub death_fx_scripts: Option<Vec<Option<Vec<i8>>>>,
+    /// `public static Object[] bossFrames = new Object[80];` (obf `ce.h`) — boss
+    /// sprite frame scripts, keyed `(slot*16)+(group*4)+dir`.
+    pub boss_frames: Option<Vec<Option<Vec<i8>>>>,
 }
 
 impl AssetCacheState {
@@ -112,6 +133,13 @@ impl AssetCacheState {
             entity_shadow: None,
             // static byte[] readBuffer = new byte[512];
             read_buffer: vec![0i8; 512],
+            // enemyFrames = new Object[60]; attackEffectScripts = new Object[5];
+            // deathFxScripts = new Object[3]; bossFrames = new Object[80];  (<clinit>
+            // allocations; every element null until the DEFERRED sprite load).
+            enemy_frames: Some((0..60).map(|_| None).collect()),
+            attack_effect_scripts: Some((0..5).map(|_| None).collect()),
+            death_fx_scripts: Some((0..3).map(|_| None).collect()),
+            boss_frames: Some((0..80).map(|_| None).collect()),
         }
     }
 }

@@ -34,6 +34,7 @@ use crate::class_select_menu::ClassSelectMenuState;
 use crate::confirm_dialog::ConfirmDialogState;
 use crate::continue_menu::ContinueMenuState;
 use crate::debug::DebugState;
+use crate::enemy_type::EnemyTypeState;
 use crate::entity::{EntityArena, EntityState};
 use crate::font_manager::FontManagerState;
 use crate::game_loop::GameLoopState;
@@ -208,6 +209,9 @@ pub struct Game {
     pub entity: EntityState,
     /// `ae` / `GameMap` mutable class statics (`minimapScale` / `lastTilesetId`).
     pub game_map_class: GameMapClassState,
+    /// `j` / `EnemyType` class state — the `static EnemyType[] types` template array
+    /// (`attackHitFrame` is a `static final` const in `enemy_type`).
+    pub enemy_type: EnemyTypeState,
 
     // --- Independent leaf/util/save classes increment (parallel lane: merge these
     //     three fields into the aggregator). ---
@@ -267,6 +271,7 @@ impl Game {
             byte_util: ByteUtilState::seeded(0),
             entity: EntityState::default(),
             game_map_class: GameMapClassState::default(),
+            enemy_type: EnemyTypeState::default(),
             rms: j2me_me::RmsRuntime::new(),
             app_config: AppConfigState::default(),
             debug: DebugState::default(),
