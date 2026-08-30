@@ -16,8 +16,21 @@
 //! and [`save`]/[`load`] (serialize/deserialize the hero core stats + equipment to/
 //! from bytes). The **guardian** companion setup inside `init_class`/`save`/`load` is
 //! DEFERRED (`// DEFERRED: Guardian` — a separate later batch; the `guardians`/
-//! `activeGuardian` slots are all-null in this slice), as are the combat FSM
-//! ([`update`]) and the attack/death poses in ([`paint`]).
+//! `activeGuardian` slots are all-null in this slice).
+//!
+//! **The COMBAT FSM also lands here.** [`update`]'s attack/hurt/death states (case 3
+//! `advanceCombo`, case 6 death → [`on_death`]) and the [`paint`] attack/death poses,
+//! plus the incoming-damage resolver [`take_hit`]/[`take_hit_raw`], the combo builders
+//! ([`queue_combo_step`]/[`advance_combo`]/[`perform_attack`]/[`end_combo`]), the three
+//! class hit routines ([`attack_class6`]/[`attack_class7`]/[`attack_class8`]), the
+//! damage/crit/proc rolls ([`roll_damage`]/[`roll_crit`]/[`roll_proc`]) and
+//! [`add_hp`]/[`add_mp`] are ported. The hero's own melee/ranged attack works against a
+//! ported [`crate::enemy`]; the guardian companion paths (reflect-damage strike-back in
+//! [`take_hit`], `activeGuardian` reads) stay `// DEFERRED: Guardian`, the game-over
+//! `EventScript` hook / render-lane HUD dirty flags (`markHpDirty`/`setTarget`) stay
+//! DEFERRED, and the warrior lunge sub-branch (`.evt` `collisionGrid`/`isWalkable`)
+//! stays DEFERRED. Enemy damage-application through `Enemy.takeHeroHit` is the enemy
+//! lane's own DEFERRED body — [`update`]'s attack faithfully *calls* it.
 //!
 //! `Hero` has no mutable `static` fields; `COMBO_FRAMES_CLASS6/7/8` are
 //! `static final` constant tables, reproduced as `const` (crcTable/QUICK_TYPES
@@ -29,13 +42,13 @@
 
 use crate::asset_cache::AssetCacheState;
 use crate::battler::BattlerData;
-use crate::directions::{DIR_DX, DIR_DY, REVERSE};
+use crate::directions::{DIAG_CCW, DIAG_CW, DIR_DX, DIR_DY, REVERSE};
 use crate::entity::{self, EntityArena, EntityData, EntityId, EntityNode};
 use crate::game::Game;
 use crate::game_screen;
 use crate::item::{self, Item};
 use crate::item_bag::{self, ItemBag, ItemRef};
-use j2me_jvm::{ishr, java_div, java_ldiv, Clock, VirtualClock};
+use j2me_jvm::{ishr, java_div, java_ldiv, java_rem, Clock, VirtualClock};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -561,9 +574,10 @@ pub fn reset_combo(g: &mut Game, id: EntityId) {
 /// state-machine switch, the sub-tile step ([`crate::battler::move_`]) and the
 /// per-step trigger check.
 ///
-/// **This slice ports the MOVEMENT path** (state 1 idle / state 2 stepping). The
+/// **This slice ports the MOVEMENT path (state 1 idle / state 2 stepping) AND the
+/// COMBAT/DEATH states (case 3 → [`advance_combo`], case 6 → [`on_death`]).** The
 /// following branches reach as-yet-unported classes and are DEFERRED, each clearly
-/// marked; none execute on the player-movement path:
+/// marked:
 /// - **Regen heals** (`addHp`/`addMp`): the timer *decrements* are ported (observable
 ///   every world frame), but the fire-body reaches `GameScreen.markHpDirty` (HUD
 ///   dirty flags owned by the render lane) and is deferred; the timers reset
@@ -571,8 +585,8 @@ pub fn reset_combo(g: &mut Game, id: EntityId) {
 /// - **Status loop** (`statuses` / `StatusIcon` / poison `Floater`): `statuses` is
 ///   always empty in this slice (the `.evt` status machinery is unported), so the
 ///   loop never iterates — the whole block is deferred.
-/// - **Attack/death states** (case 0/3/6: `advanceCombo`/`onDeath`): combat/death
-///   FSM, deferred (the hero is state 1/2 on the walk path).
+/// - **Death game-over hop** (case 6 → [`on_death`] → `GameState.requestState(16)` +
+///   `AudioManager.stopBgm`): ported (`requestState` queues state 16; `stopBgm`).
 /// - **Blocked-turn sidestep** (inside `tryStepForward()`): reads `map.collisionGrid`
 ///   / `enemyAhead` / `setTarget`; unreachable because [`crate::battler::try_step_forward`]
 ///   is stubbed to never block (collision `.evt` deferred).
@@ -663,8 +677,35 @@ pub fn update(g: &mut Game, id: EntityId) {
                 h.battler.anim_frame = 0;
             }
         }
-        // case 3 (attacking): comboIndex init + advanceCombo() — DEFERRED (attack combo).
-        // case 6 (dead): deathTimer / onDeath() — DEFERRED (death FSM).
+        // case 3 (attacking):
+        3 => {
+            // if (this.comboIndex == -1) this.comboIndex = (byte) 0;
+            {
+                let h = g.entity_arena[id].as_hero_mut().expect("Hero node");
+                if h.combo_index == -1 {
+                    h.combo_index = 0;
+                }
+            }
+            // advanceCombo();
+            advance_combo(g, id);
+        }
+        // case 6 (dead):
+        6 => {
+            // this.animFrame = (byte) 0;
+            {
+                let h = g.entity_arena[id].as_hero_mut().expect("Hero node");
+                h.battler.anim_frame = 0;
+            }
+            // if (this.deathTimer <= 0) { onDeath(); return; }
+            let death_timer = g.entity_arena[id].as_hero().expect("Hero node").death_timer;
+            if death_timer <= 0 {
+                on_death(g);
+                return;
+            }
+            // this.deathTimer = (byte) (this.deathTimer - 1);
+            let h = g.entity_arena[id].as_hero_mut().expect("Hero node");
+            h.death_timer = (death_timer as i32).wrapping_sub(1) as i8;
+        }
         _ => {}
     }
     // byte stateBefore = this.state;  GameMap map = GameState.map;
@@ -706,6 +747,1000 @@ pub fn update(g: &mut Game, id: EntityId) {
         // if (stateBefore == 2 && state == 1 && !triggered) triggered = checkFacingTrigger();
         //   — DEFERRED (false). if (triggered) { setState(1); queuedTurn = 0; animFrame = 0; }
         //   — `triggered` is always false here, so the guarded reset never runs.
+    }
+}
+
+/// `private final void advanceCombo()` (`ao.o:()V`) — advances the attack combo: steps
+/// to the next chain link when the current step's frame count is reached, spends MP on
+/// entering a step, and fires the class-specific hit(s) on the strike frame.
+///
+/// After `endCombo` resets the chain (`comboIndex = -1`), the Java falls through to the
+/// `if (animFrame == 0)` MP block, which reads `comboSteps[comboIndex]` at `-1` — an
+/// `ArrayIndexOutOfBoundsException` in the original. That path is transliterated
+/// verbatim (the negative index panics exactly as the uncaught throw terminated); it is
+/// only reached on the frame a combo *ends*, so the per-strike drive never enters it.
+fn advance_combo(g: &mut Game, id: EntityId) {
+    // if (animFrame == comboFrames[comboSteps[comboIndex] - 1][comboIndex]) { ... }
+    let (anim_frame, combo_index, max_combo) = {
+        let h = g.entity_arena[id].as_hero().expect("Hero node");
+        (h.battler.anim_frame, h.combo_index, h.max_combo)
+    };
+    let frame_target = {
+        let h = g.entity_arena[id].as_hero().expect("Hero node");
+        let step_kind = h.combo_steps[combo_index as usize];
+        h.combo_frames[(step_kind as i32).wrapping_sub(1) as usize][combo_index as usize]
+    };
+    if anim_frame == frame_target {
+        // if (comboIndex + 1 == maxCombo || comboSteps[comboIndex + 1] == 0) endCombo(comboIndex);
+        let next_step_zero = {
+            let h = g.entity_arena[id].as_hero().expect("Hero node");
+            h.combo_steps[(combo_index as i32).wrapping_add(1) as usize] == 0
+        };
+        if (combo_index as i32).wrapping_add(1) == max_combo as i32 || next_step_zero {
+            end_combo(g, id, combo_index as i32);
+        } else {
+            // else { comboIndex = (byte)(comboIndex + 1); animFrame = (byte) 0; }
+            let h = g.entity_arena[id].as_hero_mut().expect("Hero node");
+            h.combo_index = (combo_index as i32).wrapping_add(1) as i8;
+            h.battler.anim_frame = 0;
+        }
+    }
+    // this.lungeSteps = (byte) 0;
+    g.entity_arena[id]
+        .as_hero_mut()
+        .expect("Hero node")
+        .lunge_steps = 0;
+    // if (this.animFrame == 0) { MP cost / gate }
+    let anim_frame = g.entity_arena[id]
+        .as_hero()
+        .expect("Hero node")
+        .battler
+        .anim_frame;
+    if anim_frame == 0 {
+        let combo_index = g.entity_arena[id].as_hero().expect("Hero node").combo_index;
+        // int mpCost = (((Equipment) ((Weapon) getEquip(0))).value / 4) + 4;
+        let weapon_value = {
+            let h = g.entity_arena[id].as_hero().expect("Hero node");
+            h.equipment[0]
+                .as_ref()
+                .expect("NullPointerException: getEquip(0) null")
+                .borrow()
+                .value
+        };
+        let mut mp_cost = java_div(weapon_value as i32, 4)
+            .expect("weapon.value / 4")
+            .wrapping_add(4);
+        // if (comboSteps[comboIndex] == 2) mpCost = (mpCost * 7) / 5;
+        let step_special =
+            g.entity_arena[id].as_hero().expect("Hero node").combo_steps[combo_index as usize] == 2;
+        if step_special {
+            mp_cost = java_div(mp_cost.wrapping_mul(7), 5).expect("(mpCost * 7) / 5");
+        }
+        // if (mp < mpCost && (comboIndex != 0 || comboSteps[comboIndex] != 1)) { endCombo(comboIndex - 1); return; }
+        let (mp, step_kind) = {
+            let h = g.entity_arena[id].as_hero().expect("Hero node");
+            (h.mp, h.combo_steps[combo_index as usize])
+        };
+        if mp < mp_cost && (combo_index != 0 || step_kind != 1) {
+            end_combo(g, id, (combo_index as i32).wrapping_sub(1));
+            return;
+        }
+        // addMp(-mpCost);
+        add_mp(g, id, mp_cost.wrapping_neg());
+    }
+    // byte attackType = this.comboSteps[this.comboIndex];
+    let (attack_type, combo_index, anim_frame) = {
+        let h = g.entity_arena[id].as_hero().expect("Hero node");
+        (
+            h.combo_steps[h.combo_index as usize],
+            h.combo_index,
+            h.battler.anim_frame,
+        )
+    };
+    // switch (GameState.classId) { case 6/7/8: <hit-frame> performAttack(); }
+    match g.game_state.class_id {
+        6 => {
+            // if (attackType == 2 && comboIndex == 4) { if (animFrame == 1 || animFrame == 6) performAttack(); }
+            // else if (animFrame == 2) performAttack();
+            if attack_type == 2 && combo_index == 4 {
+                if anim_frame == 1 || anim_frame == 6 {
+                    perform_attack(g, id);
+                }
+            } else if anim_frame == 2 {
+                perform_attack(g, id);
+            }
+        }
+        7 => {
+            // if (attackType==2 && comboIndex==4) { if (animFrame in {0,2,4,6,8,10}) performAttack(); }
+            // else if (attackType==2 && comboIndex==3) { if (animFrame==4) performAttack(); }
+            // else if (animFrame==1) performAttack();
+            if attack_type == 2 && combo_index == 4 {
+                if anim_frame == 0
+                    || anim_frame == 2
+                    || anim_frame == 4
+                    || anim_frame == 6
+                    || anim_frame == 8
+                    || anim_frame == 10
+                {
+                    perform_attack(g, id);
+                }
+            } else if attack_type == 2 && combo_index == 3 {
+                if anim_frame == 4 {
+                    perform_attack(g, id);
+                }
+            } else if anim_frame == 1 {
+                perform_attack(g, id);
+            }
+        }
+        8 => {
+            // if (attackType==2 && comboIndex==4) { if (animFrame==4) performAttack(); }
+            // else if (animFrame==1) performAttack();
+            if attack_type == 2 && combo_index == 4 {
+                if anim_frame == 4 {
+                    perform_attack(g, id);
+                }
+            } else if anim_frame == 1 {
+                perform_attack(g, id);
+            }
+        }
+        _ => {}
+    }
+}
+
+/// `private final void performAttack()` (`ao.p:()V`) — rolls damage/crit/proc for this
+/// strike, shows the proc floaters (only when an enemy is directly ahead), applies the
+/// class-specific hit, and plays the miss sfx when nothing was struck.
+fn perform_attack(g: &mut Game, id: EntityId) {
+    // this.rolledDamage = rollDamage();
+    let rolled_damage = roll_damage(g, id);
+    g.entity_arena[id]
+        .as_hero_mut()
+        .expect("Hero node")
+        .rolled_damage = rolled_damage;
+    // this.rolledProc = rollProc();
+    let rolled_proc = roll_proc(g, id);
+    g.entity_arena[id]
+        .as_hero_mut()
+        .expect("Hero node")
+        .rolled_proc = rolled_proc;
+    // this.rolledCrit = rollCrit();
+    let rolled_crit = roll_crit(g, id);
+    g.entity_arena[id]
+        .as_hero_mut()
+        .expect("Hero node")
+        .rolled_crit = rolled_crit;
+    // if (enemyAhead() != null) { switch (rolledProc) { ... } }
+    if enemy_ahead(g, id).is_some() {
+        match rolled_proc {
+            // case 2: addFloater(new Floater((byte)10, (short)8, (short)8));
+            2 => {
+                let f = crate::floater::new(10, 8, 8);
+                crate::battler::add_floater(
+                    &mut g.entity_arena[id].as_hero_mut().expect("Hero node").battler,
+                    f,
+                );
+            }
+            // case 3: addFloater(new Floater((byte)10, (short)8, (short)10));
+            3 => {
+                let f = crate::floater::new(10, 8, 10);
+                crate::battler::add_floater(
+                    &mut g.entity_arena[id].as_hero_mut().expect("Hero node").battler,
+                    f,
+                );
+            }
+            // case 4: addFloater(new Floater((byte)10, (short)8, (short)11));
+            4 => {
+                let f = crate::floater::new(10, 8, 11);
+                crate::battler::add_floater(
+                    &mut g.entity_arena[id].as_hero_mut().expect("Hero node").battler,
+                    f,
+                );
+            }
+            // case 8: { int selfDamage = maxHp / 25; addHp(-selfDamage);
+            //   floaters.addElement(new Floater((byte)7,(short)4,(short)(-selfDamage)));
+            //   addFloater(new Floater((byte)10,(short)8,(short)0)); }
+            8 => {
+                let self_damage = {
+                    let h = g.entity_arena[id].as_hero().expect("Hero node");
+                    java_div(h.max_hp, 25).expect("maxHp / 25")
+                };
+                add_hp(g, id, self_damage.wrapping_neg());
+                let f7 = crate::floater::new(7, 4, self_damage.wrapping_neg() as i16);
+                crate::battler::add_floater(
+                    &mut g.entity_arena[id].as_hero_mut().expect("Hero node").battler,
+                    f7,
+                );
+                let f10 = crate::floater::new(10, 8, 0);
+                crate::battler::add_floater(
+                    &mut g.entity_arena[id].as_hero_mut().expect("Hero node").battler,
+                    f10,
+                );
+            }
+            _ => {}
+        }
+    }
+    // boolean anyHit = false; switch (GameState.classId) { case 6/7/8: anyHit = attackClassN(); }
+    let any_hit = match g.game_state.class_id {
+        6 => attack_class6(g, id),
+        7 => attack_class7(g, id),
+        8 => attack_class8(g, id),
+        _ => false,
+    };
+    // if (anyHit) return;
+    if any_hit {
+        return;
+    }
+    // AudioManager.playSfx((byte) 14, false);
+    crate::audio_manager::play_sfx(g, 14, false);
+}
+
+/// The `target.takeHeroHit(rolledDamage, knockback, dir, rolledCrit, hitFloaterKind,
+/// rolledProc, this)` idiom the three class-attack routines repeat. Reads the strike's
+/// rolled fields fresh each call (as the Java re-reads `this.rolledDamage` etc.) and
+/// routes into the enemy lane's [`crate::enemy::take_hero_hit`] (whose body is the
+/// enemy lane's own DEFERRED slice — the call is faithful).
+fn deal_hero_hit(
+    g: &mut Game,
+    hero: EntityId,
+    target: EntityId,
+    knockback: bool,
+    dir: i8,
+    hit_floater_kind: i8,
+) {
+    let (rolled_damage, rolled_crit, rolled_proc) = {
+        let h = g.entity_arena[hero].as_hero().expect("Hero node");
+        (h.rolled_damage, h.rolled_crit, h.rolled_proc)
+    };
+    crate::enemy::take_hero_hit(
+        g,
+        target,
+        rolled_damage,
+        knockback,
+        dir,
+        rolled_crit,
+        hit_floater_kind,
+        rolled_proc,
+        hero,
+    );
+}
+
+/// `private final boolean attackClass6()` (`ao.b:()Z`) — warrior (class 6) hit
+/// resolution: front-arc, multi-target and lunge patterns.
+///
+/// **Lunge sub-branch DEFERRED.** The special step-2/3 lunge reads `map.collisionGrid`
+/// and `map.isWalkable` (the `.evt` collision, unported — see [`crate::game_map`]) to
+/// move and set `lungeSteps`, then re-strikes `enemyAhead()`; that movement + follow-up
+/// hit are `// DEFERRED` (collision unported). The leading `enemyAhead()` strike of the
+/// step-2/3 branch is ported.
+fn attack_class6(g: &mut Game, id: EntityId) -> bool {
+    // byte attackType = comboSteps[comboIndex]; byte hitFloaterKind = 1;
+    let (attack_type, combo_index, anim_frame, facing) = {
+        let h = g.entity_arena[id].as_hero().expect("Hero node");
+        (
+            h.combo_steps[h.combo_index as usize],
+            h.combo_index,
+            h.battler.anim_frame,
+            h.battler.facing,
+        )
+    };
+    // if ((attackType==1 && comboIndex==3) || (attackType==2 && comboIndex==4)) hitFloaterKind = 5;
+    let hit_floater_kind: i8 =
+        if (attack_type == 1 && combo_index == 3) || (attack_type == 2 && combo_index == 4) {
+            5
+        } else {
+            1
+        };
+    // boolean anyHit = false;
+    let mut any_hit = false;
+    if (attack_type == 1 && (combo_index == 0 || combo_index == 3))
+        || (attack_type == 2 && combo_index == 4 && anim_frame == 6)
+    {
+        // Enemy target = enemyAhead(); if (target != null) { target.takeHeroHit(..., false, facing, ...); anyHit = true; }
+        if let Some(target) = enemy_ahead(g, id) {
+            deal_hero_hit(g, id, target, false, facing, hit_floater_kind);
+            any_hit = true;
+        }
+    } else if (attack_type != 1 || (combo_index != 1 && combo_index != 2))
+        && (attack_type != 2 || combo_index != 0)
+    {
+        if attack_type == 2 && combo_index == 4 {
+            // for (byte d = 1; d <= 8; d++) { Enemy t = enemyInDir(d); if (t != null) { t.takeHeroHit(..., true, d, ...); anyHit = true; } }
+            let mut dir: i8 = 1;
+            loop {
+                let d = dir;
+                if d > 8 {
+                    break;
+                }
+                if let Some(target) = enemy_in_dir(g, id, d) {
+                    deal_hero_hit(g, id, target, true, d, hit_floater_kind);
+                    any_hit = true;
+                }
+                dir = (d as i32).wrapping_add(1) as i8;
+            }
+        } else if attack_type == 2 && (combo_index == 2 || combo_index == 3) {
+            // Enemy target = enemyAhead(); if (target != null) { target.takeHeroHit(..., false, facing, ...); anyHit = true; }
+            if let Some(target) = enemy_ahead(g, id) {
+                deal_hero_hit(g, id, target, false, facing, hit_floater_kind);
+                any_hit = true;
+            }
+            // byte dx = dirDx[facing]; byte dy = dirDy[facing];
+            // if (map.collisionGrid[tileY+dy][tileX+dx] == 0 && map.isWalkable(tileX+dx*2, tileY+dy*2)) { super.move(32); triggerChecked=false; lungeSteps=2; }
+            // else if (map.isWalkable(tileX+dx, tileY+dy)) { super.move(16); triggerChecked=false; lungeSteps=1; }
+            // if (comboIndex==3 && lungeSteps!=0 && (lungeTarget=enemyAhead())!=null) { lungeTarget.takeHeroHit(...); anyHit=true; }
+            //   DEFERRED: GameMap.collisionGrid / GameMap.isWalkable (.evt collision unported).
+        }
+    } else {
+        // Enemy target = enemyInDir(facing); if (target != null) { target.takeHeroHit(...); anyHit = true; }
+        let target = enemy_in_dir(g, id, facing);
+        if let Some(t) = target {
+            deal_hero_hit(g, id, t, false, facing, hit_floater_kind);
+            any_hit = true;
+        }
+        // Enemy sideTarget = enemyInDir(diagCCW[facing]); if (sideTarget != null && sideTarget != target) { ...; anyHit = true; }
+        let side_target = enemy_in_dir(g, id, DIAG_CCW[facing as usize]);
+        if let Some(st) = side_target {
+            if Some(st) != target {
+                deal_hero_hit(g, id, st, false, facing, hit_floater_kind);
+                any_hit = true;
+            }
+        }
+        // Enemy sideTarget2 = enemyInDir(diagCW[facing]); if (sideTarget2 != null && sideTarget2 != sideTarget) { ...; anyHit = true; }
+        let side_target2 = enemy_in_dir(g, id, DIAG_CW[facing as usize]);
+        if let Some(st2) = side_target2 {
+            if Some(st2) != side_target {
+                deal_hero_hit(g, id, st2, false, facing, hit_floater_kind);
+                any_hit = true;
+            }
+        }
+    }
+    // return anyHit;
+    any_hit
+}
+
+/// `private final boolean attackClass7()` (`ao.c:()Z`) — rogue (class 7) hit
+/// resolution: a spread of enemies ahead (step-2/3), else the two tiles in a line.
+fn attack_class7(g: &mut Game, id: EntityId) -> bool {
+    let (step_kind, combo_index, facing) = {
+        let h = g.entity_arena[id].as_hero().expect("Hero node");
+        (
+            h.combo_steps[h.combo_index as usize],
+            h.combo_index,
+            h.battler.facing,
+        )
+    };
+    // boolean anyHit = false;
+    let mut any_hit = false;
+    // if (comboSteps[comboIndex] == 1 && comboIndex == 3) { spread }
+    if step_kind == 1 && combo_index == 3 {
+        // Enemy target = enemyInDir(facing); if (target != null) { target.takeHeroHit(..., (byte)1, ...); anyHit = true; }
+        let target = enemy_in_dir(g, id, facing);
+        if let Some(t) = target {
+            deal_hero_hit(g, id, t, false, facing, 1);
+            any_hit = true;
+        }
+        // Enemy sideTarget = enemyInDir(diagCCW[facing]); if (sideTarget != null && sideTarget != target) { ...; anyHit = true; }
+        let side_target = enemy_in_dir(g, id, DIAG_CCW[facing as usize]);
+        if let Some(st) = side_target {
+            if Some(st) != target {
+                deal_hero_hit(g, id, st, false, facing, 1);
+                any_hit = true;
+            }
+        }
+        // Enemy sideTarget2 = enemyInDir(diagCW[facing]); if (sideTarget2 != null && sideTarget2 != sideTarget) { ...; anyHit = true; }
+        let side_target2 = enemy_in_dir(g, id, DIAG_CW[facing as usize]);
+        if let Some(st2) = side_target2 {
+            if Some(st2) != side_target {
+                deal_hero_hit(g, id, st2, false, facing, 1);
+                any_hit = true;
+            }
+        }
+    } else {
+        // Entity target = neighbor(facing, (byte)1); if (target instanceof Enemy) { ((Enemy)target).takeHeroHit(...); anyHit = true; }
+        if let Some(t) = neighbor(g, id, facing, 1) {
+            if g.entity_arena[t].as_enemy().is_some() {
+                deal_hero_hit(g, id, t, false, facing, 1);
+                any_hit = true;
+            }
+        }
+        // Entity target2 = neighbor(facing, (byte)2); if (target2 instanceof Enemy) { ((Enemy)target2).takeHeroHit(...); anyHit = true; }
+        if let Some(t2) = neighbor(g, id, facing, 2) {
+            if g.entity_arena[t2].as_enemy().is_some() {
+                deal_hero_hit(g, id, t2, false, facing, 1);
+                any_hit = true;
+            }
+        }
+    }
+    // return anyHit;
+    any_hit
+}
+
+/// `private final boolean attackClass8()` (`ao.d:()Z`) — mage (class 8) hit resolution:
+/// fires an aura projectile for special steps 2/3/4, else a melee strike ahead.
+///
+/// The projectile spawn reads the DEFERRED-loaded `AssetCache.mageAuraScripts` bank (a
+/// null element NPEs, faithfully — mirroring the enemy lane's `attackEffectScripts`);
+/// the `Projectile` class itself is ported (see [`crate::projectile::new_projectile_hero`]).
+fn attack_class8(g: &mut Game, id: EntityId) -> bool {
+    let (attack_type, combo_index, facing, tile_x, tile_y) = {
+        let n = &g.entity_arena[id];
+        let h = n.as_hero().expect("Hero node");
+        (
+            h.combo_steps[h.combo_index as usize],
+            h.combo_index,
+            h.battler.facing,
+            n.tile_x as i32,
+            n.tile_y as i32,
+        )
+    };
+    // boolean anyHit = false;
+    let mut any_hit = false;
+    if attack_type == 2 && (combo_index == 2 || combo_index == 3 || combo_index == 4) {
+        // GameState.map.addEntity(new Projectile((byte)(tileX+dirDx[facing]), (byte)(tileY+dirDy[facing]),
+        //   (byte[]) AssetCache.mageAuraScripts[<0|1|2>], this, true, facing, (byte)3, (byte)2,
+        //   rolledDamage, rolledProc, rolledCrit));
+        let script_index: usize = match combo_index {
+            2 => 0,
+            3 => 1,
+            _ => 2, // comboIndex == 4
+        };
+        let script = g
+            .asset_cache
+            .mage_aura_scripts
+            .as_ref()
+            .expect("AssetCache.mageAuraScripts null in Hero.attackClass8")[script_index]
+            .clone()
+            .expect("mageAuraScripts[k] null (DEFERRED-loaded bank)");
+        let (rolled_damage, rolled_proc, rolled_crit) = {
+            let h = g.entity_arena[id].as_hero().expect("Hero node");
+            (h.rolled_damage, h.rolled_proc, h.rolled_crit)
+        };
+        let ptx = tile_x.wrapping_add(DIR_DX[facing as usize] as i32) as i8;
+        let pty = tile_y.wrapping_add(DIR_DY[facing as usize] as i32) as i8;
+        let new_id = crate::projectile::new_projectile_hero(
+            &mut g.entity_arena,
+            ptx,
+            pty,
+            script,
+            id,
+            true,
+            facing,
+            3,
+            2,
+            rolled_damage,
+            rolled_proc,
+            rolled_crit,
+        );
+        crate::game_map::add_entity(g, new_id);
+    } else {
+        // Enemy target = enemyAhead(); if (target != null) { target.takeHeroHit(..., (byte)1, ...); anyHit = true; }
+        if let Some(target) = enemy_ahead(g, id) {
+            deal_hero_hit(g, id, target, false, facing, 1);
+            any_hit = true;
+        }
+    }
+    // return anyHit;
+    any_hit
+}
+
+/// `private final int rollDamage()` (`ao.a:()I`) — rolls attack damage: base
+/// [`attack`](HeroData::attack) (×3/2 while `attackUp`), scaled by the per-combo-step
+/// multiplier (100/120/130/140/170%, or 170% for a special), plus up to 10% RNG. The
+/// four `idiv`s and the `%` route through [`java_div`]/[`java_rem`]; the RNG term reads
+/// [`crate::entity::EntityState::rng`].
+fn roll_damage(g: &mut Game, id: EntityId) -> i32 {
+    let (attack, attack_up, combo_index, step_special) = {
+        let h = g.entity_arena[id].as_hero().expect("Hero node");
+        (
+            h.attack,
+            h.attack_up,
+            h.combo_index,
+            h.combo_steps[h.combo_index as usize] == 2,
+        )
+    };
+    // int dmg = this.attack;
+    let mut dmg: i32 = attack as i32;
+    // if (this.attackUp) dmg = (this.attack * 3) / 2;
+    if attack_up {
+        dmg = java_div((attack as i32).wrapping_mul(3), 2).expect("(attack * 3) / 2");
+    }
+    // if (comboSteps[comboIndex] != 2) switch (comboIndex) { ... } else dmg = (dmg * 17) / 10;
+    if !step_special {
+        match combo_index {
+            0 => dmg = java_div(dmg.wrapping_mul(10), 10).expect("(dmg * 10) / 10"),
+            1 => dmg = java_div(dmg.wrapping_mul(12), 10).expect("(dmg * 12) / 10"),
+            2 => dmg = java_div(dmg.wrapping_mul(13), 10).expect("(dmg * 13) / 10"),
+            3 => dmg = java_div(dmg.wrapping_mul(14), 10).expect("(dmg * 14) / 10"),
+            4 => dmg = java_div(dmg.wrapping_mul(17), 10).expect("(dmg * 17) / 10"),
+            _ => {}
+        }
+    } else {
+        dmg = java_div(dmg.wrapping_mul(17), 10).expect("(dmg * 17) / 10");
+    }
+    // return dmg + (dmg >= 10 ? Entity.rng.nextInt() % (dmg / 10) : 0);
+    let extra = if dmg >= 10 {
+        java_rem(
+            g.entity.rng.next_int(),
+            java_div(dmg, 10).expect("dmg / 10"),
+        )
+        .expect("nextInt() % (dmg / 10)")
+    } else {
+        0
+    };
+    dmg.wrapping_add(extra)
+}
+
+/// `private final boolean rollCrit()` (`ao.e:()Z`) — rolls a critical: chance =
+/// `agility/3 + spirit/10 + weapon.accuracy`, out of 100. `Math.abs` is inlined
+/// (`Math.abs(i32::MIN)` overflows, unlike `i32::abs`).
+fn roll_crit(g: &mut Game, id: EntityId) -> bool {
+    let (agility, agility_bonus, spirit, spirit_bonus, accuracy) = {
+        let h = g.entity_arena[id].as_hero().expect("Hero node");
+        let accuracy = h.equipment[0]
+            .as_ref()
+            .expect("NullPointerException: equipment[0] null")
+            .borrow()
+            .accuracy;
+        (
+            h.agility,
+            h.agility_bonus,
+            h.spirit,
+            h.spirit_bonus,
+            accuracy,
+        )
+    };
+    // Math.abs(Entity.rng.nextInt() % 100) < (((agility+agilityBonus)/3) + ((spirit+spiritBonus)/10)) + weapon.accuracy
+    let modded = java_rem(g.entity.rng.next_int(), 100).expect("nextInt() % 100");
+    let lhs = if modded < 0 {
+        modded.wrapping_neg()
+    } else {
+        modded
+    };
+    let a_term = java_div((agility as i32).wrapping_add(agility_bonus as i32), 3)
+        .expect("(agility + agilityBonus) / 3");
+    let s_term = java_div((spirit as i32).wrapping_add(spirit_bonus as i32), 10)
+        .expect("(spirit + spiritBonus) / 10");
+    let rhs = a_term.wrapping_add(s_term).wrapping_add(accuracy as i32);
+    lhs < rhs
+}
+
+/// `private final byte rollProc()` (`ao.a:()B`) — rolls a weapon-then-armour status
+/// proc (`Armor.PROC_CHANCE[attribute]` out of 100), or `-1`. `equipment[1]` (armour)
+/// may be `null` (the warrior/rogue have no shield), guarded here.
+fn roll_proc(g: &mut Game, id: EntityId) -> i8 {
+    // Weapon weapon = (Weapon) equipment[0]; Armor armor = (Armor) equipment[1];
+    let weapon_attribute = {
+        let h = g.entity_arena[id].as_hero().expect("Hero node");
+        h.equipment[0]
+            .as_ref()
+            .expect("NullPointerException: equipment[0] null")
+            .borrow()
+            .attribute
+    };
+    let armor_attribute: Option<i8> = {
+        let h = g.entity_arena[id].as_hero().expect("Hero node");
+        h.equipment[1].as_ref().map(|a| a.borrow().attribute)
+    };
+    // byte proc = -1;
+    let mut proc: i8 = -1;
+    // if (weapon.attribute != -1 && ByteUtil.randRange(0,99) < Armor.PROC_CHANCE[weapon.attribute]) proc = weapon.attribute;
+    if weapon_attribute != -1
+        && crate::byte_util::rand_range(&mut g.byte_util, 0, 99)
+            < crate::armor::PROC_CHANCE[weapon_attribute as usize] as i32
+    {
+        proc = weapon_attribute;
+    }
+    // if (proc == -1 && armor != null && armor.attribute != -1 && ByteUtil.randRange(0,99) < Armor.PROC_CHANCE[armor.attribute]) proc = armor.attribute;
+    if proc == -1 {
+        if let Some(attr) = armor_attribute {
+            if attr != -1
+                && crate::byte_util::rand_range(&mut g.byte_util, 0, 99)
+                    < crate::armor::PROC_CHANCE[attr as usize] as i32
+            {
+                proc = attr;
+            }
+        }
+    }
+    // return proc;
+    proc
+}
+
+/// `private final void endCombo(int step)` (`ao.h:(I)V`) — ends the current combo at
+/// step `step`, setting the recovery lockout (1 for a light finish, 3 otherwise).
+fn end_combo(g: &mut Game, id: EntityId, step: i32) {
+    {
+        let h = g.entity_arena[id].as_hero_mut().expect("Hero node");
+        // if (step == -1 || (step == 0 && comboSteps[step] == 1)) comboLockout = 1;
+        if step == -1 || (step == 0 && h.combo_steps[step as usize] == 1) {
+            h.combo_lockout = 1;
+        // else if (!(step == 0 && comboSteps[step] == 2) && comboSteps[step] == 1) comboLockout = 1;
+        } else if !(step == 0 && h.combo_steps[step as usize] == 2)
+            && h.combo_steps[step as usize] == 1
+        {
+            h.combo_lockout = 1;
+        // else comboLockout = 3;
+        } else {
+            h.combo_lockout = 3;
+        }
+    }
+    // resetCombo();
+    reset_combo(g, id);
+    // setState((byte) 1); this.animFrame = (byte) 0;
+    let h = g.entity_arena[id].as_hero_mut().expect("Hero node");
+    crate::battler::set_state(&mut h.battler, 1);
+    h.battler.anim_frame = 0;
+}
+
+/// `private final void onDeath()` (`ao.q:()V`) — player death: request the game-over
+/// screen (`requestState(16)`) and stop the music.
+fn on_death(g: &mut Game) {
+    // GameState.requestState((byte) 16);
+    crate::game_state::request_state(g, 16);
+    // AudioManager.stopBgm();
+    crate::audio_manager::stop_bgm(g);
+}
+
+/// `public final boolean queueComboStep(boolean special)` (`ao.a:(Z)Z`) — queues the
+/// next combo step (normal or special), if combat is enabled, the combo has room, and it
+/// is not locked out. Returns whether a step was queued (or is already pending).
+pub fn queue_combo_step(g: &mut Game, id: EntityId, special: bool) -> bool {
+    // if (!GameState.map.combatEnabled || comboIndex + 1 >= maxCombo || comboLockout > 0) return false;
+    let combat_enabled = g
+        .game_state
+        .map
+        .as_ref()
+        .expect("GameState.map null in Hero.queueComboStep")
+        .combat_enabled;
+    let (combo_index, max_combo, combo_lockout) = {
+        let h = g.entity_arena[id].as_hero().expect("Hero node");
+        (h.combo_index, h.max_combo, h.combo_lockout)
+    };
+    if !combat_enabled
+        || (combo_index as i32).wrapping_add(1) >= max_combo as i32
+        || combo_lockout > 0
+    {
+        return false;
+    }
+    let h = g.entity_arena[id].as_hero_mut().expect("Hero node");
+    // if (comboSteps[comboIndex + 1] != 0) return true;
+    if h.combo_steps[(combo_index as i32).wrapping_add(1) as usize] != 0 {
+        return true;
+    }
+    // if (comboIndex >= 0 && comboSteps[comboIndex] == 2) return false;
+    if combo_index >= 0 && h.combo_steps[combo_index as usize] == 2 {
+        return false;
+    }
+    // if (comboIndex == 0 && special) return false;
+    if combo_index == 0 && special {
+        return false;
+    }
+    // if (comboIndex == 3 && !special) return false;
+    if combo_index == 3 && !special {
+        return false;
+    }
+    // comboSteps[comboIndex + 1] = special ? (byte) 2 : (byte) 1; return true;
+    h.combo_steps[(combo_index as i32).wrapping_add(1) as usize] = if special { 2 } else { 1 };
+    true
+}
+
+/// `public final void addHp(int amount)` (`ao.a:(I)V`) — adds `amount` HP (clamped to
+/// `[0, maxHp]`), then on reaching 0 enters death (state 6) with a 24-frame death timer.
+/// `GameLoop.gameScreen.markHpDirty()` is the render-lane HUD flag — DEFERRED.
+pub fn add_hp(g: &mut Game, id: EntityId, amount: i32) {
+    let hp_zero = {
+        let h = g.entity_arena[id].as_hero_mut().expect("Hero node");
+        // this.hp += amount;
+        h.hp = h.hp.wrapping_add(amount);
+        // if (hp > maxHp) hp = maxHp; if (hp < 0) hp = 0;
+        if h.hp > h.max_hp {
+            h.hp = h.max_hp;
+        }
+        if h.hp < 0 {
+            h.hp = 0;
+        }
+        h.hp == 0
+    };
+    // GameLoop.gameScreen.markHpDirty();  — DEFERRED (render-lane HUD dirty flag).
+    // if (this.hp == 0) { setState((byte) 6); this.animFrame = (byte) 0; this.deathTimer = (byte) 24; }
+    if hp_zero {
+        let h = g.entity_arena[id].as_hero_mut().expect("Hero node");
+        crate::battler::set_state(&mut h.battler, 6);
+        h.battler.anim_frame = 0;
+        h.death_timer = 24;
+    }
+}
+
+/// `public final void addMp(int amount)` (`ao.a:(I)V`) — adds `amount` MP (clamped to
+/// `[0, maxMp]`). `GameLoop.gameScreen.markMpDirty()` is the render-lane HUD flag —
+/// DEFERRED.
+pub fn add_mp(g: &mut Game, id: EntityId, amount: i32) {
+    let h = g.entity_arena[id].as_hero_mut().expect("Hero node");
+    // this.mp += amount;
+    h.mp = h.mp.wrapping_add(amount);
+    // if (mp > maxMp) mp = maxMp; if (mp < 0) mp = 0;
+    if h.mp > h.max_mp {
+        h.mp = h.max_mp;
+    }
+    if h.mp < 0 {
+        h.mp = 0;
+    }
+    // GameLoop.gameScreen.markMpDirty();  — DEFERRED (render-lane HUD dirty flag).
+}
+
+/// `public final void takeHit(Enemy attacker, byte dir)` (`ao.a:(Lal;B)V`) — the
+/// template-attack overload: `takeHit(attacker, attacker.stats.attack, dir)`.
+pub fn take_hit(g: &mut Game, id: EntityId, attacker: EntityId, dir: i8) {
+    // takeHit(attacker, attacker.stats.attack, dir);
+    let raw_damage = g.entity_arena[attacker]
+        .as_enemy()
+        .expect("takeHit attacker is not an Enemy")
+        .stats
+        .attack;
+    take_hit_raw(g, id, attacker, raw_damage, dir);
+}
+
+/// `public final void takeHit(Enemy attacker, short rawDamage, byte dir)`
+/// (`ao.a:(Lal;SB)V`) — resolves incoming damage of magnitude `rawDamage` from
+/// `attacker`. Dodge chance = `clamp((agility+bonus) - evasion + 10 + accessory, 8,
+/// 60)%`; on a hit, damage = `rawDamage ±10% - defense` (doubled while `defenseUp`).
+/// Ignored entirely while `invincible`; a melee-type-1 (`aiType == 1`) attacker has a
+/// 15% chance to inflict poison (status 7). On a lethal hit [`add_hp`] enters death
+/// (state 6).
+///
+/// **DEFERRED cross-class hops.** The `reflectDamage` strike-back
+/// (`attacker.damage((activeGuardian.level * 2) + 40 + spirit)`) reads the unported
+/// `Guardian` — `// DEFERRED: Guardian`; `reflectDamage` is always false in this slice,
+/// so the branch is unreachable. `GameLoop.gameScreen.setTarget(attacker, true)` is the
+/// render-lane HUD target flag — DEFERRED.
+// The dodge cap is the Java's two sequential `if`s (`> 60 → 60`, then `< 8 → 8`), not a
+// single `clamp` — the source structure/order is preserved verbatim.
+#[allow(clippy::manual_clamp)]
+pub fn take_hit_raw(g: &mut Game, id: EntityId, attacker: EntityId, raw_damage: i16, dir: i8) {
+    // if (state == 6 || state == 5 || invincible) return;
+    let (state, invincible, reflect_damage) = {
+        let h = g.entity_arena[id].as_hero().expect("Hero node");
+        (h.battler.state, h.invincible, h.reflect_damage)
+    };
+    if state == 6 || state == 5 || invincible {
+        return;
+    }
+    // if (this.reflectDamage) attacker.damage((activeGuardian.level * 2) + 40 + spirit);
+    if reflect_damage {
+        // DEFERRED: Guardian — the reflect strike-back reads activeGuardian.level (the
+        //   unported Guardian). reflectDamage is always false in this slice (its only
+        //   producer is the DEFERRED guardian buff), so this branch is unreachable.
+        unreachable!("DEFERRED: Guardian — reflectDamage requires activeGuardian");
+    }
+    // GameLoop.gameScreen.setTarget(attacker, true);  — DEFERRED (render-lane HUD target).
+    // int dodgeChance = ((agility + agilityBonus) - attacker.stats.evasion) + 10;
+    let (agility, agility_bonus, defense, defense_up, acc_refine) = {
+        let h = g.entity_arena[id].as_hero().expect("Hero node");
+        let acc_refine = h.equipment[2].as_ref().map(|e| e.borrow().refine_level);
+        (
+            h.agility,
+            h.agility_bonus,
+            h.defense,
+            h.defense_up,
+            acc_refine,
+        )
+    };
+    let (evasion, ai_type) = {
+        let e = g.entity_arena[attacker]
+            .as_enemy()
+            .expect("takeHit attacker is not an Enemy");
+        (e.stats.evasion, e.stats.ai_type)
+    };
+    let mut dodge_chance = (agility as i32)
+        .wrapping_add(agility_bonus as i32)
+        .wrapping_sub(evasion as i32)
+        .wrapping_add(10);
+    // if (this.equipment[2] != null) dodgeChance += this.equipment[2].refineLevel;
+    if let Some(rl) = acc_refine {
+        dodge_chance = dodge_chance.wrapping_add(rl as i32);
+    }
+    // if (dodgeChance > 60) dodgeChance = 60; if (dodgeChance < 8) dodgeChance = 8;
+    if dodge_chance > 60 {
+        dodge_chance = 60;
+    }
+    if dodge_chance < 8 {
+        dodge_chance = 8;
+    }
+    // if (ByteUtil.randRange(0, 99) < dodgeChance) { floaters.addElement(new Floater((byte) 2)); return; }
+    if crate::byte_util::rand_range(&mut g.byte_util, 0, 99) < dodge_chance {
+        let f = crate::floater::new_default(2);
+        crate::battler::add_floater(
+            &mut g.entity_arena[id].as_hero_mut().expect("Hero node").battler,
+            f,
+        );
+        return;
+    }
+    // int finalDamage = (rawDamage + ByteUtil.randRange(-(rawDamage/10), rawDamage/10)) - (defenseUp ? defense*2 : defense);
+    let variance_bound = java_div(raw_damage as i32, 10).expect("rawDamage / 10");
+    let variance = crate::byte_util::rand_range(
+        &mut g.byte_util,
+        variance_bound.wrapping_neg(),
+        variance_bound,
+    );
+    let def_term = if defense_up {
+        (defense as i32).wrapping_mul(2)
+    } else {
+        defense as i32
+    };
+    let final_damage = (raw_damage as i32)
+        .wrapping_add(variance)
+        .wrapping_sub(def_term);
+    // int appliedDamage = finalDamage;
+    let mut applied_damage = final_damage;
+    // if (finalDamage > 0) { addHp(-appliedDamage); addFloater(new Floater((byte) 6)); }
+    if final_damage > 0 {
+        add_hp(g, id, applied_damage.wrapping_neg());
+        let f6 = crate::floater::new_default(6);
+        crate::battler::add_floater(
+            &mut g.entity_arena[id].as_hero_mut().expect("Hero node").battler,
+            f6,
+        );
+    }
+    // if (appliedDamage < 0) appliedDamage = 0;
+    if applied_damage < 0 {
+        applied_damage = 0;
+    }
+    // floaters.addElement(new Floater((byte) 7, (short) 4, (short) (-appliedDamage)));
+    {
+        let f7 = crate::floater::new(7, 4, applied_damage.wrapping_neg() as i16);
+        crate::battler::add_floater(
+            &mut g.entity_arena[id].as_hero_mut().expect("Hero node").battler,
+            f7,
+        );
+    }
+    // if (attacker.stats.aiType == 1 && ByteUtil.randRange(0, 99) < 15) applyStatus((byte) 7);
+    if ai_type == 1 && crate::byte_util::rand_range(&mut g.byte_util, 0, 99) < 15 {
+        crate::battler::apply_status(
+            &mut g.entity_arena[id].as_hero_mut().expect("Hero node").battler,
+            7,
+        );
+    }
+    // this.recoilTimer = (byte) 1; this.recoilDir = dir;
+    let h = g.entity_arena[id].as_hero_mut().expect("Hero node");
+    h.recoil_timer = 1;
+    h.recoil_dir = dir;
+}
+
+// --- Entity/Battler occupancy scans, inlined in the Hero combat lane. `Battler`
+//     (`o`) and `Entity` (`ck`) are read-only in this lane, and the Hero's combat FSM
+//     is the sole caller in this batch — reproduced here as `enemy.rs` reproduces the
+//     same helpers (`enemy::neighbor`/`entity_in_dir` are private to that module). ----
+
+/// `public final Enemy enemyAhead()` (`o.a:()Lal;`) — the [`crate::enemy`] on the tile
+/// straight ahead (facing), or `None` (a non-Enemy occupant answers `None`).
+fn enemy_ahead(g: &Game, id: EntityId) -> Option<EntityId> {
+    // Entity ahead = entityInDir(this.facing, null); return (ahead instanceof Enemy) ? (Enemy) ahead : null;
+    let facing = g.entity_arena[id]
+        .as_hero()
+        .expect("Hero node")
+        .battler
+        .facing;
+    let ahead = entity_in_dir(g, id, facing, None)?;
+    if g.entity_arena[ahead].as_enemy().is_some() {
+        Some(ahead)
+    } else {
+        None
+    }
+}
+
+/// `public final Enemy enemyInDir(byte dir)` (`o.a:(B)Lal;`) — the [`crate::enemy`] on
+/// the adjacent tile in `dir`, or `None` (a non-Enemy occupant answers `None`).
+fn enemy_in_dir(g: &Game, id: EntityId, dir: i8) -> Option<EntityId> {
+    // Entity found = entityInDir(dir, null); return (found instanceof Enemy) ? (Enemy) found : null;
+    let found = entity_in_dir(g, id, dir, None)?;
+    if g.entity_arena[found].as_enemy().is_some() {
+        Some(found)
+    } else {
+        None
+    }
+}
+
+/// `public final Entity entityInDir(byte dir, Entity wanted)` (`o.a:(BLck;)Lck;`) —
+/// scans the `layer` tiles adjacent in `dir`: with `wanted == None` returns the first
+/// occupant found, else returns `wanted` iff it occupies one of those tiles.
+fn entity_in_dir(g: &Game, id: EntityId, dir: i8, wanted: Option<EntityId>) -> Option<EntityId> {
+    let (tile_x, tile_y, layer) = {
+        let n = &g.entity_arena[id];
+        (n.tile_x as i32, n.tile_y as i32, n.layer as i32)
+    };
+    let map = g
+        .game_state
+        .map
+        .as_ref()
+        .expect("GameState.map null in Battler.entityInDir");
+    let (width_tiles, height_tiles) = (map.width_tiles, map.height_tiles);
+    let occ = map
+        .occupancy
+        .as_ref()
+        .expect("occupancy null in Battler.entityInDir");
+    // for (int col = 0; col < this.layer; col++) {
+    let mut col: i32 = 0;
+    while col < layer {
+        // int scanX = tileX + Directions.dirDx[dir] + col; int scanY = tileY + Directions.dirDy[dir];
+        let scan_x = tile_x
+            .wrapping_add(DIR_DX[dir as usize] as i32)
+            .wrapping_add(col);
+        let scan_y = tile_y.wrapping_add(DIR_DY[dir as usize] as i32);
+        // Debug.assertTrue(scanX >= 0 && scanX < widthTiles && scanY >= 0 && scanY < heightTiles);
+        crate::debug::assert_true(scan_x >= 0);
+        crate::debug::assert_true(scan_x < width_tiles);
+        crate::debug::assert_true(scan_y >= 0);
+        crate::debug::assert_true(scan_y < height_tiles);
+        // Entity occupant = occupancy[scanY][scanX];
+        let occupant = occ[scan_y as usize][scan_x as usize];
+        // if (occupant != this) {
+        if occupant != Some(id) {
+            // if (wanted == null && occupant != null) return occupant;
+            if wanted.is_none() && occupant.is_some() {
+                return occupant;
+            }
+            // if (wanted != null && occupant == wanted) return occupant;
+            if wanted.is_some() && occupant == wanted {
+                return occupant;
+            }
+        }
+        col = col.wrapping_add(1);
+    }
+    // return null;
+    None
+}
+
+/// `public final Entity neighbor(byte direction, byte distance)` (`ck.a:(BB)Lck;`) —
+/// the entity `distance` tiles away in `direction` (1 up, 2 down, 3 left, 4 right), or
+/// `None` when off-map / empty.
+fn neighbor(g: &Game, id: EntityId, direction: i8, distance: i8) -> Option<EntityId> {
+    let (tile_x, tile_y) = {
+        let n = &g.entity_arena[id];
+        (n.tile_x as i32, n.tile_y as i32)
+    };
+    let map = g
+        .game_state
+        .map
+        .as_ref()
+        .expect("GameState.map null in Entity.neighbor");
+    let occ = map
+        .occupancy
+        .as_ref()
+        .expect("occupancy null in Entity.neighbor");
+    let dist = distance as i32;
+    match direction {
+        // case 1: if (tileY - distance < 0) return null; return occupancy[tileY - distance][tileX];
+        1 => {
+            if tile_y.wrapping_sub(dist) < 0 {
+                None
+            } else {
+                occ[tile_y.wrapping_sub(dist) as usize][tile_x as usize]
+            }
+        }
+        // case 2: if (tileY + distance >= heightTiles) return null; return occupancy[tileY + distance][tileX];
+        2 => {
+            if tile_y.wrapping_add(dist) >= map.height_tiles {
+                None
+            } else {
+                occ[tile_y.wrapping_add(dist) as usize][tile_x as usize]
+            }
+        }
+        // case 3: if (tileX - distance < 0) return null; return occupancy[tileY][tileX - distance];
+        3 => {
+            if tile_x.wrapping_sub(dist) < 0 {
+                None
+            } else {
+                occ[tile_y as usize][tile_x.wrapping_sub(dist) as usize]
+            }
+        }
+        // case 4: if (tileX + distance >= widthTiles) return null; return occupancy[tileY][tileX + distance];
+        4 => {
+            if tile_x.wrapping_add(dist) >= map.width_tiles {
+                None
+            } else {
+                occ[tile_y as usize][tile_x.wrapping_add(dist) as usize]
+            }
+        }
+        // default: return null;
+        _ => None,
     }
 }
 
