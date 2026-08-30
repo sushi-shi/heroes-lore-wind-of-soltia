@@ -40,13 +40,16 @@ use crate::debug::DebugState;
 use crate::enchant_menu::EnchantMenuState;
 use crate::enemy_type::EnemyTypeState;
 use crate::entity::{EntityArena, EntityState};
+use crate::equip_tab::EquipTabState;
 use crate::font_manager::FontManagerState;
 use crate::game_loop::GameLoopState;
 use crate::game_map::GameMapClassState;
 use crate::game_midlet::ApplicationState;
 use crate::game_screen::GameScreenState;
 use crate::game_state::GameStateData;
+use crate::guardian_tab::GuardianTabState;
 use crate::item_picker_list::ItemPickerListState;
+use crate::items_tab::ItemsTabState;
 use crate::main_menu::MainMenuState;
 use crate::options_menu::OptionsMenuState;
 use crate::popup_menu::PopupMenuState;
@@ -55,10 +58,12 @@ use crate::resources::ResourceBank;
 use crate::sell_list::SellListState;
 use crate::shop_item_list::ShopItemListState;
 use crate::shop_menu::ShopMenuState;
+use crate::skill_tab::SkillTabState;
 use crate::start_trait_menu::StartTraitMenuState;
 use crate::stat_alloc_menu::StatAllocMenuState;
 use crate::status_page::StatusPageState;
 use crate::string_table::StringTableData;
+use crate::system_tab::SystemTabState;
 use crate::title_screen::TitleScreenState;
 
 /// Which `BaseCanvas` is currently shown — the concrete type of `GameLoop.current`.
@@ -202,6 +207,27 @@ pub struct Game {
     /// level-up flow); the flat model carries the reusable child slot as a `Game` field,
     /// linked by the [`MenuChild`](crate::menu::MenuChild).
     pub status_page: StatusPageState,
+    /// `ay` / `ItemsTab` state (the character menu's items tab, tab 1 + its `cb`/`Menu`
+    /// base fields). Not a Java static — a per-instance child of `CharacterMenu`; the flat
+    /// model carries the reusable child slot as a `Game` field, linked by the
+    /// [`MenuChild`](crate::menu::MenuChild).
+    pub items_tab: ItemsTabState,
+    /// `bz` / `EquipTab` state (the character menu's equipment tab, tab 2 + its `cb`/`Menu`
+    /// base fields). Not a Java static — a per-instance child of `CharacterMenu`; linked
+    /// by the [`MenuChild`](crate::menu::MenuChild).
+    pub equip_tab: EquipTabState,
+    /// `bm` / `GuardianTab` state (the character menu's guardian tab, tab 3 + its `cb`/`Menu`
+    /// base fields). Not a Java static — a per-instance child of `CharacterMenu`; linked
+    /// by the [`MenuChild`](crate::menu::MenuChild).
+    pub guardian_tab: GuardianTabState,
+    /// `s` / `SkillTab` state (the character menu's class-skill tab, tab 4 + its `cb`/`Menu`
+    /// base fields + the per-instance skill entry/name/desc fields). Not a Java static — a
+    /// per-instance child of `CharacterMenu`; linked by the [`MenuChild`](crate::menu::MenuChild).
+    pub skill_tab: SkillTabState,
+    /// `d` / `SystemTab` state (the character menu's system tab, tab 5 + its `cb`/`Menu`
+    /// base fields + the per-instance `saveState`). Not a Java static — a per-instance child
+    /// of `CharacterMenu`; linked by the [`MenuChild`](crate::menu::MenuChild).
+    pub system_tab: SystemTabState,
     /// `bi` / `StatAllocMenu` state (the level-up stat-allocation dialog + its `cb`/`Menu`
     /// base fields + the pending/remaining allocation). Not a Java static — a per-instance
     /// child of `StatusPage`; the flat model carries the reusable child slot as a `Game`
@@ -309,6 +335,11 @@ impl Game {
             buy_sell_dialog: BuySellDialogState::default(),
             character_menu: CharacterMenuState::default(),
             status_page: StatusPageState::default(),
+            items_tab: ItemsTabState::default(),
+            equip_tab: EquipTabState::default(),
+            guardian_tab: GuardianTabState::default(),
+            skill_tab: SkillTabState::default(),
+            system_tab: SystemTabState::default(),
             stat_alloc_menu: StatAllocMenuState::default(),
             refine_menu: RefineMenuState::default(),
             enchant_menu: EnchantMenuState::default(),

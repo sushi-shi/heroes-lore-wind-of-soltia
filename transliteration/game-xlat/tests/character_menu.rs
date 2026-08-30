@@ -3,9 +3,10 @@
 //!
 //! * `CharacterMenu.instance()` builds the six-tab singleton over a New-Game hero,
 //!   centres the panel at `halfW-77`/`halfH-85`, and opens on the status tab
-//!   (`child == StatusPage`); the overriding `moveCursor` switches tabs (only tab 0's
-//!   `StatusPage` is ported — the other five are DEFERRED, so their tabs leave
-//!   `child == None`), rebuilding the status child on the way back.
+//!   (`child == StatusPage`); the overriding `moveCursor` switches tabs (each tab now
+//!   pushes its ported child — tab 1 `ItemsTab` here; the full six-tab sweep +
+//!   per-tab actions live in `character_tabs.rs`), rebuilding the status child on the
+//!   way back.
 //! * `StatusPage` page 3 (FIRE) pushes a `StatAllocMenu` when the hero has unspent
 //!   points, and is inert on the other pages.
 //! * `StatAllocMenu` queues pending points on the four base stats without touching the
@@ -114,14 +115,18 @@ fn character_menu_status_tab_and_stat_allocation() {
         "the status page has no child yet"
     );
 
-    // --- The tabbed shell: switch to a DEFERRED tab and back to the status tab. ---
-    // moveCursor(4) advances tab 0 → 1 (ItemsTab, DEFERRED → child cleared to None).
+    // --- The tabbed shell: switch to the items tab and back to the status tab. ---
+    // moveCursor(4) advances tab 0 → 1 (ItemsTab, now ported → child = Items).
     character_menu::move_cursor(&mut g, 4);
     assert_eq!(g.character_menu.base.cursor_index, 1, "tab cursor 0 → 1");
     assert_eq!(
         g.character_menu.base.child,
-        MenuChild::None,
-        "tab 1 (ItemsTab) is DEFERRED → no child"
+        MenuChild::Items,
+        "tab 1 pushed an ItemsTab child"
+    );
+    assert_eq!(
+        g.items_tab.base.item_count, 30,
+        "ItemsTab super(parent, (byte) 30) → the 30-slot bag"
     );
     // moveCursor(3) retreats tab 1 → 0, rebuilding the StatusPage child.
     character_menu::move_cursor(&mut g, 3);

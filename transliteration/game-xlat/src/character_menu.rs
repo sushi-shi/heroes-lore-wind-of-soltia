@@ -6,11 +6,12 @@
 //! The in-game character menu (`CharacterMenu extends Menu`): a six-tab panel
 //! (status / items / equipment / guardian / skill / system) reached by pausing in
 //! the world. It is a lazily-created singleton root (`super(null, …)`), and each tab
-//! is a pushed sub-screen switched by the overriding [`move_cursor`]. This lane
-//! ports the tabbed **shell**: only tab 0's child ([`StatusPage`](crate::status_page))
-//! is wired; the other five tab classes (`ItemsTab`/`EquipTab`/`GuardianTab`/
-//! `SkillTab`/`SystemTab`) are not in this batch and their `child = new …Tab(this)`
-//! constructions are DEFERRED with a named marker.
+//! is a pushed sub-screen switched by the overriding [`move_cursor`]. All six tab
+//! children are wired: tab 0 [`StatusPage`](crate::status_page), tab 1
+//! [`ItemsTab`](crate::items_tab), tab 2 [`EquipTab`](crate::equip_tab), tab 3
+//! [`GuardianTab`](crate::guardian_tab), tab 4 [`SkillTab`](crate::skill_tab), tab 5
+//! [`SystemTab`](crate::system_tab) — each `child = new …Tab(this)` builds its state
+//! and links the [`MenuChild`] discriminant.
 //!
 //! ## Statics + singleton
 //!
@@ -32,7 +33,7 @@
 //! `shieldAnim`/`armorAnim`/`headAnim` tables and call the unported
 //! `Hero.reloadEquipSprite`; equipment/guardian are null in this slice (item/guardian
 //! creation DEFERRED in `Hero.initClass`), so those branches are unreachable.
-//! `openSystemQuit` builds a `SystemTab` (not in this batch → DEFERRED). In `paint`
+//! `openSystemQuit` builds a [`SystemTab`](crate::system_tab) and runs its `promptExit`. In `paint`
 //! the six `AssetCache.menuTabIcons` tab-icon draws are DEFERRED (that art bank is
 //! unported); the panel fill + inset panel + tab-cursor bevel + the clear/soft-keys
 //! (with `labelBack` DEFERRED → `None`) are drawn.
@@ -48,12 +49,17 @@
 //! `ai.a:(…Graphics;II)V => [iadd×…,imul×4,iadd,iinc]` (paint — the tab-cursor bevel
 //! geometry; the `iinc` is the DEFERRED `iconX += 16` tab-icon walk).
 
+use crate::equip_tab;
 use crate::game::Game;
 use crate::game_loop;
 use crate::game_screen;
 use crate::game_state;
+use crate::guardian_tab;
+use crate::items_tab;
 use crate::menu::{self, MenuChild, MenuNode};
+use crate::skill_tab;
 use crate::status_page;
+use crate::system_tab;
 use crate::text_table::{self, TextTableState};
 
 /// Java `ai` / `CharacterMenu` state — the `Menu` (`cb`) base + the two per-instance
@@ -200,16 +206,20 @@ pub fn open(g: &mut Game) {
 }
 
 /// `public final void openSystemQuit()` (`ai.e:()V => []`): jumps straight to the
-/// system tab's quit prompt. `SystemTab` is not in this batch, so the tab
-/// construction + `promptExit` + child link are DEFERRED; only the `cursorIndex = 6`
-/// tab selection lands.
+/// system tab's quit prompt (used by the hardware back/quit action) — selects the
+/// system tab, builds a [`SystemTab`](crate::system_tab), runs its `promptExit`, links
+/// it as the child, and lands the child cursor on the exit button.
 pub fn open_system_quit(g: &mut Game) {
     // ((Menu) this).cursorIndex = (byte) 6;
     g.character_menu.base.cursor_index = 6;
-    // SystemTab systemTab = new SystemTab(this); systemTab.promptExit();
-    // ((Menu) this).child = systemTab; ((Menu) this).child.cursorIndex = (byte) 1;
-    // (DEFERRED: SystemTab not yet ported — the quit-tab construction, promptExit, and
-    //  child link are deferred.)
+    // SystemTab systemTab = new SystemTab(this);
+    system_tab::construct(g);
+    // systemTab.promptExit();
+    system_tab::prompt_exit(g);
+    // ((Menu) this).child = systemTab;
+    g.character_menu.base.child = MenuChild::System;
+    // ((Menu) this).child.cursorIndex = (byte) 1;
+    g.system_tab.base.cursor_index = 1;
 }
 
 /// `public final void closeMenu(boolean applyChanges)` (`ai.a:(Z)V => [isub,isub]`):
@@ -417,9 +427,10 @@ pub fn paint(g: &mut Game, x: i32, y: i32) {
 }
 
 /// `public final void moveCursor(byte direction)` (`ai.a:(B)V => []`): steps the tab
-/// cursor (base `moveCursor`) then rebuilds the child tab. Only tab 0
-/// ([`StatusPage`](crate::status_page)) is ported; tabs 1..5 are DEFERRED (their tab
-/// classes are not in this batch).
+/// cursor (base `moveCursor`) then rebuilds the child tab. Every tab is wired: 0
+/// [`StatusPage`](crate::status_page), 1 [`ItemsTab`](crate::items_tab), 2
+/// [`EquipTab`](crate::equip_tab), 3 [`GuardianTab`](crate::guardian_tab), 4
+/// [`SkillTab`](crate::skill_tab), 5 [`SystemTab`](crate::system_tab).
 pub fn move_cursor(g: &mut Game, direction: i8) {
     // super.moveCursor(direction);
     menu::move_cursor(&mut g.character_menu.base, direction);
@@ -434,23 +445,28 @@ pub fn move_cursor(g: &mut Game, direction: i8) {
         }
         // case 1: child = new ItemsTab(this);
         1 => {
-            // DEFERRED: ItemsTab not yet ported
+            items_tab::construct(g);
+            g.character_menu.base.child = MenuChild::Items;
         }
         // case 2: child = new EquipTab(this);
         2 => {
-            // DEFERRED: EquipTab not yet ported
+            equip_tab::construct(g);
+            g.character_menu.base.child = MenuChild::Equip;
         }
         // case 3: child = new GuardianTab(this);
         3 => {
-            // DEFERRED: GuardianTab not yet ported
+            guardian_tab::construct(g);
+            g.character_menu.base.child = MenuChild::Guardian;
         }
         // case 4: child = new SkillTab(this);
         4 => {
-            // DEFERRED: SkillTab not yet ported
+            skill_tab::construct(g);
+            g.character_menu.base.child = MenuChild::Skill;
         }
         // case 5: child = new SystemTab(this);
         5 => {
-            // DEFERRED: SystemTab not yet ported
+            system_tab::construct(g);
+            g.character_menu.base.child = MenuChild::System;
         }
         _ => {}
     }
