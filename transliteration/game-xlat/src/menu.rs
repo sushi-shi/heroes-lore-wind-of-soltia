@@ -55,6 +55,7 @@
 
 use crate::about_screen;
 use crate::buy_sell_dialog;
+use crate::character_menu;
 use crate::class_confirm_menu;
 use crate::class_select_menu;
 use crate::confirm_dialog;
@@ -68,6 +69,8 @@ use crate::sell_list;
 use crate::shop_item_list;
 use crate::shop_menu;
 use crate::start_trait_menu;
+use crate::stat_alloc_menu;
+use crate::status_page;
 use j2me_jvm::{java_div, java_rem};
 
 /// The pushed sub-screen of a menu — the flat model of the polymorphic
@@ -105,6 +108,10 @@ pub enum MenuChild {
     ShopItemList,
     /// `child instanceof BuySellDialog` (`ab`) — the buy/sell confirm-and-quantity dialog.
     BuySell,
+    /// `child instanceof StatusPage` (`q`) — the character menu's status tab.
+    Status,
+    /// `child instanceof StatAllocMenu` (`bi`) — the level-up stat-allocation dialog.
+    StatAlloc,
 }
 
 /// Identifies a *concrete* menu that owns a `MenuBase` + `paint`/`handleKey` — the
@@ -141,12 +148,18 @@ pub enum MenuNode {
     ShopItemList,
     /// `BuySellDialog` (`ab`) — the buy/sell confirm dialog (pushed by `ShopItemList`/`SellList`).
     BuySell,
+    /// `CharacterMenu` (`ai`) — the six-tab character-menu singleton (a separate root from `MainMenu`).
+    Character,
+    /// `StatusPage` (`q`) — the character menu's status tab (pushed as `CharacterMenu`'s child).
+    Status,
+    /// `StatAllocMenu` (`bi`) — the stat-allocation dialog (pushed as `StatusPage`'s child).
+    StatAlloc,
 }
 
 /// Every concrete [`MenuNode`], for the parent-scan ([`parent_of`]). The flat model
 /// is a singleton stack, so a node's parent is the unique node whose resolved
 /// [`child_node`] is that node.
-const ALL_NODES: [MenuNode; 14] = [
+const ALL_NODES: [MenuNode; 17] = [
     MenuNode::Main,
     MenuNode::ClassSelect,
     MenuNode::ClassConfirm,
@@ -161,6 +174,9 @@ const ALL_NODES: [MenuNode; 14] = [
     MenuNode::ShopMenu,
     MenuNode::ShopItemList,
     MenuNode::BuySell,
+    MenuNode::Character,
+    MenuNode::Status,
+    MenuNode::StatAlloc,
 ];
 
 /// The instance fields of a `Menu` (`cb`), carried by each concrete menu's state
@@ -225,6 +241,9 @@ fn node_base(g: &Game, node: MenuNode) -> &MenuBase {
         MenuNode::ShopMenu => &g.shop_menu.base,
         MenuNode::ShopItemList => &g.shop_item_list.base,
         MenuNode::BuySell => &g.buy_sell_dialog.base,
+        MenuNode::Character => &g.character_menu.base,
+        MenuNode::Status => &g.status_page.base,
+        MenuNode::StatAlloc => &g.stat_alloc_menu.base,
     }
 }
 
@@ -245,6 +264,9 @@ fn node_base_mut(g: &mut Game, node: MenuNode) -> &mut MenuBase {
         MenuNode::ShopMenu => &mut g.shop_menu.base,
         MenuNode::ShopItemList => &mut g.shop_item_list.base,
         MenuNode::BuySell => &mut g.buy_sell_dialog.base,
+        MenuNode::Character => &mut g.character_menu.base,
+        MenuNode::Status => &mut g.status_page.base,
+        MenuNode::StatAlloc => &mut g.stat_alloc_menu.base,
     }
 }
 
@@ -271,6 +293,8 @@ fn child_node(child: MenuChild) -> Option<MenuNode> {
         MenuChild::SellList => Some(MenuNode::SellList),
         MenuChild::ShopItemList => Some(MenuNode::ShopItemList),
         MenuChild::BuySell => Some(MenuNode::BuySell),
+        MenuChild::Status => Some(MenuNode::Status),
+        MenuChild::StatAlloc => Some(MenuNode::StatAlloc),
     }
 }
 
@@ -307,6 +331,9 @@ fn paint_node(g: &mut Game, node: MenuNode, origin_x: i32, origin_y: i32) {
         MenuNode::ShopMenu => shop_menu::paint(g, origin_x, origin_y),
         MenuNode::ShopItemList => shop_item_list::paint(g, origin_x, origin_y),
         MenuNode::BuySell => buy_sell_dialog::paint(g, origin_x, origin_y),
+        MenuNode::Character => character_menu::paint(g, origin_x, origin_y),
+        MenuNode::Status => status_page::paint(g, origin_x, origin_y),
+        MenuNode::StatAlloc => stat_alloc_menu::paint(g, origin_x, origin_y),
     }
 }
 
@@ -327,6 +354,9 @@ fn dispatch_handle_key(g: &mut Game, node: MenuNode, action: i32, key_code: i32)
         MenuNode::ShopMenu => shop_menu::handle_key(g, action, key_code),
         MenuNode::ShopItemList => shop_item_list::handle_key(g, action, key_code),
         MenuNode::BuySell => buy_sell_dialog::handle_key(g, action, key_code),
+        MenuNode::Character => character_menu::handle_key(g, action, key_code),
+        MenuNode::Status => status_page::handle_key(g, action, key_code),
+        MenuNode::StatAlloc => stat_alloc_menu::handle_key(g, action, key_code),
     }
 }
 
@@ -435,6 +465,7 @@ pub fn move_cursor_node(g: &mut Game, node: MenuNode, direction: i8) {
     match node {
         MenuNode::ShopMenu => shop_menu::move_cursor(g, direction),
         MenuNode::BuySell => buy_sell_dialog::move_cursor(g, direction),
+        MenuNode::Character => character_menu::move_cursor(g, direction),
         _ => move_cursor(node_base_mut(g, node), direction),
     }
 }
@@ -595,6 +626,7 @@ pub fn on_popup_result(g: &mut Game, node: MenuNode, tag: i8, result: i8) {
         MenuNode::Main => main_menu::on_popup_result(g, tag, result),
         MenuNode::SellList => sell_list::on_popup_result(g, tag, result),
         MenuNode::BuySell => buy_sell_dialog::on_popup_result(g, tag, result),
+        MenuNode::StatAlloc => stat_alloc_menu::on_popup_result(g, tag, result),
         _ => on_popup_result_base(g, node, tag, result),
     }
 }
