@@ -534,6 +534,7 @@ name = "heroes-lore-wind-of-soltia-linux"
 version = "0.1.0"
 dependencies = [
  "heroes-lore-wind-of-soltia-game-xlat",
+ "j2me-input",
  "j2me-jvm",
  "j2me-me",
  "png",
@@ -563,17 +564,25 @@ dependencies = [
 [[package]]
 name = "j2me-canvas"
 version = "0.1.0"
-source = "git+https://github.com/sushi-shi/j2me-preservation-kit.git?rev=7aeba277a270eb58658d211bd3621b30956f6212#7aeba277a270eb58658d211bd3621b30956f6212"
+source = "git+https://github.com/sushi-shi/j2me-preservation-kit.git?rev=c4ee0943acd3aadb8c5c26f20f25941eb7cb43bc#c4ee0943acd3aadb8c5c26f20f25941eb7cb43bc"
+
+[[package]]
+name = "j2me-input"
+version = "0.1.0"
+source = "git+https://github.com/sushi-shi/j2me-preservation-kit.git?rev=c4ee0943acd3aadb8c5c26f20f25941eb7cb43bc#c4ee0943acd3aadb8c5c26f20f25941eb7cb43bc"
+dependencies = [
+ "winit",
+]
 
 [[package]]
 name = "j2me-jvm"
 version = "0.1.0"
-source = "git+https://github.com/sushi-shi/j2me-preservation-kit.git?rev=7aeba277a270eb58658d211bd3621b30956f6212#7aeba277a270eb58658d211bd3621b30956f6212"
+source = "git+https://github.com/sushi-shi/j2me-preservation-kit.git?rev=c4ee0943acd3aadb8c5c26f20f25941eb7cb43bc#c4ee0943acd3aadb8c5c26f20f25941eb7cb43bc"
 
 [[package]]
 name = "j2me-me"
 version = "0.1.0"
-source = "git+https://github.com/sushi-shi/j2me-preservation-kit.git?rev=7aeba277a270eb58658d211bd3621b30956f6212#7aeba277a270eb58658d211bd3621b30956f6212"
+source = "git+https://github.com/sushi-shi/j2me-preservation-kit.git?rev=c4ee0943acd3aadb8c5c26f20f25941eb7cb43bc#c4ee0943acd3aadb8c5c26f20f25941eb7cb43bc"
 dependencies = [
  "j2me-canvas",
  "j2me-jvm",

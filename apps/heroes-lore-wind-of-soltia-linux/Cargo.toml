@@ -24,6 +24,10 @@ publish = false
 # the other lane owns heroes-lore-wind-of-soltia-game-xlat).
 heroes-lore-wind-of-soltia-game-xlat = { path = "../../transliteration/game-xlat" }
 j2me-me = { workspace = true }
+# Generic remappable key mapping (presets Standard/Mobile + `[keymap]` overrides).
+# Replaces the host's hard-coded winit->Nokia table; produces the SAME raw Nokia
+# codes the game consumes (verified code-for-code against the old keymap.rs).
+j2me-input = { workspace = true }
 # The `Clock`/`VirtualClock` the game loop reads through `Game::clock`. The host
 # seeds it deterministically for reproducible captures (a `VirtualClock` seed
 # stands in for gothic's injected `Box<dyn Clock>`: here the `Game` owns the

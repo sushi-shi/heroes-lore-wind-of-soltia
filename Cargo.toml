@@ -38,8 +38,12 @@ license = "CC0-1.0"
 # Foundational dependencies pinned here so one version is chosen across the whole
 # workspace. Add them to a crate with `dep = { workspace = true }`.
 [workspace.dependencies]
-j2me-jvm = { git = "https://github.com/sushi-shi/j2me-preservation-kit.git", rev = "7aeba277a270eb58658d211bd3621b30956f6212" }
-j2me-me = { git = "https://github.com/sushi-shi/j2me-preservation-kit.git", rev = "7aeba277a270eb58658d211bd3621b30956f6212" }
+j2me-jvm = { git = "https://github.com/sushi-shi/j2me-preservation-kit.git", rev = "c4ee0943acd3aadb8c5c26f20f25941eb7cb43bc" }
+j2me-me = { git = "https://github.com/sushi-shi/j2me-preservation-kit.git", rev = "c4ee0943acd3aadb8c5c26f20f25941eb7cb43bc" }
+# Generic remappable physical-key -> Nokia-code mapping (presets + a `[keymap]`
+# override table). Adopted by the native host so key remapping is configurable
+# rather than the old hard-coded winit->Nokia table. Same kit rev as above.
+j2me-input = { git = "https://github.com/sushi-shi/j2me-preservation-kit.git", rev = "c4ee0943acd3aadb8c5c26f20f25941eb7cb43bc" }
 # `zip` is used only by the format/transliteration tests to extract resource
 # blobs from the baseline JAR at test time. Deflate-only (no bzip2/zstd/aes) keeps
 # the build pure-Rust and offline friendly — JAR entries are STORE or DEFLATE.
