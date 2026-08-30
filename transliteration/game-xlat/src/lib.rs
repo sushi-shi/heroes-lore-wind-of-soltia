@@ -35,6 +35,7 @@ pub mod asset_cache;
 pub mod audio_manager;
 pub mod base_canvas;
 pub mod bitmap_font;
+pub mod class_select_menu;
 pub mod font_manager;
 pub mod game;
 pub mod game_loop;
@@ -46,6 +47,7 @@ pub mod menu;
 pub mod resources;
 pub mod sound_player;
 pub mod string_table;
+pub mod text_table;
 pub mod title_screen;
 pub mod wrap_font;
 

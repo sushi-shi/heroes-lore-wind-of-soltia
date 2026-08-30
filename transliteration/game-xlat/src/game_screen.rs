@@ -110,7 +110,7 @@ pub fn paint(g: &mut Game) {
                 main_menu::instance(g),
                 "MainMenu singleton null at screen 9"
             );
-            menu::invalidate_down(&mut g.main_menu.base);
+            menu::invalidate_down(g, menu::MenuNode::Main);
             // MainMenu.instance().draw(graphics);
             main_menu::draw(g);
         }
