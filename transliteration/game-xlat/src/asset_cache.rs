@@ -59,6 +59,35 @@ pub struct AssetCacheState {
     /// (`/m/t/t<NN>`), loaded lazily by [`crate::game_map::load`] and drawn by
     /// `GameMap.drawTiles`. `None` == Java null (also the reload-guard sentinel).
     pub map_tiles: Option<Vec<Image>>,
+
+    // ---- Hero sprite system (byte-script frame tables + decoded atlas banks) ----
+    /// `public static Object[] heroFrames;` (obf `ce.a`) — the hero equipment
+    /// animation scripts, keyed `(pose*36)+((dir-1)*9)+layer` (9 layers/cell, 11
+    /// poses → `Object[396]`). Each element is a decoded per-frame draw script
+    /// (`byte[]`) or Java null. Filled by
+    /// [`crate::asset_loader::load_sprite_bank`], read by
+    /// [`crate::game_screen::draw_frame`]/[`crate::game_screen::draw_frame_group`].
+    /// `None` == Java null (the whole array unallocated until `loadHeroEquipSprites`).
+    pub hero_frames: Option<Vec<Option<Vec<i8>>>>,
+    /// `public static Object[] weaponPreviewFrames;` (obf `ce.c`) — weapon-preview
+    /// frame scripts, keyed `(row*4)+col`. Written only by `loadSpriteBank`'s
+    /// `weaponPreview` branch (the class-select preview, DEFERRED); `None` == null.
+    pub weapon_preview_frames: Option<Vec<Option<Vec<i8>>>>,
+    /// `public static Object[] mageAuraScripts = null;` (obf `ce.b`) — mage (class 8)
+    /// extra shield/aura frame scripts. Set only by `loadMageShieldFrames` (DEFERRED);
+    /// `None` == null.
+    pub mage_aura_scripts: Option<Vec<Option<Vec<i8>>>>,
+    /// `public static Image[][] spriteBanks = new Image[38][];` (obf `ce.a`) — the
+    /// decoded atlas images per sprite-bank slot (0 armor, 1 body, 2 head, 3 weapon,
+    /// 4 aura, 5 shield; +6 = the mirrored twin). Each slot is either null (`None`)
+    /// or a lazily-filled `Image[]` (`Vec<Option<Image>>`). Indexed by
+    /// [`crate::game_screen::draw_frame`] via a script's bank byte.
+    pub sprite_banks: Vec<Option<Vec<Option<Image>>>>,
+    /// `public static Image entityShadow;` (obf `ce.u`) — the ground shadow drawn under
+    /// the hero/enemy/npc (`/img/etcui` frame 3). Filled by [`load_in_game_ui`], drawn
+    /// by [`crate::hero::paint`]. `None` == Java null.
+    pub entity_shadow: Option<Image>,
+
     /// `public static byte[] readBuffer = new byte[512];` (obf `ce.n`) — the
     /// shared 512-byte scratch [`read_resource`] slurps through.
     pub read_buffer: Vec<i8>,
@@ -74,6 +103,13 @@ impl AssetCacheState {
             title_menu_frames: None,
             menu_frames: None,
             map_tiles: None,
+            // heroFrames / weaponPreviewFrames / mageAuraScripts are declared null.
+            hero_frames: None,
+            weapon_preview_frames: None,
+            mage_aura_scripts: None,
+            // static Image[][] spriteBanks = new Image[38][];  (38 null bank slots)
+            sprite_banks: (0..38).map(|_| None).collect(),
+            entity_shadow: None,
             // static byte[] readBuffer = new byte[512];
             read_buffer: vec![0i8; 512],
         }
@@ -208,6 +244,26 @@ pub fn unload_main_menu_assets(g: &mut Game) {
     // menuFrames = null;
     g.asset_cache.menu_frames = None;
     // classFaces = null;  menuGuardianPreview = (Image[][]) null;  — DEFERRED banks.
+}
+
+/// `public static final void loadInGameUi()` (`ce.g:()V`) — **PARTIAL** (anti-bog).
+///
+/// The full method decodes the shared in-game UI atlas (`/img/uifrm` HUD frame +
+/// dialog border, `/img/etcui` glyph/marker set, the `/char/lvup` level-up effect).
+/// This milestone slice ports **only** `entityShadow = new PngMerger("/img/etcui").image(3)`
+/// — the ground shadow [`crate::hero::paint`] draws under the hero. The HUD frame,
+/// dialog border, floater/number/marker icons and the level-up sprite assembly are
+/// DEFERRED (read only by the DEFERRED `drawHud` / dialogue / floater lanes). The
+/// discarded `etcui.image(2)` probe is a no-op here.
+pub fn load_in_game_ui(g: &mut Game) {
+    // PngMerger etcui = new PngMerger("/img/etcui"); etcui.preloadAll = true;
+    let mut etcui = png_merger::construct(g, "/img/etcui");
+    etcui.preload_all = true;
+    // (DEFERRED: uifrm hudFrame/dialogBorder; floaterIcon2/3; numberFont1..4;
+    //  dropItemMarker/dropGoldMarker; skillChargeFill; statPointAlert; lvup assembly.)
+    // entityShadow = etcui.image(3);
+    let shadow = png_merger::image(g, &mut etcui, 3);
+    g.asset_cache.entity_shadow = Some(shadow);
 }
 
 /// `public static final void unloadMapTiles()` (`ce.b:()V => []`): `mapTiles = null`.

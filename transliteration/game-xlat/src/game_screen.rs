@@ -23,6 +23,7 @@
 //! `as.a:(…Graphics;)V => []` (paint — no arithmetic in the ported dispatch),
 //! `as.keyPressed:(I)V => []` (keyPressed).
 
+use crate::asset_cache::AssetCacheState;
 use crate::asset_loader;
 use crate::game::Game;
 use crate::game_loop;
@@ -154,6 +155,124 @@ pub fn paint(g: &mut Game) {
     //   MainMenu paint's Graphics already flushed); a dead store, modelled as a no-op.
     // GameLoop.instance.throttle();
     game_loop::throttle(g);
+}
+
+/// `public static final void drawFrame(Graphics graphics, byte[] frames, byte
+/// frameIndex, int x, int y)` (`as.a:(…Graphics;[BBII)V => [imul, iadd×6]`): draws
+/// one animation frame `frameIndex` of the per-frame draw script `frames` at
+/// (`x`,`y`), anchored `20` (TOP|LEFT).
+///
+/// `frames` is one `AssetCache.heroFrames[…]` element — a `byte[]` or Java null; the
+/// null (unloaded-layer) case is the `Option::None` early return. Layout: `frames[0]`
+/// = frame count, then 4 bytes per frame `[dx, dy, spriteBankByte, imageIndex]`. The
+/// bank byte indexes [`AssetCacheState::sprite_banks`]; a `-1` image index or an
+/// absent atlas frame draws nothing. `spriteBanks[bank] == null` with a live image
+/// index is an unguarded NPE in Java — reproduced as an `.expect`.
+pub fn draw_frame(
+    graphics: &mut j2me_me::Graphics,
+    asset_cache: &AssetCacheState,
+    frames: Option<&[i8]>,
+    frame_index: i8,
+    x: i32,
+    y: i32,
+) {
+    // if (frames == null || frameIndex >= frames[0]) return;
+    let frames = match frames {
+        None => return,
+        Some(f) => f,
+    };
+    if frame_index as i32 >= frames[0] as i32 {
+        return;
+    }
+    // int base = 1 + (frameIndex * 4);
+    let base = 1i32.wrapping_add((frame_index as i32).wrapping_mul(4));
+    // Image[] images = spriteBanks[frames[base + 2]];  byte imgIdx = frames[base + 3];
+    let bank = frames[base.wrapping_add(2) as usize] as i32;
+    let img_idx = frames[base.wrapping_add(3) as usize];
+    // if (imgIdx == -1 || images[imgIdx] == null) return;  (images==null → Java NPE)
+    if img_idx == -1 {
+        return;
+    }
+    let images = asset_cache.sprite_banks[bank as usize]
+        .as_ref()
+        .expect("NullPointerException: spriteBanks[bank] null in drawFrame");
+    let image = match &images[img_idx as usize] {
+        None => return,
+        Some(im) => im,
+    };
+    // graphics.drawImage(images[imgIdx], x + frames[base], y + frames[base + 1], 20);
+    graphics
+        .draw_image(
+            image,
+            x.wrapping_add(frames[base as usize] as i32),
+            y.wrapping_add(frames[base.wrapping_add(1) as usize] as i32),
+            20,
+        )
+        .expect("drawImage(spriteBank frame)");
+}
+
+/// `public static final void drawFrameGroup(Graphics graphics, byte[] frames, byte
+/// groupIndex, int x, int y)` (`as.b:(…Graphics;[BBII)V`): draws every part of
+/// animation group `groupIndex` of `frames` at (`x`,`y`). Used only for the aura
+/// layer (7), which is gated on `map.combatEnabled` (false on the class-6 start map),
+/// so it is not exercised in this milestone but is ported faithfully.
+///
+/// The script packs each group as `[partCount][partCount × (dx, dy, bank, imageIndex)]`;
+/// `cursor` walks past `groupIndex` earlier groups, then each part is blitted like
+/// [`draw_frame`].
+pub fn draw_frame_group(
+    graphics: &mut j2me_me::Graphics,
+    asset_cache: &AssetCacheState,
+    frames: Option<&[i8]>,
+    group_index: i8,
+    x: i32,
+    y: i32,
+) {
+    // if (frames == null || groupIndex >= frames[0]) return;
+    let frames = match frames {
+        None => return,
+        Some(f) => f,
+    };
+    if group_index as i32 >= frames[0] as i32 {
+        return;
+    }
+    // int cursor = 1; for (group = 0; group < groupIndex; group++) cursor += 1 + (frames[cursor]*4);
+    let mut cursor: i32 = 1;
+    let mut group: i32 = 0;
+    while group < group_index as i32 {
+        cursor = cursor
+            .wrapping_add(1)
+            .wrapping_add((frames[cursor as usize] as i32).wrapping_mul(4));
+        group = group.wrapping_add(1);
+    }
+    // int countPos = cursor; int part = cursor + 1; byte partCount = frames[countPos];
+    let count_pos = cursor;
+    let mut part = cursor.wrapping_add(1);
+    let part_count = frames[count_pos as usize];
+    // for (int p = 0; p < partCount; p++) { ... part += 4; }
+    let mut p: i32 = 0;
+    while p < part_count as i32 {
+        let bank = frames[part.wrapping_add(2) as usize] as i32;
+        let img_idx = frames[part.wrapping_add(3) as usize];
+        // if (imgIdx != -1 && images[imgIdx] != null) drawImage(...);
+        if img_idx != -1 {
+            let images = asset_cache.sprite_banks[bank as usize]
+                .as_ref()
+                .expect("NullPointerException: spriteBanks[bank] null in drawFrameGroup");
+            if let Some(image) = &images[img_idx as usize] {
+                graphics
+                    .draw_image(
+                        image,
+                        x.wrapping_add(frames[part as usize] as i32),
+                        y.wrapping_add(frames[part.wrapping_add(1) as usize] as i32),
+                        20,
+                    )
+                    .expect("drawImage(spriteBank group part)");
+            }
+        }
+        part = part.wrapping_add(4);
+        p = p.wrapping_add(1);
+    }
 }
 
 /// `public final void keyPressed(int keyCode)` (`as.keyPressed:(I)V`): the ported
