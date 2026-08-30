@@ -28,6 +28,7 @@ use crate::game::Game;
 use crate::game_loop;
 use crate::game_map;
 use crate::game_state;
+use crate::item_bag;
 use crate::main_menu;
 use crate::menu;
 use j2me_jvm::java_div;
@@ -118,20 +119,35 @@ pub fn paint(g: &mut Game) {
         1 => {
             asset_loader::draw_loading_overlay(g);
         }
-        // case 2: the world view. The original first runs GameState.update() (world
-        // sim + updateHero → the unported Guardian) and eases the follow-camera; those
-        // are DEFERRED. The camera was centered + snapped in warpMap, so the tiles
-        // render straight from it.
+        // case 2: the world view. Run the world simulation (`GameState.update` — hero
+        // FSM + world) with the follow-camera easing, then render the tiles. The hero
+        // sprite / HUD draw layered ON TOP of the tiles is owned by the render lane and
+        // stays DEFERRED here.
         2 => {
             // if (cameraFollow) { centerCamera(); update(); } else { update(); centerCamera(); }
-            //   — DEFERRED (GameState.update reaches the world sim / Guardian).
+            if g.game_loop.camera_follow {
+                game_state::center_camera(g);
+                game_state::update(g);
+            } else {
+                game_state::update(g);
+                game_state::center_camera(g);
+            }
             // if (GameState.screen == 2) {
             if g.game_state.screen == 2 {
-                // if (!map.lockedCamera && cameraFollow) scrollCamera(true, true);  — DEFERRED.
+                // if (!map.lockedCamera && cameraFollow) scrollCamera(true, true);
+                let locked = g
+                    .game_state
+                    .map
+                    .as_ref()
+                    .expect("GameState.map null at screen 2")
+                    .locked_camera;
+                if !locked && g.game_loop.camera_follow {
+                    game_state::scroll_camera(g, true, true);
+                }
                 // map.paint(graphics);
                 game_map::paint(g);
                 // drawHud(graphics);  — DEFERRED (derefs the unported Guardian via
-                //   getActiveGuardian; the whole HUD/target/message machinery).
+                //   getActiveGuardian; the whole HUD/target/message machinery — render lane).
                 // (DEFERRED: the Debug.fullVersion level-8 requestState(13,1) escape.)
             }
         }
@@ -177,16 +193,99 @@ pub fn key_pressed(g: &mut Game, key_code: i32) {
     g.base_canvas.key_down = true;
     // int gameAction = getGameAction(keyCode);
     let game_action = j2me_me::Canvas::common_game_action(key_code);
-    // switch (GameState.screen)  — only `case 9` (main menu) is ported; the rest are
-    // DEFERRED to the default arm (hence single_match).
-    #[allow(clippy::single_match)]
+    // switch (GameState.screen)  — `case 2` (world/play) and `case 9` (main menu) are
+    // ported; the rest are DEFERRED to the default arm.
     match g.game_state.screen {
+        // case 2: handlePlayKey(gameAction, keyCode);
+        2 => {
+            handle_play_key(g, game_action, key_code);
+        }
         9 => {
             // MainMenu.instance().handleKey(gameAction, keyCode);
             main_menu::handle_key(g, game_action, key_code);
         }
-        // (DEFERRED: the play / event / character / shop / refine / blacksmith /
+        // (DEFERRED: the event / character / shop / refine / blacksmith /
         // minimap / credits / clear / paused key handling.)
         _ => {}
+    }
+}
+
+/// `private final void handlePlayKey(int gameAction, int keyCode)`
+/// (`as.handlePlayKey`, GameScreen.java:303): the world (screen 2) key dispatch.
+///
+/// **This slice ports the MOVEMENT keys** — the numeric d-pad (`2`/`4`/`6`/`8`),
+/// their `gameAction` fallbacks (UP/LEFT/RIGHT/DOWN), the `#` quick-type cycle, the
+/// `0` map-menu request, and the back-key character-menu request — each driving the
+/// ported [`game_state`] entry points. The combat / guardian / pickup / quick-item
+/// keys (`1`/`3`/`5`/`7`/`9` and the FIRE fallback) reach `castGuardianSkill` /
+/// `tryPickup` / `requestHeroAttack` / `useQuickItem` / `EventScript`, which are not
+/// on the movement path and are DEFERRED (clearly marked).
+fn handle_play_key(g: &mut Game, game_action: i32, key_code: i32) {
+    // switch (keyCode)
+    match key_code {
+        // case -8: if (((Battler) hero()).state == 1) requestState(13);
+        -8 => {
+            if game_state::hero_state(g) == 1 {
+                game_state::request_state(g, 13);
+            }
+        }
+        // case 35 (#): hero().bag.cycleQuickType(); markRedraw();
+        35 => {
+            let id = g
+                .game_state
+                .hero
+                .expect("GameState.hero null in handlePlayKey");
+            let bag = &mut g.entity_arena[id].as_hero_mut().expect("Hero node").bag;
+            item_bag::cycle_quick_type(bag);
+            mark_redraw(g);
+        }
+        // case 48 (0): if (state == 1 && map.tilesetId <= 14) requestState(2, 11, 3);
+        48 => {
+            if game_state::hero_state(g) == 1 {
+                let tileset_id = g
+                    .game_state
+                    .map
+                    .as_ref()
+                    .expect("GameState.map null in handlePlayKey")
+                    .tileset_id;
+                if tileset_id <= 14 {
+                    game_state::request_state_a0_a1(g, 2, 11, 3);
+                }
+            }
+        }
+        // case 49 (1): hero().castGuardianSkill(true);  — DEFERRED (guardian skill).
+        49 => {}
+        // case 50 (2): walkHero((byte) 1);  [up]
+        50 => game_state::walk_hero(g, 1),
+        // case 51 (3): hero().castGuardianSkill(false);  — DEFERRED (guardian skill).
+        51 => {}
+        // case 52 (4): walkHero((byte) 3);  [left]
+        52 => game_state::walk_hero(g, 3),
+        // case 53 (5): if (!tryPickup() && !checkActionTrigger()) requestHeroAttack(false);
+        //   — DEFERRED (pickup / EventScript / combat).
+        53 => {}
+        // case 54 (6): walkHero((byte) 4);  [right]
+        54 => game_state::walk_hero(g, 4),
+        // case 55 (7): requestHeroAttack(true);  — DEFERRED (combat).
+        55 => {}
+        // case 56 (8): walkHero((byte) 2);  [down]
+        56 => game_state::walk_hero(g, 2),
+        // case 57 (9): hero().useQuickItem();  — DEFERRED (quick item).
+        57 => {}
+        // default: switch (gameAction)
+        _ => match game_action {
+            // case 1 (UP): walkHero((byte) 1);
+            1 => game_state::walk_hero(g, 1),
+            // case 2 (LEFT): walkHero((byte) 3);
+            2 => game_state::walk_hero(g, 3),
+            // case 5 (RIGHT): walkHero((byte) 4);
+            5 => game_state::walk_hero(g, 4),
+            // case 6 (DOWN): walkHero((byte) 2);
+            6 => game_state::walk_hero(g, 2),
+            // case 8 (FIRE): tryPickup / checkActionTrigger / requestHeroAttack
+            //   — DEFERRED (pickup / EventScript / combat).
+            8 => {}
+            _ => {}
+        },
     }
 }

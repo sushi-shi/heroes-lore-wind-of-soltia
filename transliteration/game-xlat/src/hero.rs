@@ -451,10 +451,157 @@ pub fn reset_combo(g: &mut Game, id: EntityId) {
     }
 }
 
-/// `public final void update()` (`ao.d:()V`) — the hero's per-tick combat/movement
-/// FSM. DEFERRED.
-pub fn update(_g: &mut Game, _id: EntityId) {
-    unimplemented!("DEFERRED: Hero.update — not ported in this slice")
+/// `public final void update()` (`ao.d:()V`, overriding `Battler.update`) — the
+/// hero's per-tick FSM: animation counter, HP/MP regen, status ticks, the
+/// state-machine switch, the sub-tile step ([`crate::battler::move_`]) and the
+/// per-step trigger check.
+///
+/// **This slice ports the MOVEMENT path** (state 1 idle / state 2 stepping). The
+/// following branches reach as-yet-unported classes and are DEFERRED, each clearly
+/// marked; none execute on the player-movement path:
+/// - **Regen heals** (`addHp`/`addMp`): the timer *decrements* are ported (observable
+///   every world frame), but the fire-body reaches `GameScreen.markHpDirty` (HUD
+///   dirty flags owned by the render lane) and is deferred; the timers reset
+///   faithfully so play stays bounded.
+/// - **Status loop** (`statuses` / `StatusIcon` / poison `Floater`): `statuses` is
+///   always empty in this slice (the `.evt` status machinery is unported), so the
+///   loop never iterates — the whole block is deferred.
+/// - **Attack/death states** (case 0/3/6: `advanceCombo`/`onDeath`): combat/death
+///   FSM, deferred (the hero is state 1/2 on the walk path).
+/// - **Blocked-turn sidestep** (inside `tryStepForward()`): reads `map.collisionGrid`
+///   / `enemyAhead` / `setTarget`; unreachable because [`crate::battler::try_step_forward`]
+///   is stubbed to never block (collision `.evt` deferred).
+/// - **Tile/facing triggers** (`EventScript.checkTileTrigger`/`checkFacingTrigger`):
+///   the `.evt` trigger tables are unported → no trigger fires (`triggered == false`),
+///   so the `triggerChecked` latch is reproduced but the guarded `setState(1)` never runs.
+pub fn update(g: &mut Game, id: EntityId) {
+    {
+        let h = g.entity_arena[id].as_hero_mut().expect("Hero node");
+        // this.animFrame = (byte) (this.animFrame + 1);
+        h.battler.anim_frame = (h.battler.anim_frame as i32).wrapping_add(1) as i8;
+        // if (this.comboLockout > 0) this.comboLockout = (byte) (this.comboLockout - 1);
+        if h.combo_lockout > 0 {
+            h.combo_lockout = (h.combo_lockout as i32).wrapping_sub(1) as i8;
+        }
+    }
+    // if (GameState.screen == 2) { HP/MP regen }
+    if g.game_state.screen == 2 {
+        let h = g.entity_arena[id].as_hero_mut().expect("Hero node");
+        let state = h.battler.state;
+        // if (state == 1) hpRegenTimer -= 2; else if (state == 2) hpRegenTimer -= 1;
+        if state == 1 {
+            h.hp_regen_timer = (h.hp_regen_timer as i32).wrapping_sub(2) as i8;
+        } else if state == 2 {
+            h.hp_regen_timer = (h.hp_regen_timer as i32).wrapping_sub(1) as i8;
+        }
+        // if (hpRegenTimer <= 0) { addHp(...); hpRegenTimer = 67+level < 100 ? (byte)(67+level) : 100; }
+        if h.hp_regen_timer <= 0 {
+            // DEFERRED: addHp((vitality + vitalityBonus) * (regenBoost ? 2 : 1)) —
+            //   reaches GameScreen.markHpDirty (render-lane HUD flags). Timer reset kept.
+            let sum = 67i32.wrapping_add(h.level as i32);
+            h.hp_regen_timer = if sum < 100 { sum as i8 } else { 100 };
+        }
+        // if (state == 1) mpRegenTimer -= 3; else if (state == 2) mpRegenTimer -= 1;
+        if state == 1 {
+            h.mp_regen_timer = (h.mp_regen_timer as i32).wrapping_sub(3) as i8;
+        } else if state == 2 {
+            h.mp_regen_timer = (h.mp_regen_timer as i32).wrapping_sub(1) as i8;
+        }
+        // if (mpRegenTimer <= 0) { addMp(...); mpRegenTimer = 21; }
+        if h.mp_regen_timer <= 0 {
+            // DEFERRED: addMp((spirit + spiritBonus) * (regenBoost ? 2 : 1)). Reset kept.
+            h.mp_regen_timer = 21;
+        }
+    }
+    // if (state != 6 && state != 5) { for each StatusIcon: tick/poison/expire }
+    //   — DEFERRED: `statuses` is always empty in this slice (the .evt status /
+    //   StatusIcon machinery is unported), so the loop body never iterates.
+
+    // switch (this.state)
+    let state = g.entity_arena[id]
+        .as_hero()
+        .expect("Hero node")
+        .battler
+        .state;
+    match state {
+        // case 0: return;
+        0 => return,
+        // case 1 (idle):
+        1 => {
+            let h = g.entity_arena[id].as_hero_mut().expect("Hero node");
+            // this.queuedTurn = (byte) 0;
+            h.queued_turn = 0;
+            // if (this.animFrame == 1) this.animFrame = (byte) 0;
+            if h.battler.anim_frame == 1 {
+                h.battler.anim_frame = 0;
+            }
+        }
+        // case 2 (stepping):
+        2 => {
+            let queued_turn = g.entity_arena[id].as_hero().expect("Hero node").queued_turn;
+            let off_grid_x = g.entity_arena[id].off_grid_x;
+            let off_grid_y = g.entity_arena[id].off_grid_y;
+            // if (queuedTurn != 0 && !offGridX && !offGridY) { setFacing(queuedTurn); queuedTurn = 0; }
+            //   (queuedTurn is 0 on this slice's walk path — the queued-turn producers are
+            //   the DEFERRED blocked-turn / combat logic; reproduced structurally.)
+            if queued_turn != 0 && !off_grid_x && !off_grid_y {
+                let b = &mut g.entity_arena[id].as_hero_mut().expect("Hero node").battler;
+                crate::battler::set_facing(b, queued_turn);
+                g.entity_arena[id]
+                    .as_hero_mut()
+                    .expect("Hero node")
+                    .queued_turn = 0;
+            }
+            // if (this.animFrame == 4) this.animFrame = (byte) 0;
+            let h = g.entity_arena[id].as_hero_mut().expect("Hero node");
+            if h.battler.anim_frame == 4 {
+                h.battler.anim_frame = 0;
+            }
+        }
+        // case 3 (attacking): comboIndex init + advanceCombo() — DEFERRED (attack combo).
+        // case 6 (dead): deathTimer / onDeath() — DEFERRED (death FSM).
+        _ => {}
+    }
+    // byte stateBefore = this.state;  GameMap map = GameState.map;
+    let state_before = g.entity_arena[id]
+        .as_hero()
+        .expect("Hero node")
+        .battler
+        .state;
+    // if ((state == 2 || state == 4) && tryStepForward()) { blocked-turn sidestep }
+    if (state_before == 2 || state_before == 4) && crate::battler::try_step_forward(g, id) {
+        // DEFERRED: reads map.collisionGrid / enemyAhead / setTarget — collision (.evt)
+        //   deferred; tryStepForward is stubbed to never block, so this is unreachable.
+    }
+    // if (state == 2 || state == 4) { super.move(8); this.triggerChecked = false; }
+    let state = g.entity_arena[id]
+        .as_hero()
+        .expect("Hero node")
+        .battler
+        .state;
+    if state == 2 || state == 4 {
+        crate::battler::move_(g, id, 8);
+        g.entity_arena[id]
+            .as_hero_mut()
+            .expect("Hero node")
+            .trigger_checked = false;
+    }
+    // if (GameState.screen != 4) { trigger checks }
+    if g.game_state.screen != 4 {
+        // boolean triggered = false;
+        // if (state != 3 && !triggerChecked) { triggered = checkTileTrigger(this); triggerChecked = true; }
+        //   — DEFERRED: EventScript (.evt tile triggers) unported → triggered stays false;
+        //   the triggerChecked latch is reproduced.
+        {
+            let h = g.entity_arena[id].as_hero_mut().expect("Hero node");
+            if h.battler.state != 3 && !h.trigger_checked {
+                h.trigger_checked = true;
+            }
+        }
+        // if (stateBefore == 2 && state == 1 && !triggered) triggered = checkFacingTrigger();
+        //   — DEFERRED (false). if (triggered) { setState(1); queuedTurn = 0; animFrame = 0; }
+        //   — `triggered` is always false here, so the guarded reset never runs.
+    }
 }
 
 /// `public final void paint(Graphics graphics, int originX, int originY)`
