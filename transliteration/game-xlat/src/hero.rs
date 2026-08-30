@@ -8,11 +8,13 @@
 //! inventory and quick-item bags, equipment, guardian companions, the combo/attack
 //! animation state, and the RMS save format.
 //!
-//! **This slice is the FIELD LAYER + the constructor only.** [`HeroData`] +
-//! [`new_hero`] (`new Hero(0,0,8,8,classId)` field-init) land here; the combat FSM
-//! ([`update`]), rendering ([`paint`]), class setup ([`init_class`]) and stat
-//! recomputation ([`recompute_stats`]) — which reach `Guardian`/`Item.create`/
-//! `GameLoop.gameScreen`/the map — are DEFERRED to later lanes.
+//! **This slice ports the FIELD LAYER + the constructor + New Game class setup.**
+//! [`HeroData`] + [`new_hero`] (`new Hero(0,0,8,8,classId)`), plus [`init_class`]
+//! (class base stats/level/gold), [`recompute_stats`] (derived attack/defense/
+//! maxHp/maxMp/expToNext), [`init`] and [`reset_combo`] land here — enough to place
+//! a viable hero on the map. The guardian setup and the five starting
+//! `equipment` slots (`Item.create`) inside `init_class` are DEFERRED (see its doc),
+//! as are the combat FSM ([`update`]) and rendering ([`paint`]).
 //!
 //! `Hero` has no mutable `static` fields; `COMBO_FRAMES_CLASS6/7/8` are
 //! `static final` constant tables, reproduced as `const` (crcTable/QUICK_TYPES
@@ -26,7 +28,7 @@ use crate::battler::BattlerData;
 use crate::entity::{self, EntityArena, EntityData, EntityId, EntityNode};
 use crate::game::Game;
 use crate::item_bag::{self, ItemBag, ItemRef};
-use j2me_jvm::{java_ldiv, Clock, VirtualClock};
+use j2me_jvm::{java_div, java_ldiv, Clock, VirtualClock};
 
 /// Warrior (class 6) combo frame table: `[attackType-1][comboStep]` durations.
 /// `private static final byte[][] COMBO_FRAMES_CLASS6` (`ao.b`).
@@ -275,19 +277,178 @@ pub fn new_hero(
     arena.alloc(node)
 }
 
-// --- DEFERRED: class setup, stat math, and the per-tick / render bodies --------
-
-/// `public final void initClass(byte classId)` (`ao.a:(B)V`) — populates the
-/// starting equipment/stats/guardians for the chosen class. Reaches `Item.create`,
-/// `Guardian`, and `recomputeStats`. DEFERRED.
-pub fn init_class(_g: &mut Game, _id: EntityId, _class_id: i8) {
-    unimplemented!("DEFERRED: Hero.initClass — not ported in this slice")
+/// `public final void initClass(byte classId)` (`ao.a:(B)V`) — sets the starting
+/// stats/level/gold for the chosen class and recomputes the derived stats.
+///
+/// **Guardian + equipment DEFERRED.** The leading
+/// `Debug.assertTrue(guardians[0/1] != null)` + `setActiveGuardian(guardians[0])`
+/// and the five `equipment[i] = (Equipment) Item.create(...)` lines are the guardian
+/// / item setup, which are not driven in this minimal New Game slice (the guardian
+/// slots are populated by the DEFERRED guardian-summon path; `Item.create` is not
+/// driven). Skipping them leaves `activeGuardian`/`equipment` null, so
+/// [`recompute_stats`] adds no gear bonuses. The class base stats, `level`,
+/// `maxCombo`, `gold`, `statPoints`, and `hp`/`mp`/`exp` are set faithfully.
+pub fn init_class(g: &mut Game, id: EntityId, class_id: i8) {
+    // Debug.assertTrue(guardians[0] != null); Debug.assertTrue(guardians[1] != null);
+    // setActiveGuardian(guardians[0]);   — DEFERRED (guardian setup; see doc).
+    {
+        let hero = g.entity_arena[id].as_hero_mut().expect("Hero node");
+        // switch (classId) { case 6/7/8: strength/vitality/agility/spirit = ...; }
+        match class_id {
+            6 => {
+                hero.strength = 8;
+                hero.vitality = 5;
+                hero.agility = 3;
+                hero.spirit = 4;
+            }
+            7 => {
+                hero.strength = 3;
+                hero.vitality = 4;
+                hero.agility = 8;
+                hero.spirit = 5;
+            }
+            8 => {
+                hero.strength = 5;
+                hero.vitality = 8;
+                hero.agility = 4;
+                hero.spirit = 3;
+            }
+            _ => {}
+        }
+        // equipment[0]=class weapon; equipment[2..4]=armor/head/accessory (via
+        //   Item.create).  — DEFERRED (item creation not driven; slots stay null).
+        // this.level = 1; this.maxCombo = 1;
+        hero.level = 1;
+        hero.max_combo = 1;
+        // this.bag.gold = 300;
+        hero.bag.gold = 300;
+        // this.statPoints = 0;
+        hero.stat_points = 0;
+    }
+    // recomputeStats();
+    recompute_stats(g, id);
+    {
+        let hero = g.entity_arena[id].as_hero_mut().expect("Hero node");
+        // this.hp = this.maxHp; this.mp = this.maxMp; this.exp = 0;
+        hero.hp = hero.max_hp;
+        hero.mp = hero.max_mp;
+        hero.exp = 0;
+    }
 }
 
 /// `public final void recomputeStats()` (`ao.a:()V`) — recomputes attack/defense/
-/// maxHp/maxMp/expToNext from stats + equipment (and `GameLoop.gameScreen`). DEFERRED.
-pub fn recompute_stats(_g: &mut Game, _id: EntityId) {
-    unimplemented!("DEFERRED: Hero.recomputeStats — not ported in this slice")
+/// maxHp/maxMp/expToNext from the base stats + equipment enchants. All five
+/// `equipment` slots are null in this slice (item creation DEFERRED in
+/// [`init_class`]), so every `equip[i] != null` branch takes the null side (adds
+/// nothing); the branches are reproduced structurally. `GameLoop.gameScreen.markRedraw()`.
+pub fn recompute_stats(g: &mut Game, id: EntityId) {
+    {
+        let hero = g.entity_arena[id].as_hero_mut().expect("Hero node");
+        // Equipment[] equip = this.equipment;
+        // strengthBonus = vitalityBonus = agilityBonus = spiritBonus = 0;
+        hero.strength_bonus = 0;
+        hero.vitality_bonus = 0;
+        hero.agility_bonus = 0;
+        hero.spirit_bonus = 0;
+        // for (i=0;i<5;i++) if (equip[i]!=null) bonuses += equip[i].enchant[..];
+        for i in 0..5 {
+            if hero.equipment[i].is_some() {
+                // (DEFERRED: enchant-bonus accumulation — equipment null in this slice.)
+            }
+        }
+        // maxHp = 0; maxMp = 0; expToNext = 0; attack = 0; defense = 0;
+        hero.max_hp = 0;
+        hero.max_mp = 0;
+        hero.exp_to_next = 0;
+        hero.attack = 0;
+        hero.defense = 0;
+        // maxHp = (vitality + vitalityBonus + level) * 12;
+        hero.max_hp = (hero.vitality as i32)
+            .wrapping_add(hero.vitality_bonus as i32)
+            .wrapping_add(hero.level as i32)
+            .wrapping_mul(12);
+        // maxMp = (spirit + spiritBonus + level) * 12;
+        hero.max_mp = (hero.spirit as i32)
+            .wrapping_add(hero.spirit_bonus as i32)
+            .wrapping_add(hero.level as i32)
+            .wrapping_mul(12);
+        // expToNext = ((level*level)*level) - (level*level) + (80*level);
+        let level = hero.level as i32;
+        hero.exp_to_next = level
+            .wrapping_mul(level)
+            .wrapping_mul(level)
+            .wrapping_sub(level.wrapping_mul(level))
+            .wrapping_add(80i32.wrapping_mul(level));
+        // attack += (equip[0]!=null ? equip[0].value + (equip[0].refineLevel*5)/2 : 0);  → +0
+        // attack = (short) (attack + ((strength + strengthBonus) * 4) / 5);
+        let str_term = java_div(
+            (hero.strength as i32)
+                .wrapping_add(hero.strength_bonus as i32)
+                .wrapping_mul(4),
+            5,
+        )
+        .expect("((strength + strengthBonus) * 4) / 5");
+        hero.attack = (hero.attack as i32).wrapping_add(str_term) as i16;
+        // defense += the four equip[1..4] terms  → +0 (all null)
+        // defense = (short) (defense + ((strength + strengthBonus) / 5));
+        let def_str = java_div(
+            (hero.strength as i32).wrapping_add(hero.strength_bonus as i32),
+            5,
+        )
+        .expect("(strength + strengthBonus) / 5");
+        hero.defense = (hero.defense as i32).wrapping_add(def_str) as i16;
+        // defense = (short) (defense + (level / 3));
+        let def_level = java_div(hero.level as i32, 3).expect("level / 3");
+        hero.defense = (hero.defense as i32).wrapping_add(def_level) as i16;
+        // if (hp > maxHp) hp = maxHp; if (mp > maxMp) mp = maxMp;
+        if hero.hp > hero.max_hp {
+            hero.hp = hero.max_hp;
+        }
+        if hero.mp > hero.max_mp {
+            hero.mp = hero.max_mp;
+        }
+    }
+    // GameLoop.gameScreen.markRedraw();
+    crate::game_screen::mark_redraw(g);
+}
+
+/// `public final void init()` (`ao.a:()V`, overriding `Battler.init`) — (re)sets the
+/// hero's FSM + combo/regen state. The overlay lists (`floaters`/`statuses`) are
+/// non-null `Vec`s here, so `super.init`'s null-guards are vacuous; the
+/// `activeGuardian != null → dismiss()` branch is skipped (guardian DEFERRED, null).
+pub fn init(g: &mut Game, id: EntityId) {
+    let hero = g.entity_arena[id].as_hero_mut().expect("Hero node");
+    // super.init(): state = 1; facing = 2; moveDir = 2; animFrame = -1;
+    hero.battler.state = 1;
+    hero.battler.facing = 2;
+    hero.battler.move_dir = 2;
+    hero.battler.anim_frame = -1;
+    // this.comboSteps = new byte[5]; this.comboIndex = -1;
+    hero.combo_steps = vec![0i8; 5];
+    hero.combo_index = -1;
+    // this.hpRegenTimer = 67 + level < 100 ? (byte)(67 + level) : (byte) 100;
+    let sum = 67i32.wrapping_add(hero.level as i32);
+    hero.hp_regen_timer = if sum < 100 { sum as i8 } else { 100 };
+    // this.mpRegenTimer = 21;
+    hero.mp_regen_timer = 21;
+    // this.lungeSteps = 0;
+    hero.lunge_steps = 0;
+    // this.invincible = false;
+    hero.invincible = false;
+    // if (activeGuardian != null) activeGuardian.dismiss();  — DEFERRED (null).
+    // this.triggerChecked = false;
+    hero.trigger_checked = false;
+}
+
+/// `public final void resetCombo()` (`ao`) — clears the queued attack steps.
+pub fn reset_combo(g: &mut Game, id: EntityId) {
+    let hero = g.entity_arena[id].as_hero_mut().expect("Hero node");
+    // this.comboIndex = -1;
+    hero.combo_index = -1;
+    // for (int i = 0; i < comboSteps.length; i++) comboSteps[i] = 0;
+    for i in 0..hero.combo_steps.len() {
+        hero.combo_steps[i] = 0;
+    }
 }
 
 /// `public final void update()` (`ao.d:()V`) — the hero's per-tick combat/movement

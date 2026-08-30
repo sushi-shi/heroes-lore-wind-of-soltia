@@ -12,10 +12,12 @@
 //! effects). Tiles are 16px and actors step 8px at a time (a tile takes two
 //! frames); `offGridX`/`offGridY` on the base track the half-tile phase.
 //!
-//! **This slice is the FIELD LAYER only.** [`BattlerData`] + the FSM `state`
-//! constants land here; the per-tick FSM ([`update`]/[`move_`]/[`step_if_moving`]/
-//! [`approach`] and the occupancy/AI helpers) is DEFERRED to a later world-logic
-//! lane. `Battler` has no `static` fields (no `ownership.tsv` rows).
+//! **This slice ports the FIELD LAYER + `setState`/`setFacing`/`setOccupancy`.**
+//! [`BattlerData`] + the FSM `state` constants + [`set_occupancy`] (writing the
+//! actor's footprint into the map occupancy grid, needed by the map warp) land
+//! here; the per-tick FSM ([`update`]/[`move_`]/[`step_if_moving`]/[`approach`] and
+//! the AI helpers) is DEFERRED to a later world-logic lane. `Battler` has no
+//! `static` fields (no `ownership.tsv` rows).
 //!
 //! Opcode shapes (R8): `o.<init>:(SSBB)V => []`, `o.a:()V (init) => []`.
 
@@ -115,6 +117,47 @@ pub fn set_facing(b: &mut BattlerData, dir: i8) {
     // this.facing = dir; this.moveDir = dir;
     b.facing = dir;
     b.move_dir = dir;
+}
+
+/// `public final void setOccupancy()` (`o.g:()V`). Writes this actor's footprint
+/// (`layer` tiles wide, plus the half-tile spill when off-grid) into the map
+/// occupancy grid. Reads the entity base fields and writes `GameState.map.occupancy`;
+/// modelled on `&mut Game` because it spans the arena and the map.
+pub fn set_occupancy(g: &mut Game, id: EntityId) {
+    // GameMap map = GameState.map;  (fields read off the Entity base up front)
+    let layer = g.entity_arena[id].layer;
+    let tile_x = g.entity_arena[id].tile_x as i32;
+    let tile_y = g.entity_arena[id].tile_y as i32;
+    let off_grid_x = g.entity_arena[id].off_grid_x;
+    let off_grid_y = g.entity_arena[id].off_grid_y;
+    let map = g
+        .game_state
+        .map
+        .as_mut()
+        .expect("GameState.map null in setOccupancy");
+    let occupancy = map.occupancy.as_mut().expect("occupancy null");
+    // byte colOffset = 0; while (col < layer) { ... col++; }
+    let mut col_offset: i8 = 0;
+    loop {
+        // byte col = colOffset; if (col >= this.layer) return;
+        let col = col_offset;
+        if col >= layer {
+            return;
+        }
+        // map.occupancy[tileY][tileX + col] = this;
+        occupancy[tile_y as usize][(tile_x.wrapping_add(col as i32)) as usize] = Some(id);
+        // if (offGridY) map.occupancy[tileY + 1][tileX + col] = this;
+        if off_grid_y {
+            occupancy[(tile_y.wrapping_add(1)) as usize]
+                [(tile_x.wrapping_add(col as i32)) as usize] = Some(id);
+        // else if (offGridX) map.occupancy[tileY][tileX + 1 + col] = this;
+        } else if off_grid_x {
+            occupancy[tile_y as usize]
+                [(tile_x.wrapping_add(1).wrapping_add(col as i32)) as usize] = Some(id);
+        }
+        // colOffset = (byte) (col + 1);
+        col_offset = (col as i32).wrapping_add(1) as i8;
+    }
 }
 
 // --- DEFERRED: the per-tick movement/AI FSM ----------------------------------

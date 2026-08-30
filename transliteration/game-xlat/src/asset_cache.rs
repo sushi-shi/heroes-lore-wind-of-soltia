@@ -17,12 +17,15 @@
 //!   art) and `/img/title2` → `titleMenuFrames` (the fluttering birds) that
 //!   `TitleScreen.paint` (state 1) draws.
 //!
+//! The world tile-render path adds one more: `mapTiles` (`ce.e`) + its
+//! `unloadMapTiles`/`unloadMainMenuAssets` companions, filled by
+//! [`crate::game_map::load`] and drawn by `GameMap.drawTiles`.
+//!
 //! Everything else — the sprite banks (`heroFrames`/`enemyFrames`/…,
-//! `spriteBanks`), the string tables, `loadGlobalUi`/`loadTitleScreen`/
-//! `loadMainMenuAssets`/`assembleSprites`/… and the HUD/menu image banks — is
-//! **DEFERRED**. Correspondingly [`AssetCacheState`] carries only the handful of
-//! statics this path reads (see `java/reconstruction/ownership.tsv`); the rest are
-//! not modelled yet.
+//! `spriteBanks`), the string tables, `loadGlobalUi`/`loadCommonAssets`/
+//! `assembleSprites`/… and the HUD/menu image banks — is **DEFERRED**.
+//! Correspondingly [`AssetCacheState`] carries only the handful of statics these
+//! paths read (see `java/reconstruction/ownership.tsv`); the rest are not modelled yet.
 //!
 //! Opcode shapes (R8, `_reference/numeric_shapes.json`):
 //! `ce.a:(Ljava/lang/String;)[B => []` (readResource — the byte accumulation is
@@ -52,6 +55,10 @@ pub struct AssetCacheState {
     /// atlas (`/sgui/mm/etc`), filled by [`load_main_menu_assets`] and drawn by
     /// `MainMenu.paint`/`drawMenuPanel`. `None` == Java null.
     pub menu_frames: Option<Vec<Image>>,
+    /// `public static Image[] mapTiles;` (obf `ce.e`) — the map tileset frames
+    /// (`/m/t/t<NN>`), loaded lazily by [`crate::game_map::load`] and drawn by
+    /// `GameMap.drawTiles`. `None` == Java null (also the reload-guard sentinel).
+    pub map_tiles: Option<Vec<Image>>,
     /// `public static byte[] readBuffer = new byte[512];` (obf `ce.n`) — the
     /// shared 512-byte scratch [`read_resource`] slurps through.
     pub read_buffer: Vec<i8>,
@@ -66,6 +73,7 @@ impl AssetCacheState {
             title_bg_frames: None,
             title_menu_frames: None,
             menu_frames: None,
+            map_tiles: None,
             // static byte[] readBuffer = new byte[512];
             read_buffer: vec![0i8; 512],
         }
@@ -190,6 +198,23 @@ pub fn load_main_menu_assets(g: &mut Game) {
     let frames = png_merger::all_images(g, &mut etc);
     g.asset_cache.menu_frames = Some(frames);
     // (DEFERRED: menuGuardianPreview = new Image[3][2] ... /grd/0..2)
+}
+
+/// `public static final void unloadMainMenuAssets()` (`ce.B:()V => []`): drops the
+/// main-menu assets. Only `menuFrames` is modelled here; `classFaces` and
+/// `menuGuardianPreview` are DEFERRED banks (not read on the world-render path).
+/// Called by `GameState.newGame` when leaving the menu for a new game.
+pub fn unload_main_menu_assets(g: &mut Game) {
+    // menuFrames = null;
+    g.asset_cache.menu_frames = None;
+    // classFaces = null;  menuGuardianPreview = (Image[][]) null;  — DEFERRED banks.
+}
+
+/// `public static final void unloadMapTiles()` (`ce.b:()V => []`): `mapTiles = null`.
+/// [`crate::game_map::load`] calls it before reloading a differing tileset.
+pub fn unload_map_tiles(g: &mut Game) {
+    // mapTiles = null;
+    g.asset_cache.map_tiles = None;
 }
 
 /// `public static final byte[] loadItemRecord(byte itemId, byte record)`. Opens

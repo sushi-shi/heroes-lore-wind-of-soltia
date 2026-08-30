@@ -23,6 +23,7 @@
 
 use crate::app_config::AppConfigState;
 use crate::asset_cache::AssetCacheState;
+use crate::asset_loader::AssetLoaderState;
 use crate::audio_manager::AudioManagerState;
 use crate::base_canvas::BaseCanvasState;
 use crate::byte_util::ByteUtilState;
@@ -127,6 +128,9 @@ pub struct Game {
     /// `ce` / `AssetCache` state (PARTIAL — only the title/logo render-path banks
     /// are modelled; see `asset_cache`).
     pub asset_cache: AssetCacheState,
+    /// `bu` / `AssetLoader` state (PARTIAL — only the `phase` static; the sprite
+    /// script tables + `commonLoaded` are DEFERRED; see `asset_loader`).
+    pub asset_loader: AssetLoaderState,
     /// `bh` / `FontManager` state (PARTIAL — only the title text path's fonts +
     /// `versionText`/`titleFooter` labels; see `font_manager`).
     pub font_manager: FontManagerState,
@@ -187,6 +191,7 @@ impl Game {
             class_confirm_menu: ClassConfirmMenuState::default(),
             start_trait_menu: StartTraitMenuState::default(),
             asset_cache: AssetCacheState::new(),
+            asset_loader: AssetLoaderState::default(),
             font_manager: FontManagerState::default(),
             string_table: StringTableData::default(),
             byte_util: ByteUtilState::seeded(0),

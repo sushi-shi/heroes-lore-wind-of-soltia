@@ -9,21 +9,24 @@
 //!
 //! ## ANTI-BOG boundary
 //!
-//! This increment ports **only** the fresh-install main-menu path (`GameState.screen
-//! == 9`): the constructor's screen geometry, and the `case 9` branches of `paint`
-//! (`MainMenu.invalidateDown` + `MainMenu.draw`) and `keyPressed`
-//! (`MainMenu.handleKey`). Every other `screen` case — the world view + HUD
-//! (`drawHud`, `drawHudFrame`), the character/shop/refine/blacksmith menus, the
-//! minimap, game-over, credits, endings, the paused overlay — and the whole HUD /
-//! ending / staff-roll machinery are DEFERRED.
+//! This increment ports the constructor's screen geometry, the `case 9`
+//! (main-menu) branches of `paint`/`keyPressed`, and the world-render entry —
+//! `paint` `case 1` (loading overlay) and `case 2` (`GameMap.paint` → the tiles).
+//! Inside `case 2` the pre-render `GameState.update()` (world sim + the unported
+//! Guardian), the follow-camera easing (`scrollCamera`) and `drawHud` (which derefs
+//! the Guardian) are DEFERRED; so are every other `screen` case (character/shop/
+//! refine/blacksmith menus, minimap, game-over, credits, endings, paused overlay)
+//! and the whole HUD / ending / staff-roll machinery.
 //!
 //! Opcode shapes (R8, `_reference/numeric_shapes.json`): `as.<init>:()V` (the
 //! geometry `idiv`s — `width/2`, `worldHeight/2`, `(width-74)/6`),
 //! `as.a:(…Graphics;)V => []` (paint — no arithmetic in the ported dispatch),
 //! `as.keyPressed:(I)V => []` (keyPressed).
 
+use crate::asset_loader;
 use crate::game::Game;
 use crate::game_loop;
+use crate::game_map;
 use crate::game_state;
 use crate::main_menu;
 use crate::menu;
@@ -94,16 +97,44 @@ pub fn construct(g: &mut Game) {
     g.game_screen.target_ttl = 0;
 }
 
+/// `public final void markRedraw()` (`as`): requests a full HUD redraw next frame.
+/// Called by `GameState.warpMap` and `Hero.recomputeStats`.
+pub fn mark_redraw(g: &mut Game) {
+    // this.redrawAll = true;
+    g.game_screen.redraw_all = true;
+}
+
 /// `public final void paint(Graphics graphics)` (`as.a:(…Graphics;)V`): the ported
-/// `case 9` (main menu) dispatch. `synchronized (GameLoop.lock)` is a no-op in the
-/// single-threaded transliteration.
+/// `case 1`/`case 2`/`case 9` dispatch. `synchronized (GameLoop.lock)` is a no-op in
+/// the single-threaded transliteration.
 pub fn paint(g: &mut Game) {
     // GameState.processStateRequest();
     game_state::process_state_request(g);
-    // switch (GameState.screen)  — a 15-case switch; only `case 9` (main menu) is
-    // ported, the rest are DEFERRED to the default arm (hence single_match).
-    #[allow(clippy::single_match)]
+    // switch (GameState.screen)  — a 15-case switch; this slice ports `case 1`
+    // (loading overlay), `case 2` (world tiles) and `case 9` (main menu); the rest
+    // are DEFERRED to the default arm.
     match g.game_state.screen {
+        // case 1: AssetLoader.drawLoadingOverlay(graphics);
+        1 => {
+            asset_loader::draw_loading_overlay(g);
+        }
+        // case 2: the world view. The original first runs GameState.update() (world
+        // sim + updateHero → the unported Guardian) and eases the follow-camera; those
+        // are DEFERRED. The camera was centered + snapped in warpMap, so the tiles
+        // render straight from it.
+        2 => {
+            // if (cameraFollow) { centerCamera(); update(); } else { update(); centerCamera(); }
+            //   — DEFERRED (GameState.update reaches the world sim / Guardian).
+            // if (GameState.screen == 2) {
+            if g.game_state.screen == 2 {
+                // if (!map.lockedCamera && cameraFollow) scrollCamera(true, true);  — DEFERRED.
+                // map.paint(graphics);
+                game_map::paint(g);
+                // drawHud(graphics);  — DEFERRED (derefs the unported Guardian via
+                //   getActiveGuardian; the whole HUD/target/message machinery).
+                // (DEFERRED: the Debug.fullVersion level-8 requestState(13,1) escape.)
+            }
+        }
         9 => {
             // MainMenu.instance().invalidateDown();
             debug_assert!(
@@ -114,9 +145,9 @@ pub fn paint(g: &mut Game) {
             // MainMenu.instance().draw(graphics);
             main_menu::draw(g);
         }
-        // (DEFERRED: cases 1,2,4,5,6,7,8,10,11,12,13,14,15 — loading overlay, world +
-        // HUD, event scenes, character/shop/refine/blacksmith menus, game-over,
-        // minimap, credits, endings, paused overlay. Not reached by the boot→menu route.)
+        // (DEFERRED: cases 4,5,6,7,8,10,11,12,13,14,15 — event scenes,
+        // character/shop/refine/blacksmith menus, game-over, minimap, credits,
+        // endings, paused overlay.)
         _ => {}
     }
     // graphics.setColor(16777215);  — a trailing pen-colour set with no draw (the

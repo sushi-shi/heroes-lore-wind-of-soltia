@@ -32,6 +32,7 @@ pub mod rms_file;
 pub mod save_cipher;
 
 pub mod asset_cache;
+pub mod asset_loader;
 pub mod audio_manager;
 pub mod base_canvas;
 pub mod bitmap_font;

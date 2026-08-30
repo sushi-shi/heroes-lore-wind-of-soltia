@@ -45,7 +45,10 @@
 #                              DEFERRED-SEAM record of the deferred GameState.newGame
 #                              launch, owned pending integration.)
 #   AssetCache  -> ce.class   (PARTIAL: the title/logo render-path statics + the
-#                              main-menu frame atlas `menuFrames`)
+#                              main-menu frame atlas `menuFrames` + the world tileset
+#                              atlas `mapTiles`)
+#   AssetLoader -> bu.class    (PARTIAL: the `phase` static only; commonLoaded + the
+#                              sprite-script/atlas/anim tables are DEFERRED)
 #   FontManager -> bh.class   (PARTIAL: the title text path's fonts + labels, plus the
 #                              main-menu item labels + Ok/Exit soft-key labels)
 #   StringTable -> cj.class
@@ -186,6 +189,7 @@ AssetCache	j	titleBgFrames	[Ljavax/microedition/lcdui/Image;	AssetCacheState	tit
 AssetCache	k	titleMenuFrames	[Ljavax/microedition/lcdui/Image;	AssetCacheState	title_menu_frames
 AssetCache	l	menuFrames	[Ljavax/microedition/lcdui/Image;	AssetCacheState	menu_frames
 AssetCache	n	readBuffer	[B	AssetCacheState	read_buffer
+AssetCache	e	mapTiles	[Ljavax/microedition/lcdui/Image;	AssetCacheState	map_tiles
 FontManager	a	smallBlack	Lb;	FontManagerState	small_black
 FontManager	b	smallWhite	Lb;	FontManagerState	small_white
 FontManager	c	smallOrange	Lb;	FontManagerState	small_orange
@@ -228,3 +232,4 @@ AudioManager	a	fileTable	[Ljava/lang/String;	AudioManagerState	file_table
 Entity	a	rng	Ljava/util/Random;	EntityState	rng
 GameMap	c	minimapScale	B	GameMapClassState	minimap_scale
 GameMap	d	lastTilesetId	B	GameMapClassState	last_tileset_id
+AssetLoader	a	phase	B	AssetLoaderState	phase
