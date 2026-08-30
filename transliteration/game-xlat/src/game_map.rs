@@ -190,6 +190,115 @@ pub fn add_entity(g: &mut Game, id: EntityId) {
     entity_list::reorder_by_depth(&mut map.entities, entity_arena, id);
 }
 
+/// `public final void unlinkEntity(Entity ckVar)` (`ae`) — re-sorts `id` after its
+/// depth changed (a sub-tile move), keeping the z-ordered draw list correct. The
+/// method body is exactly `this.entities.reorderByDepth(ckVar)`.
+pub fn unlink_entity(g: &mut Game, id: EntityId) {
+    // this.entities.reorderByDepth(ckVar);
+    let Game {
+        game_state,
+        entity_arena,
+        ..
+    } = &mut *g;
+    let map = game_state
+        .map
+        .as_mut()
+        .expect("GameState.map null in unlinkEntity");
+    entity_list::reorder_by_depth(&mut map.entities, entity_arena, id);
+}
+
+/// `public final void updateWorld()` (`ae`) — one world simulation step:
+/// `processSpawnQueue(true, 3); expirePickups(); updateCombatants();`.
+///
+/// The delayed-enemy `spawnQueue` and the dropped-`pickups` list are both empty in
+/// this slice (the `.evt` enemy/pickup parse is DEFERRED), so `processSpawnQueue`
+/// only advances `spawnTick` and `expirePickups` does nothing;
+/// [`update_combatants`] walks the z-list clearing stale `removed` flags (the hero
+/// itself is refreshed by [`crate::game_state::update_hero`], not here).
+pub fn update_world(g: &mut Game) {
+    // processSpawnQueue(true, (byte) 3);
+    process_spawn_queue(g);
+    // expirePickups();
+    expire_pickups(g);
+    // updateCombatants();
+    update_combatants(g);
+}
+
+/// `processSpawnQueue(boolean, byte)` (`ae`), the `updateWorld` caller. `spawnTick--`;
+/// on wrap, resets to 16 and processes the delayed spawns — but the `spawnQueue` is
+/// empty here (DEFERRED enemy `.evt` parse), so no spawn body runs. The `z`/`b`
+/// arguments only steer the DEFERRED `spawnEnemyAt`, so they are elided.
+fn process_spawn_queue(g: &mut Game) {
+    let map = g
+        .game_state
+        .map
+        .as_mut()
+        .expect("GameState.map null in processSpawnQueue");
+    // this.spawnTick--;
+    map.spawn_tick = map.spawn_tick.wrapping_sub(1);
+    // if (this.spawnTick < 0) { this.spawnTick = 16; <loop over empty spawnQueue> }
+    if map.spawn_tick < 0 {
+        map.spawn_tick = 16;
+        // (empty spawnQueue → no delayed spawns; the enemy-spawn body is DEFERRED.)
+    }
+}
+
+/// `expirePickups()` (`ae`) — decrements each dropped pickup's TTL and reaps expired
+/// ones. The `pickups` list is empty in this slice (the `.evt` pickup parse is
+/// DEFERRED), so the loop does nothing.
+fn expire_pickups(g: &mut Game) {
+    let map = g
+        .game_state
+        .map
+        .as_mut()
+        .expect("GameState.map null in expirePickups");
+    // for (int size = pickups.size() - 1; size >= 0; size--) {
+    //   byte[] p = pickups[size]; p[5] = (byte)(p[5] - 1); if (p[5] < 0) remove; }
+    let mut size = map.pickups.len() as i32 - 1;
+    while size >= 0 {
+        let idx = size as usize;
+        map.pickups[idx][5] = (map.pickups[idx][5] as i32).wrapping_sub(1) as i8;
+        if map.pickups[idx][5] < 0 {
+            map.pickups.remove(idx);
+        }
+        size -= 1;
+    }
+}
+
+/// `updateCombatants()` (`ae`) — walks the z-ordered entity list, updating each
+/// live Enemy/Effect. In this slice the only live entity is the hero (a `Hero`,
+/// which is neither `MapObject`/`Enemy`/`Effect`), so the loop only advances the
+/// cursor and clears any `removed` flag the depth re-sort set — the Enemy/Effect
+/// update + reorder + reap branches are DEFERRED (those subclasses are not ported).
+fn update_combatants(g: &mut Game) {
+    let Game {
+        game_state,
+        entity_arena,
+        ..
+    } = &mut *g;
+    let map = game_state
+        .map
+        .as_ref()
+        .expect("GameState.map null in updateCombatants");
+    // Entity ckVar = this.entities.head; while (ckVar != null) { ... }
+    let mut cursor = map.entities.head;
+    while let Some(cur) = cursor {
+        // if (ckVar instanceof MapObject) ckVar = ckVar.next;
+        if entity_arena[cur].kind() == crate::entity::EntityKind::MapObject {
+            cursor = entity_arena[cur].next;
+        // else if (instanceof Enemy && !removed) { update; reorder; if dead remove } — DEFERRED.
+        // else if (instanceof Effect && !removed) { onFrame; reorder; if finished remove } — DEFERRED.
+        // else if (ckVar.removed) { ckVar.removed = false; ckVar = ckVar.next; }
+        } else if entity_arena[cur].removed {
+            entity_arena[cur].removed = false;
+            cursor = entity_arena[cur].next;
+        // else ckVar = ckVar.next;
+        } else {
+            cursor = entity_arena[cur].next;
+        }
+    }
+}
+
 /// `public final void fadeStep()` (`ae`) — one spawn-tick advance used to seed the
 /// map after a warp. The delayed-enemy `spawnQueue` is empty in this slice (the
 /// `.evt` enemy parse is DEFERRED), so `processSpawnQueue` only advances `spawnTick`

@@ -16,6 +16,7 @@
 use crate::asset_cache;
 use crate::asset_loader;
 use crate::battler;
+use crate::directions;
 use crate::entity::{self, EntityId};
 use crate::game::Game;
 use crate::game_loop;
@@ -207,6 +208,17 @@ pub fn request_state_a0_a1_a2(g: &mut Game, state: i8, a0: i8, a1: i8, a2: i8) {
 pub fn request_state_a0(g: &mut Game, state: i8, a0: i8) {
     // arg0 = a0; arg1 = (byte) 0; arg2 = (byte) 0; nextState = state;
     g.game_state.arg0 = a0;
+    g.game_state.arg1 = 0;
+    g.game_state.arg2 = 0;
+    g.game_state.next_state = state;
+}
+
+/// `public static final synchronized void requestState(byte state)`
+/// (`n.a:(B)V => []`): the no-argument overload (`arg0 = arg1 = arg2 = 0`). Used by
+/// `handlePlayKey` (the back/soft-key → character-menu request, case 13).
+pub fn request_state(g: &mut Game, state: i8) {
+    // arg0 = (byte) 0; arg1 = (byte) 0; arg2 = (byte) 0; nextState = state;
+    g.game_state.arg0 = 0;
     g.game_state.arg1 = 0;
     g.game_state.arg2 = 0;
     g.game_state.next_state = state;
@@ -521,4 +533,197 @@ pub fn new_game(g: &mut Game, resume: bool, new_class_id: i8, traits: &[bool]) {
     set_screen(g, 0);
     // requestState((byte) 21, resume ? (byte) 1 : (byte) 0);
     request_state_a0(g, 21, if resume { 1 } else { 0 });
+}
+
+// --- Hero state accessors + the world simulation step (GameState.java:357-567) ---
+
+/// `public static final byte heroState()` (`n`) — `((Battler) hero).state`.
+pub fn hero_state(g: &Game) -> i8 {
+    let id = g.game_state.hero.expect("GameState.hero null in heroState");
+    g.entity_arena[id].as_battler().expect("Hero battler").state
+}
+
+/// `public static final byte heroFacing()` (`n`) — `((Battler) hero).facing`.
+pub fn hero_facing(g: &Game) -> i8 {
+    let id = g
+        .game_state
+        .hero
+        .expect("GameState.hero null in heroFacing");
+    g.entity_arena[id]
+        .as_battler()
+        .expect("Hero battler")
+        .facing
+}
+
+/// `public static final void setHeroState(byte state)` (`n`) — `hero.setState(state)`.
+pub fn set_hero_state(g: &mut Game, state: i8) {
+    let id = g
+        .game_state
+        .hero
+        .expect("GameState.hero null in setHeroState");
+    let b = g.entity_arena[id].as_battler_mut().expect("Hero battler");
+    battler::set_state(b, state);
+}
+
+/// `public static final void setHeroFacing(byte facing)` (`n`) — `hero.setFacing(facing)`.
+pub fn set_hero_facing(g: &mut Game, facing: i8) {
+    let id = g
+        .game_state
+        .hero
+        .expect("GameState.hero null in setHeroFacing");
+    let b = g.entity_arena[id].as_battler_mut().expect("Hero battler");
+    battler::set_facing(b, facing);
+}
+
+/// `public static final boolean isHeroOnGrid()` (`n`) — true when the hero is aligned
+/// to the tile grid (`!(offGridX || offGridY)`).
+pub fn is_hero_on_grid(g: &Game) -> bool {
+    let id = g
+        .game_state
+        .hero
+        .expect("GameState.hero null in isHeroOnGrid");
+    let node = &g.entity_arena[id];
+    // return (offGridX || offGridY) ? false : true;
+    !(node.off_grid_x || node.off_grid_y)
+}
+
+/// `public static final void walkHero(byte direction)` (`n`, GameState.java:357):
+/// starts the hero walking in `direction`, or queues it if already mid-step.
+pub fn walk_hero(g: &mut Game, direction: i8) {
+    // if (heroState() == 1) { pendingHeroState = 0; pendingHeroFacing = 0;
+    //   setHeroState(2); setHeroFacing(direction); return; }
+    if hero_state(g) == 1 {
+        g.game_state.pending_hero_state = 0;
+        g.game_state.pending_hero_facing = 0;
+        set_hero_state(g, 2);
+        set_hero_facing(g, direction);
+        return;
+    }
+    // if (heroState() == 2) { pendingHeroState = 2; pendingHeroFacing = direction; }
+    if hero_state(g) == 2 {
+        g.game_state.pending_hero_state = 2;
+        g.game_state.pending_hero_facing = direction;
+    }
+}
+
+/// `public static final void stopHero()` (`n`, GameState.java:372): queues the hero to
+/// stop (return to idle) keeping the current facing.
+pub fn stop_hero(g: &mut Game) {
+    // pendingHeroState = (byte) 1; pendingHeroFacing = heroFacing();
+    g.game_state.pending_hero_state = 1;
+    g.game_state.pending_hero_facing = hero_facing(g);
+}
+
+/// `public static final void update()` (`n`, GameState.java:391): one simulation
+/// step — apply any pending hero action, refresh the hero, update the world.
+pub fn update(g: &mut Game) {
+    // applyPendingHeroAction();
+    apply_pending_hero_action(g);
+    // updateHero();
+    update_hero(g);
+    // map.updateWorld();
+    game_map::update_world(g);
+}
+
+/// `private static final void applyPendingHeroAction()` (`n`, GameState.java:402):
+/// when the hero is grid-aligned, applies the queued state/facing and clears it.
+pub fn apply_pending_hero_action(g: &mut Game) {
+    // if (isHeroOnGrid() && pendingHeroState != 0) {
+    if is_hero_on_grid(g) && g.game_state.pending_hero_state != 0 {
+        // setHeroState(pendingHeroState); setHeroFacing(pendingHeroFacing);
+        let ps = g.game_state.pending_hero_state;
+        let pf = g.game_state.pending_hero_facing;
+        set_hero_state(g, ps);
+        set_hero_facing(g, pf);
+        // pendingHeroState = 0; pendingHeroFacing = 0;
+        g.game_state.pending_hero_state = 0;
+        g.game_state.pending_hero_facing = 0;
+    }
+}
+
+/// `public static final void updateHero()` (`n`, GameState.java:547): refreshes the
+/// hero and re-sorts it in the map's draw list. The active-guardian refresh is
+/// DEFERRED (`activeGuardian` is null — no guardian summon in this slice).
+pub fn update_hero(g: &mut Game) {
+    let id = g
+        .game_state
+        .hero
+        .expect("GameState.hero null in updateHero");
+    // hero.update();
+    hero::update(g, id);
+    // map.unlinkEntity(hero);
+    game_map::unlink_entity(g, id);
+    // Guardian guardian = hero.getActiveGuardian(); if (guardian != null) { guardian.update();
+    //   map.unlinkEntity(guardian); }   — DEFERRED (activeGuardian null).
+}
+
+/// `public static final void scrollCamera(boolean lead, boolean followHero)`
+/// (`n.a:(ZZ)V => [imul×2, idiv×4, isub×10, iadd×8]`, GameState.java:336): eases the
+/// camera toward its target. With `followHero` false it eases both axes; with it true
+/// it leads by the facing direction and eases only the axis the facing does not lock.
+pub fn scroll_camera(g: &mut Game, lead: bool, follow_hero: bool) {
+    // if (!followHero) { camX += (((camTargetX - camX) + 1) / 2) - 1;
+    //                    camY += (((camTargetY - camY) + 1) / 2) - 1; return; }
+    if !follow_hero {
+        let dx = java_div(
+            g.game_state
+                .cam_target_x
+                .wrapping_sub(g.game_state.cam_x)
+                .wrapping_add(1),
+            2,
+        )
+        .expect("(((camTargetX - camX) + 1) / 2)")
+        .wrapping_sub(1);
+        g.game_state.cam_x = g.game_state.cam_x.wrapping_add(dx);
+        let dy = java_div(
+            g.game_state
+                .cam_target_y
+                .wrapping_sub(g.game_state.cam_y)
+                .wrapping_add(1),
+            2,
+        )
+        .expect("(((camTargetY - camY) + 1) / 2)")
+        .wrapping_sub(1);
+        g.game_state.cam_y = g.game_state.cam_y.wrapping_add(dy);
+        return;
+    }
+    // byte facing = heroFacing();
+    let facing = hero_facing(g) as usize;
+    // if (lead) { camTargetY -= 15 * dirDy[facing]; camTargetX -= 15 * dirDx[facing]; }
+    if lead {
+        let ldy = 15i32.wrapping_mul(directions::DIR_DY[facing] as i32);
+        g.game_state.cam_target_y = g.game_state.cam_target_y.wrapping_sub(ldy);
+        let ldx = 15i32.wrapping_mul(directions::DIR_DX[facing] as i32);
+        g.game_state.cam_target_x = g.game_state.cam_target_x.wrapping_sub(ldx);
+    }
+    // if (!facingIsHorizontal[facing] && camY != camTargetY) camY += (((camTargetY - camY) + 1) / 2) - 1;
+    if !directions::FACING_IS_HORIZONTAL[facing] && g.game_state.cam_y != g.game_state.cam_target_y
+    {
+        let dy = java_div(
+            g.game_state
+                .cam_target_y
+                .wrapping_sub(g.game_state.cam_y)
+                .wrapping_add(1),
+            2,
+        )
+        .expect("(((camTargetY - camY) + 1) / 2)")
+        .wrapping_sub(1);
+        g.game_state.cam_y = g.game_state.cam_y.wrapping_add(dy);
+    }
+    // if (!facingIsHorizontal[facing] || camX == camTargetX) return;
+    if !directions::FACING_IS_HORIZONTAL[facing] || g.game_state.cam_x == g.game_state.cam_target_x
+    {
+        return;
+    }
+    // camX += (((camTargetX - camX) + 1) / 2) - 1;
+    let dx = java_div(
+        g.game_state
+            .cam_target_x
+            .wrapping_sub(g.game_state.cam_x)
+            .wrapping_add(1),
+        2,
+    )
+    .expect("(((camTargetX - camX) + 1) / 2)")
+    .wrapping_sub(1);
+    g.game_state.cam_x = g.game_state.cam_x.wrapping_add(dx);
 }

@@ -152,6 +152,26 @@ impl EntityNode {
         }
     }
 
+    /// `this instanceof Battler` → the borrowed embedded [`crate::battler::BattlerData`]
+    /// ("super"), or `None`. The uniform accessor for `Battler`'s generic methods
+    /// (`move`/`setState`/`setFacing`/`stepIfMoving`), which operate on any concrete
+    /// combatant. Only `Hero` is a live `Battler` in this slice; Enemy/Npc are added
+    /// when those subclasses land.
+    pub fn as_battler(&self) -> Option<&crate::battler::BattlerData> {
+        match &self.data {
+            EntityData::Hero(h) => Some(&h.battler),
+            _ => None,
+        }
+    }
+
+    /// Mutable [`Self::as_battler`].
+    pub fn as_battler_mut(&mut self) -> Option<&mut crate::battler::BattlerData> {
+        match &mut self.data {
+            EntityData::Hero(h) => Some(&mut h.battler),
+            _ => None,
+        }
+    }
+
     /// `this instanceof MapObject` → the borrowed [`MapObjectData`], or `None`.
     pub fn as_map_object(&self) -> Option<&MapObjectData> {
         match &self.data {
