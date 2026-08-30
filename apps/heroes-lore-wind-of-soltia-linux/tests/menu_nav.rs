@@ -189,3 +189,54 @@ fn keys_drive_the_new_game_menu_chain() {
     assert_ne!(main_menu, class_select, "main-menu vs class-select");
     assert_ne!(title, class_select, "title vs class-select");
 }
+
+/// THE PLAYABLE CAPSTONE — the whole vertical through the real host input path:
+/// boot → title → New Game → class → confirm → trait → pick two guardians → confirm
+/// Yes → `StartTraitMenu.startGame()` → `GameState.newGame(...)` → the loading
+/// sequence → the first WORLD frame (`GameState.screen == 2`, map tiles). Proves a
+/// person driving the native window actually starts a game and reaches the world.
+#[test]
+fn playing_new_game_reaches_the_world() {
+    let mut host = host();
+    drive_to_title(&mut host);
+
+    // Title → main menu → the full New-Game menu chain down to StartTraitMenu.
+    press_and_settle(&mut host, KeyCode::Enter); // title → main menu
+    press_and_settle(&mut host, KeyCode::Enter); // NEW GAME → ClassSelect
+    press_and_settle(&mut host, KeyCode::Enter); // select class → ClassConfirm
+    press_and_settle(&mut host, KeyCode::ArrowLeft); // No → Yes
+    press_and_settle(&mut host, KeyCode::Enter); // Yes → StartTrait
+    assert_eq!(host.menu_depth(), 3, "reached StartTraitMenu");
+    let menu_frame = frame_hash(&host);
+
+    // Pick exactly two of three guardians, then confirm Yes → startGame() → newGame(...).
+    press_and_settle(&mut host, KeyCode::Enter); // toggle guardian 0 (count 1)
+    press_and_settle(&mut host, KeyCode::ArrowRight); // cursor 0 → 1
+    press_and_settle(&mut host, KeyCode::Enter); // toggle guardian 1 (count 2 → confirming)
+    press_and_settle(&mut host, KeyCode::ArrowRight); // confirmYes = true
+    press_and_settle(&mut host, KeyCode::Enter); // FIRE Yes → startGame → GameState.newGame
+
+    // newGame disposed the menu and began the New Game load; keep ticking the frame
+    // loop (as the live window does) until the loading sequence reaches the world.
+    let mut guard = 0u32;
+    while host.world_screen() != 2 {
+        host.tick(&[]);
+        guard += 1;
+        assert!(
+            guard < 5_000,
+            "New Game never reached the world screen (stuck at screen {})",
+            host.world_screen()
+        );
+    }
+    // screen == 2 ⇒ GameScreen.paint dispatches to the world arm (not the case-9 menu).
+    // (newGame frees the menu's assets; the child discriminants the depth-walker reads
+    // are not reset by dispose, so menu_depth is not the world witness here.)
+
+    // The world frame is a real, non-blank frame distinct from the menu.
+    assert_real(&host, "world");
+    let world = frame_hash(&host);
+    assert_ne!(
+        world, menu_frame,
+        "the world frame is identical to the menu — tiles did not render"
+    );
+}

@@ -194,6 +194,13 @@ impl GameHost {
         3
     }
 
+    /// The current `GameState.screen` (`n.e`): 9 = the front-menu tree, 1 = the
+    /// loading overlay, 2 = the in-game world. Surfaced so the play-through smoke can
+    /// assert New Game reaches the world (`screen == 2`) without reading pixels.
+    pub fn world_screen(&self) -> i8 {
+        self.game.game_state.screen as i8
+    }
+
     /// Advance the injected game clock by `ms`. The route driver calls this per
     /// command so the port's game-time tracks the reference's deterministic clock.
     pub fn advance_clock(&self, ms: i64) {
