@@ -10,13 +10,18 @@
 //! `patchPng` rewrites to the requested colour before `Image.createImage` decodes
 //! it) and its cumulative glyph-offset table.
 //!
-//! ANTI-BOG: `drawString`/`drawLines`/`blockHeight` (the wrapped-block draws) are
-//! **not** reached by the title paint (which calls `FontManager.drawChars` /
-//! `drawCharsCentered` → `drawChars(chars,0,len,x,y,anchor)`), and are DEFERRED.
+//! `drawString`/`drawLines`/`blockHeight` are the wrapped-block draws
+//! `FontManager`'s `drawWrapped*` family drives (they were not reached by the
+//! title paint, which calls `drawChars` directly); they are transliterated below
+//! over the same core `drawChars` blitter.
 //!
 //! Opcode shapes (R8, `_reference/numeric_shapes.json`):
 //! `az.a:(C)I => [iadd,i2c,isub,iadd,isub,isub,isub,i2c,isub,iadd,isub,isub]` (charWidth),
 //! `az.a:([CII)I => [iadd,isub,iadd,iinc]` (stringWidth),
+//! `az.a:(Ljava/util/Vector;)I => [iadd,imul]` (blockHeight),
+//! `az.a:(…Graphics;Ljava/lang/String;III)I => []` (drawString 5-arg),
+//! `az.a:(…Graphics;Ljava/lang/String;IIIII)I => [isub]` (drawString 7-arg),
+//! `az.a:(…Graphics;Ljava/util/Vector;IIII)I => [iadd,iadd,iadd,isub]` (drawLines),
 //! `az.b:([CII)I => [iadd,iinc,iadd]` (lineHeightOf),
 //! `az.a:([BII)I => [iinc,iinc,ixor,iand,iushr,ixor,ixor]` (crc32),
 //! `az.<clinit>:()V => [iand,iushr,ixor,iushr,iinc,iinc]` (crcTable),
@@ -437,6 +442,81 @@ pub fn draw_chars(
 ) -> i32 {
     // return drawChars(graphics, chars, 0, chars.length, x, y, anchor);
     draw_chars_range(s, graphics, chars, 0, chars.len() as i32, x, y, anchor)
+}
+
+/// `public final int blockHeight(Vector lines)` (`az.a:(Ljava/util/Vector;)I =>
+/// [iadd,imul]`) — total pixel height of `lines` lines stacked with `lineSpacing`.
+pub fn block_height(s: &BitmapFontState, lines: &[Vec<u16>]) -> i32 {
+    // return (this.lineHeight + this.lineSpacing) * lines.size();
+    s.line_height
+        .wrapping_add(s.line_spacing)
+        .wrapping_mul(lines.len() as i32)
+}
+
+/// `public final int drawString(Graphics graphics, String str, int x, int y, int anchor)`
+/// (`az.a:(…Graphics;Ljava/lang/String;III)I => []`) — the whole-string convenience
+/// overload. `str` is a `char[]` here (`String` == `Vec<u16>`).
+pub fn draw_string(
+    s: &BitmapFontState,
+    graphics: &mut j2me_me::Graphics,
+    str: &[u16],
+    x: i32,
+    y: i32,
+    anchor: i32,
+) -> i32 {
+    // return drawString(graphics, str, 0, str.length(), x, y, anchor);
+    draw_string_range(s, graphics, str, 0, str.len() as i32, x, y, anchor)
+}
+
+/// `public final int drawString(Graphics graphics, String str, int start, int end, int x, int y, int anchor)`
+/// (`az.a:(…Graphics;Ljava/lang/String;IIIII)I => [isub]`) — draws the substring
+/// `[start,end)` of `str`.
+#[allow(clippy::too_many_arguments)]
+pub fn draw_string_range(
+    s: &BitmapFontState,
+    graphics: &mut j2me_me::Graphics,
+    str: &[u16],
+    start: i32,
+    end: i32,
+    x: i32,
+    y: i32,
+    anchor: i32,
+) -> i32 {
+    // return drawChars(graphics, str.substring(start, end).toCharArray(), 0, end - start, x, y, anchor);
+    let sub: Vec<u16> = str[start as usize..end as usize].to_vec();
+    draw_chars_range(s, graphics, &sub, 0, end.wrapping_sub(start), x, y, anchor)
+}
+
+/// `public final int drawLines(Graphics graphics, Vector lines, int x, int y, int bottomY, int anchor)`
+/// (`az.a:(…Graphics;Ljava/util/Vector;IIII)I => [iadd,iadd,iadd,isub]`) — draws a
+/// vector of pre-wrapped lines top-down, advancing `lineHeight + lineSpacing` per
+/// line and skipping lines outside `[getClipY(), bottomY)`. Returns the total
+/// height drawn.
+pub fn draw_lines(
+    s: &BitmapFontState,
+    graphics: &mut j2me_me::Graphics,
+    lines: &[Vec<u16>],
+    x: i32,
+    y: i32,
+    bottom_y: i32,
+    anchor: i32,
+) -> i32 {
+    // int lineY = y; int step = this.lineHeight + this.lineSpacing;
+    let mut line_y: i32 = y;
+    let step: i32 = s.line_height.wrapping_add(s.line_spacing);
+    // Enumeration e = lines.elements(); while (e.hasMoreElements())
+    for line in lines {
+        // String line = (String) e.nextElement();
+        // if (lineY + step >= graphics.getClipY() && lineY < bottomY)
+        if line_y.wrapping_add(step) >= graphics.clip_y() && line_y < bottom_y {
+            // drawChars(graphics, line.toCharArray(), 0, line.length(), x, lineY, anchor);
+            draw_chars_range(s, graphics, line, 0, line.len() as i32, x, line_y, anchor);
+        }
+        // lineY += step;
+        line_y = line_y.wrapping_add(step);
+    }
+    // return lineY - y;
+    line_y.wrapping_sub(y)
 }
 
 /// `public final int drawChars(Graphics graphics, char[] chars, int start, int count, int x, int y, int anchor)`
