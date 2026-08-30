@@ -130,6 +130,10 @@ pub mod geb_core;
 pub mod geb_hand_left;
 pub mod geb_hand_right;
 pub mod geb_head;
+pub mod nord_body1;
+pub mod nord_body2;
+pub mod nord_healer;
+pub mod nord_tentacle;
 pub mod rocky_boss;
 
 pub use game::Game;

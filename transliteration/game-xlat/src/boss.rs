@@ -49,10 +49,11 @@
 //! ## Concrete boss subclasses ([`BossSubclass`] discriminant)
 //!
 //! `Boss` is abstract; the concrete encounters extend it. This lane ports the
-//! **`RockyBoss`** (`cc`) solo boss and the three-part **`Geb`** family
+//! **`RockyBoss`** (`cc`) solo boss, the three-part **`Geb`** family
 //! ([`crate::geb_core`] `bv`, [`crate::geb_head`] `cg`, [`crate::geb_hand_left`] `ba`,
-//! [`crate::geb_hand_right`] `ak`). The `Nord{Body1,Body2,Healer,Tentacle}` set is a
-//! SEPARATE later lane and stays DEFERRED.
+//! [`crate::geb_hand_right`] `ak`), and the **`Nord`** family
+//! ([`crate::nord_body1`] `ar`, [`crate::nord_body2`] `ag`, [`crate::nord_healer`] `cd`,
+//! [`crate::nord_tentacle`] `bd`).
 //!
 //! Rather than a fresh [`EntityData`] leaf per subclass, a concrete boss is modelled
 //! as a [`EntityData::Boss`] node carrying a [`BossSubclass`] **tag** inside
@@ -85,8 +86,10 @@
 //!
 //! ## DEFERRED cross-class boundaries
 //!
-//! - **`Nord` boss family.** The `Nord{Body1,Body2,Healer,Tentacle}` encounter is a
-//!   separate later lane and stays DEFERRED (no tag variant for it here).
+//! - **`Nord` boss family spawn/wiring.** The `Nord{Body1,Body2,Healer,Tentacle}` classes
+//!   are ported (their tags + dispatch arms are here); the `GameMap.spawnNordBoss` spawn +
+//!   `setParts` linking call site is DEFERRED with the rest of the boss spawn machinery
+//!   (see [`crate::nord_body1`], and `NordBody1.die`'s deferred `spawnNordBoss(false)`).
 //! - **Boss-arena world hooks (unported GameMap / EventScript).** The subclasses reach
 //!   GameMap methods this slice has not ported — `isWalkable` (`RockyBoss`'s hop),
 //!   `canOccupy` (`RockyBoss`'s reposition) — and `EventScript.fire` (the story trigger
@@ -130,6 +133,10 @@ use crate::geb_core;
 use crate::geb_hand_left::{self, GebHandLeftData};
 use crate::geb_hand_right::{self, GebHandRightData};
 use crate::geb_head::{self, GebHeadData};
+use crate::nord_body1;
+use crate::nord_body2::{self, NordBody2Data};
+use crate::nord_healer::{self, NordHealerData};
+use crate::nord_tentacle::{self, NordTentacleData};
 use crate::rocky_boss::{self, RockyBossData};
 use j2me_jvm::{ishl, java_div};
 
@@ -174,6 +181,14 @@ pub enum BossSubclass {
     GebHandLeft(GebHandLeftData),
     /// `GebHandRight` (`ak`) — the Geb right hand.
     GebHandRight(GebHandRightData),
+    /// `NordBody1` (`ar`) — the rooted phase-1 solo Nord caster (no extra fields).
+    NordBody1,
+    /// `NordBody2` (`ag`) — the phase-2 Nord core that owns the healer + striker parts.
+    NordBody2(NordBody2Data),
+    /// `NordHealer` (`cd`) — the phase-2 Nord support part.
+    NordHealer(NordHealerData),
+    /// `NordTentacle` (`bd`) — the phase-2 Nord telegraphed-slam striker.
+    NordTentacle(NordTentacleData),
 }
 
 /// The discriminant-only view of [`BossSubclass`] (the boss's runtime type), read by
@@ -193,6 +208,14 @@ pub enum BossKind {
     GebHandLeft,
     /// [`BossSubclass::GebHandRight`].
     GebHandRight,
+    /// [`BossSubclass::NordBody1`].
+    NordBody1,
+    /// [`BossSubclass::NordBody2`].
+    NordBody2,
+    /// [`BossSubclass::NordHealer`].
+    NordHealer,
+    /// [`BossSubclass::NordTentacle`].
+    NordTentacle,
 }
 
 impl BossSubclass {
@@ -205,6 +228,10 @@ impl BossSubclass {
             BossSubclass::GebHead(_) => BossKind::GebHead,
             BossSubclass::GebHandLeft(_) => BossKind::GebHandLeft,
             BossSubclass::GebHandRight(_) => BossKind::GebHandRight,
+            BossSubclass::NordBody1 => BossKind::NordBody1,
+            BossSubclass::NordBody2(_) => BossKind::NordBody2,
+            BossSubclass::NordHealer(_) => BossKind::NordHealer,
+            BossSubclass::NordTentacle(_) => BossKind::NordTentacle,
         }
     }
 }
@@ -332,6 +359,13 @@ pub fn update(g: &mut Game, id: EntityId) {
         BossKind::GebHead => geb_head::update(g, id),
         BossKind::GebHandLeft => geb_hand_left::update(g, id),
         BossKind::GebHandRight => geb_hand_right::update(g, id),
+        // NordBody1 does NOT override update(); its arm re-hosts the inherited `Boss.update`
+        // so the virtual `tryStepForward`/`resolveAttack` self-calls resolve on its tag
+        // (see [`crate::nord_body1::update`]). NordBody2/Healer/Tentacle each override it.
+        BossKind::NordBody1 => nord_body1::update(g, id),
+        BossKind::NordBody2 => nord_body2::update(g, id),
+        BossKind::NordHealer => nord_healer::update(g, id),
+        BossKind::NordTentacle => nord_tentacle::update(g, id),
         BossKind::Base | BossKind::GebCore => update_base(g, id),
     }
 }
@@ -373,11 +407,17 @@ pub fn update_base(g: &mut Game, id: EntityId) {
 pub fn update_ai(g: &mut Game, id: EntityId) {
     match boss_kind(g, id) {
         BossKind::RockyBoss => rocky_boss::update_ai(g, id),
+        // No Nord subclass overrides updateAi() (no `ar/ag/cd/bd.n` shape) — all inherit
+        // the Enemy.updateAi re-host.
         BossKind::Base
         | BossKind::GebCore
         | BossKind::GebHead
         | BossKind::GebHandLeft
-        | BossKind::GebHandRight => update_ai_base(g, id),
+        | BossKind::GebHandRight
+        | BossKind::NordBody1
+        | BossKind::NordBody2
+        | BossKind::NordHealer
+        | BossKind::NordTentacle => update_ai_base(g, id),
     }
 }
 
@@ -480,11 +520,17 @@ pub fn update_ai_base(g: &mut Game, id: EntityId) {
 pub fn chase(g: &mut Game, id: EntityId) {
     match boss_kind(g, id) {
         BossKind::GebHead => geb_head::chase(g, id),
+        // NordBody2 (attackFrames) / NordHealer + NordTentacle (walkFrames) override chase;
+        // NordBody1 inherits the Enemy.chase re-host.
+        BossKind::NordBody2 => nord_body2::chase(g, id),
+        BossKind::NordHealer => nord_healer::chase(g, id),
+        BossKind::NordTentacle => nord_tentacle::chase(g, id),
         BossKind::Base
         | BossKind::RockyBoss
         | BossKind::GebCore
         | BossKind::GebHandLeft
-        | BossKind::GebHandRight => chase_base(g, id),
+        | BossKind::GebHandRight
+        | BossKind::NordBody1 => chase_base(g, id),
     }
 }
 
@@ -527,6 +573,11 @@ pub fn try_attack(g: &mut Game, id: EntityId) {
         BossKind::GebHead => geb_head::try_attack(g, id),
         BossKind::GebHandLeft => geb_hand_left::try_attack(g, id),
         BossKind::GebHandRight => geb_hand_right::try_attack(g, id),
+        // Every Nord subclass overrides tryAttack.
+        BossKind::NordBody1 => nord_body1::try_attack(g, id),
+        BossKind::NordBody2 => nord_body2::try_attack(g, id),
+        BossKind::NordHealer => nord_healer::try_attack(g, id),
+        BossKind::NordTentacle => nord_tentacle::try_attack(g, id),
         BossKind::Base => enemy::try_attack(g, id),
     }
 }
@@ -537,11 +588,17 @@ pub fn try_attack(g: &mut Game, id: EntityId) {
 pub fn animate(g: &mut Game, id: EntityId) {
     match boss_kind(g, id) {
         BossKind::RockyBoss => rocky_boss::animate(g, id),
+        // No Nord subclass overrides animate() — all use the Enemy.animate re-host (which
+        // dispatches their resolveAttack/stepDeathAnim overrides).
         BossKind::Base
         | BossKind::GebCore
         | BossKind::GebHead
         | BossKind::GebHandLeft
-        | BossKind::GebHandRight => animate_base(g, id),
+        | BossKind::GebHandRight
+        | BossKind::NordBody1
+        | BossKind::NordBody2
+        | BossKind::NordHealer
+        | BossKind::NordTentacle => animate_base(g, id),
     }
 }
 
@@ -640,6 +697,11 @@ pub fn resolve_attack(g: &mut Game, id: EntityId) {
         BossKind::GebHead => geb_head::resolve_attack(g, id),
         BossKind::GebHandLeft => geb_hand_left::resolve_attack(g, id),
         BossKind::GebHandRight => geb_hand_right::resolve_attack(g, id),
+        // Every Nord subclass overrides resolveAttack.
+        BossKind::NordBody1 => nord_body1::resolve_attack(g, id),
+        BossKind::NordBody2 => nord_body2::resolve_attack(g, id),
+        BossKind::NordHealer => nord_healer::resolve_attack(g, id),
+        BossKind::NordTentacle => nord_tentacle::resolve_attack(g, id),
         BossKind::Base | BossKind::GebCore => enemy::resolve_attack(g, id),
     }
 }
@@ -651,9 +713,16 @@ pub fn step_death_anim(g: &mut Game, id: EntityId) {
     match boss_kind(g, id) {
         BossKind::RockyBoss => rocky_boss::step_death_anim(g, id),
         BossKind::GebHead => geb_head::step_death_anim(g, id),
-        BossKind::Base | BossKind::GebCore | BossKind::GebHandLeft | BossKind::GebHandRight => {
-            enemy::step_death_anim(g, id)
-        }
+        // Only NordBody2 overrides stepDeathAnim (the healer-keyed death spatter); the other
+        // three Nord parts inherit Enemy.stepDeathAnim.
+        BossKind::NordBody2 => nord_body2::step_death_anim(g, id),
+        BossKind::Base
+        | BossKind::GebCore
+        | BossKind::GebHandLeft
+        | BossKind::GebHandRight
+        | BossKind::NordBody1
+        | BossKind::NordHealer
+        | BossKind::NordTentacle => enemy::step_death_anim(g, id),
     }
 }
 
@@ -668,6 +737,11 @@ pub fn on_death(g: &mut Game, id: EntityId) {
         BossKind::GebHead => geb_head::on_death(g, id),
         BossKind::GebHandLeft => geb_hand_left::on_death(g, id),
         BossKind::GebHandRight => geb_hand_right::on_death(g, id),
+        // Every Nord subclass overrides onDeath (NordBody2 also despawns its companion parts).
+        BossKind::NordBody1 => nord_body1::on_death(g, id),
+        BossKind::NordBody2 => nord_body2::on_death(g, id),
+        BossKind::NordHealer => nord_healer::on_death(g, id),
+        BossKind::NordTentacle => nord_tentacle::on_death(g, id),
         BossKind::Base => on_death_base(g, id),
     }
 }
@@ -687,9 +761,15 @@ pub fn paint(g: &mut Game, id: EntityId, origin_x: i32, origin_y: i32) {
     match boss_kind(g, id) {
         BossKind::GebHandLeft => geb_hand_left::paint(g, id, origin_x, origin_y),
         BossKind::GebHandRight => geb_hand_right::paint(g, id, origin_x, origin_y),
-        BossKind::Base | BossKind::RockyBoss | BossKind::GebCore | BossKind::GebHead => {
-            paint_base(g, id, origin_x, origin_y)
-        }
+        // No Nord subclass overrides paint — all use the Boss base paint.
+        BossKind::Base
+        | BossKind::RockyBoss
+        | BossKind::GebCore
+        | BossKind::GebHead
+        | BossKind::NordBody1
+        | BossKind::NordBody2
+        | BossKind::NordHealer
+        | BossKind::NordTentacle => paint_base(g, id, origin_x, origin_y),
     }
 }
 
@@ -923,7 +1003,15 @@ pub fn die(g: &mut Game, id: EntityId) {
         BossKind::RockyBoss => rocky_boss::die(g, id),
         BossKind::GebCore => geb_core::die(g, id),
         BossKind::GebHead => geb_head::die(g, id),
-        BossKind::Base | BossKind::GebHandLeft | BossKind::GebHandRight => die_base(g, id),
+        // NordBody1 (spawn phase-2) / NordBody2 (EventScript.fire) override die; NordHealer
+        // and NordTentacle inherit the base despawn.
+        BossKind::NordBody1 => nord_body1::die(g, id),
+        BossKind::NordBody2 => nord_body2::die(g, id),
+        BossKind::Base
+        | BossKind::GebHandLeft
+        | BossKind::GebHandRight
+        | BossKind::NordHealer
+        | BossKind::NordTentacle => die_base(g, id),
     }
 }
 
