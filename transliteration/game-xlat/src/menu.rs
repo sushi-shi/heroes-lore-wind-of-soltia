@@ -44,9 +44,11 @@
 //! (passKeyToChild), `cb.b:(…Graphics;II)V => []` (render — no arithmetic),
 //! `cb.c:()V => []` (invalidateDown).
 
+use crate::class_confirm_menu;
 use crate::class_select_menu;
 use crate::game::Game;
 use crate::main_menu;
+use crate::start_trait_menu;
 
 /// The pushed sub-screen of a menu — the flat model of the polymorphic
 /// `Menu.child` reference (`null` → [`MenuChild::None`]). Each non-`None` variant
@@ -61,8 +63,10 @@ pub enum MenuChild {
     None,
     /// `child instanceof ClassSelectMenu` (`c`) — the starting-class picker.
     ClassSelect,
-    /// `child instanceof ClassConfirmMenu` (DEFERRED — next lane).
+    /// `child instanceof ClassConfirmMenu` (`by`) — the class Yes/No confirm.
     ClassConfirm,
+    /// `child instanceof StartTraitMenu` (`bk`) — the starting-guardian picker.
+    StartTrait,
     /// `child instanceof PopupMenu` (DEFERRED — `showMessage`/`showPopup`).
     Popup,
 }
@@ -77,6 +81,10 @@ pub enum MenuNode {
     Main,
     /// `ClassSelectMenu` (`c`) — pushed as `MainMenu`'s child by New Game.
     ClassSelect,
+    /// `ClassConfirmMenu` (`by`) — pushed as `ClassSelectMenu`'s child by FIRE.
+    ClassConfirm,
+    /// `StartTraitMenu` (`bk`) — pushed as `ClassConfirmMenu`'s child by "Yes".
+    StartTrait,
 }
 
 /// The instance fields of a `Menu` (`cb`), carried by each concrete menu's state
@@ -129,6 +137,8 @@ fn node_base(g: &Game, node: MenuNode) -> &MenuBase {
     match node {
         MenuNode::Main => &g.main_menu.base,
         MenuNode::ClassSelect => &g.class_select_menu.base,
+        MenuNode::ClassConfirm => &g.class_confirm_menu.base,
+        MenuNode::StartTrait => &g.start_trait_menu.base,
     }
 }
 
@@ -137,20 +147,21 @@ fn node_base_mut(g: &mut Game, node: MenuNode) -> &mut MenuBase {
     match node {
         MenuNode::Main => &mut g.main_menu.base,
         MenuNode::ClassSelect => &mut g.class_select_menu.base,
+        MenuNode::ClassConfirm => &mut g.class_confirm_menu.base,
+        MenuNode::StartTrait => &mut g.start_trait_menu.base,
     }
 }
 
 /// Resolves a child discriminant to the [`MenuNode`] to recurse into
-/// (`MenuChild::None` → no child). DEFERRED child menus (`ClassConfirm`, `Popup`)
-/// have no ported node yet — reaching one is the transliteration's next-lane
-/// boundary.
+/// (`MenuChild::None` → no child). The `ClassConfirm`/`StartTrait` children are now
+/// real nodes; the remaining DEFERRED child menu (`Popup`) has no ported node yet —
+/// reaching one is the transliteration's next-lane boundary.
 fn child_node(child: MenuChild) -> Option<MenuNode> {
     match child {
         MenuChild::None => None,
         MenuChild::ClassSelect => Some(MenuNode::ClassSelect),
-        MenuChild::ClassConfirm => {
-            unimplemented!("DEFERRED: ClassConfirmMenu (child of ClassSelect) — next lane")
-        }
+        MenuChild::ClassConfirm => Some(MenuNode::ClassConfirm),
+        MenuChild::StartTrait => Some(MenuNode::StartTrait),
         MenuChild::Popup => {
             unimplemented!("DEFERRED: PopupMenu (showMessage/showPopup child) — next lane")
         }
@@ -162,6 +173,8 @@ fn paint_node(g: &mut Game, node: MenuNode, origin_x: i32, origin_y: i32) {
     match node {
         MenuNode::Main => main_menu::paint(g, origin_x, origin_y),
         MenuNode::ClassSelect => class_select_menu::paint(g, origin_x, origin_y),
+        MenuNode::ClassConfirm => class_confirm_menu::paint(g, origin_x, origin_y),
+        MenuNode::StartTrait => start_trait_menu::paint(g, origin_x, origin_y),
     }
 }
 
@@ -170,6 +183,8 @@ fn dispatch_handle_key(g: &mut Game, node: MenuNode, action: i32, key_code: i32)
     match node {
         MenuNode::Main => main_menu::handle_key(g, action, key_code),
         MenuNode::ClassSelect => class_select_menu::handle_key(g, action, key_code),
+        MenuNode::ClassConfirm => class_confirm_menu::handle_key(g, action, key_code),
+        MenuNode::StartTrait => start_trait_menu::handle_key(g, action, key_code),
     }
 }
 

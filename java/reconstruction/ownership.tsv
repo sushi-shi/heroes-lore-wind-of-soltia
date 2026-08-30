@@ -27,6 +27,23 @@
 #                              ClassSelectMenuState.base; the flat model holds the
 #                              reusable child slot as the Game.class_select_menu field,
 #                              linked by MainMenu's Menu.child discriminant)
+#   ClassConfirmMenu -> by.class (no rows: instance menu, no static fields — the Menu
+#                              base fields + the instance `classId` (`c`, `B`) are
+#                              per-INSTANCE, carried by ClassConfirmMenuState; the flat
+#                              model holds the reusable child slot as the
+#                              Game.class_confirm_menu field, linked by
+#                              ClassSelectMenu's Menu.child discriminant)
+#   StartTraitMenu -> bk.class (no rows: instance menu, no static fields — the Menu
+#                              base fields + the instance `confirming`/`confirmYes`
+#                              (`c`/`d`, `Z`), `classId` (`c`, `B`), `guardianSelected`
+#                              (`b`, `[Z`), `bounceUp` (`e`, `Z`), `bounceOffset`
+#                              (`d`, `B`) are per-INSTANCE, carried by
+#                              StartTraitMenuState; the flat model holds the reusable
+#                              child slot as the Game.start_trait_menu field, linked by
+#                              ClassConfirmMenu's Menu.child discriminant. The
+#                              `pending_new_game` field is NOT a Java datum — it is the
+#                              DEFERRED-SEAM record of the deferred GameState.newGame
+#                              launch, owned pending integration.)
 #   AssetCache  -> ce.class   (PARTIAL: the title/logo render-path statics + the
 #                              main-menu frame atlas `menuFrames`)
 #   FontManager -> bh.class   (PARTIAL: the title text path's fonts + labels, plus the
