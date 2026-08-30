@@ -200,6 +200,27 @@ fn enemy_has_initial_state() {
 
 // --- AI tick: knockback movement --------------------------------------------------
 
+/// Pixel coords of a walkable tile whose downward neighbor is also open ground (both
+/// unoccupied), scanned from the live collision grid. `Battler.tryStepForward` now
+/// consults the real `/m/6/00.evt` collision (parsed by `game_map::load`, wired
+/// through `battler::try_step_forward`), so a knockback step only lands on open
+/// ground — the former fixed (10,10)→(10,11) is a wall in this map. Faithful, not a
+/// weakened assertion: the enemy still steps; it just has to step onto open ground.
+fn open_down_pair(g: &Game) -> (i16, i16) {
+    let (w, h) = {
+        let m = g.game_state.map.as_ref().expect("GameState.map");
+        (m.width_tiles, m.height_tiles)
+    };
+    for ty in 1..(h - 1) {
+        for tx in 1..(w - 1) {
+            if game_map::is_walkable(g, tx, ty) && game_map::is_walkable(g, tx, ty + 1) {
+                return ((tx * 16) as i16, (ty * 16) as i16);
+            }
+        }
+    }
+    panic!("no open vertical tile-pair found in the loaded map");
+}
+
 /// A KNOCKBACK enemy (state 4) advances 8px when its AI is ticked; an identical enemy
 /// left un-ticked (the proven-red control) does not move.
 #[test]
@@ -207,17 +228,21 @@ fn enemy_knockback_tick_moves_control_stays() {
     let mut g = drive_to_world();
     install_template(&mut g);
 
-    // Ticked enemy at tile (10,10), pushed into knockback (facing 2 = down).
-    let ticked = enemy::new_enemy(&mut g, 160, 160, 0, 0);
-    {
-        let e = g.entity_arena[ticked].as_enemy_mut().unwrap();
-        e.battler.state = STATE_KNOCKBACK;
-        e.battler.knockback_timer = 2;
-    }
     // Control enemy at a distinct tile (14,14), same knockback setup, NEVER ticked.
+    // (It never steps, so its downward tile need not be open.) Spawned first so its
+    // occupancy is excluded from the open-ground scan below.
     let control = enemy::new_enemy(&mut g, 224, 224, 0, 0);
     {
         let e = g.entity_arena[control].as_enemy_mut().unwrap();
+        e.battler.state = STATE_KNOCKBACK;
+        e.battler.knockback_timer = 2;
+    }
+    // Ticked enemy on open ground whose DOWN neighbor is also open, pushed into
+    // knockback (facing 2 = down by default), so the collision-governed step lands.
+    let (ex, ey) = open_down_pair(&g);
+    let ticked = enemy::new_enemy(&mut g, ex, ey, 0, 0);
+    {
+        let e = g.entity_arena[ticked].as_enemy_mut().unwrap();
         e.battler.state = STATE_KNOCKBACK;
         e.battler.knockback_timer = 2;
     }

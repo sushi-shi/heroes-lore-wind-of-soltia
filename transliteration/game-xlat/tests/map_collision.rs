@@ -299,9 +299,11 @@ fn open_direction_advances_and_walking_into_a_blocked_tile_does_not_panic() {
         "walked an OPEN direction: pixelX advanced left {x_before} -> {x_after}"
     );
 
-    // Reachable-state no-panic: from (24,4) the tile ahead RIGHT (25,4) is a blocked
-    // wall (canStep FALSE). Driving the real walk into it a few frames must NOT panic
-    // (the tile is in-bounds; the port added no crash), and the walk proceeds.
+    // Reachable-state: from (24,4) the tile ahead RIGHT (25,4) is a blocked wall
+    // (canStep FALSE). Driving the real walk into it must (a) NOT panic — this is the
+    // crash-#1 path: without collision the hero would overstep and trip Battler.move's
+    // `Debug.assertTrue` bounds — and (b) HALT the hero at the wall, since
+    // `Battler.tryStepForward` now consults the parsed collision (state → 1, no step).
     let mut g2 = drive_to_world();
     let hero2 = hero_id(&g2);
     game_state::set_hero_tile(&mut g2, 24, 4);
@@ -312,14 +314,14 @@ fn open_direction_advances_and_walking_into_a_blocked_tile_does_not_panic() {
     let x0 = hero_pixel_x(&g2);
     game_screen::key_pressed(&mut g2, KEY_NUM6_RIGHT);
     for _ in 0..3 {
-        // Would previously be the crash path if driven to the edge; here the in-bounds
-        // walk into the blocked tile completes with no `ASSERT FAILED` / index panic.
+        // The in-bounds walk into the blocked tile completes with no `ASSERT FAILED` /
+        // index panic — crash-#1 is closed.
         game_loop::run_one_frame(&mut g2);
     }
     let x1 = hero_pixel_x(&g2);
-    assert!(
-        x1 > x0,
-        "the walk into the would-be-blocked tile proceeded without panicking {x0} -> {x1}"
+    assert_eq!(
+        x1, x0,
+        "the hero HALTED at the blocked wall (25,4) — no advance, no panic {x0} -> {x1}"
     );
 }
 

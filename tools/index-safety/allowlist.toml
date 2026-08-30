@@ -26,4 +26,34 @@
 #   expr = "def_table[row[4] as usize]"
 #   reason = "guarded: row is a resolved inventory slot, its def id is always >= 0."
 
-allow = []
+# --- Battler occupancy footprint (crash-class #1, now collision-guarded) ------
+# set_occupancy / clear_occupancy index the occupancy grid by the battler's own
+# tile. These were the latent Battler.move landmines that pointed at the DEFERRED
+# `.evt` collision-parse collapse. That parse has now LANDED (game_map::load +
+# game_map::can_step) and `battler::try_step_forward` consults it: an off-map step
+# is refused (map borders are blocked, canStep returns false, state → 1) BEFORE
+# move/occupancy run, so the battler's tile stays in [0, dim). Guarded by that
+# call-site halt, which the scanner's local scope cannot see.
+[[allow]]
+file = "transliteration/game-xlat/src/battler.rs"
+line = 156
+expr = "occupancy[tile_y as usize]"
+reason = "guarded: try_step_forward's collision halt keeps the battler's tile in [0,dim); off-map steps refused before set_occupancy runs (crash-#1 parse landed)."
+
+[[allow]]
+file = "transliteration/game-xlat/src/battler.rs"
+line = 163
+expr = "occupancy[tile_y as usize]"
+reason = "guarded: try_step_forward's collision halt keeps the battler's tile in [0,dim); off-map steps refused before set_occupancy runs (crash-#1 parse landed)."
+
+[[allow]]
+file = "transliteration/game-xlat/src/battler.rs"
+line = 196
+expr = "occupancy[tile_y as usize]"
+reason = "guarded: try_step_forward's collision halt keeps the battler's tile in [0,dim); off-map steps refused before clear_occupancy runs (crash-#1 parse landed)."
+
+[[allow]]
+file = "transliteration/game-xlat/src/battler.rs"
+line = 203
+expr = "occupancy[tile_y as usize]"
+reason = "guarded: try_step_forward's collision halt keeps the battler's tile in [0,dim); off-map steps refused before clear_occupancy runs (crash-#1 parse landed)."

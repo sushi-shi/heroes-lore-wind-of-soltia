@@ -235,17 +235,40 @@ pub fn step_if_moving(g: &mut Game, id: EntityId) {
 /// the tile ahead is blocked, halts (state 1) and reports `true`; otherwise keeps
 /// moving and reports `false`.
 ///
-/// **DEFERRED collision.** The block test `map.canStep(this, facing)` reads the
-/// map's collision grid, which comes from the not-yet-parsed `/m/<classId>/<NN>.evt`
-/// (see [`crate::game_map::load`]). Collision is stubbed to *never blocked*: with
-/// `canStep` treated as always `true`, the guard `offGridX || offGridY || canStep`
-/// is always satisfied, so the method always returns `false` (never halts). This
-/// lets the hero walk the tile grid; collision fidelity is a later lane's concern.
-pub fn try_step_forward(_g: &mut Game, _id: EntityId) -> bool {
+/// ```text
+/// GameMap map = GameState.map;
+/// if (offGridX || offGridY || map.canStep(this, facing)) return false;
+/// setState((byte) 1); return true;
+/// ```
+///
+/// The block test `map.canStep(this, facing)` reads the collision grid parsed from
+/// `/m/<classId>/<NN>.evt` (see [`crate::game_map::load`] / [`crate::game_map::can_step`]).
+/// The `||` short-circuit is preserved: `canStep` is consulted only when both
+/// half-tile flags are clear (aligned to the grid), and an off-map coordinate returns
+/// blocked without indexing.
+pub fn try_step_forward(g: &mut Game, id: EntityId) -> bool {
     // GameMap map = GameState.map;
-    // if (offGridX || offGridY || map.canStep(this, facing)) return false;  (always, stubbed)
-    // setState((byte) 1); return true;   — unreachable while collision is stubbed.
-    false
+    // if (offGridX || offGridY || map.canStep(this, facing)) return false;
+    let (off_grid_x, off_grid_y, facing) = {
+        let node = &g.entity_arena[id];
+        (
+            node.off_grid_x,
+            node.off_grid_y,
+            node.as_battler().expect("Battler node").facing,
+        )
+    };
+    if off_grid_x || off_grid_y || crate::game_map::can_step(g, id, facing) {
+        return false;
+    }
+    // setState((byte) 1);
+    set_state(
+        g.entity_arena[id]
+            .as_battler_mut()
+            .expect("Battler node"),
+        1,
+    );
+    // return true;
+    true
 }
 
 /// `public void move(int stepPixels)` (`o.a:(I)V => [isub×6, i2s×4, iadd×4, i2b×4]`).
