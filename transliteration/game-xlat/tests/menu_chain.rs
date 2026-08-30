@@ -5,8 +5,8 @@
 //! drives FIRE all the way through the chain — selecting a class, confirming it,
 //! toggling exactly two of three guardians into `StartTraitMenu`'s `confirming`
 //! state, and firing "Yes" — and asserts each child is pushed with the constructed
-//! `Menu` base fields plus, at the end, that `StartTraitMenu.startGame` populated
-//! the DEFERRED-SEAM launch record [`pending_new_game`]. These are STATE assertions,
+//! `Menu` base fields plus, at the end, that `StartTraitMenu.startGame` launched
+//! `GameState.newGame` (Hero created, menu disposed). These are STATE assertions,
 //! not pixel diffs: the class-select/confirm/trait art is not oracle-captured.
 //!
 //! Keys are driven purely by keyCode (52 = LEFT/NUM4, 53 = FIRE/NUM5, 54 =
@@ -158,15 +158,18 @@ fn confirm_yes_pushes_start_trait() {
         "guardianSelected = new boolean[3] (all false)"
     );
     assert!(!g.start_trait_menu.confirming, "not confirming on entry");
-    assert_eq!(g.start_trait_menu.pending_new_game, None);
+    assert!(
+        g.game_state.hero.is_none(),
+        "no game launched yet on StartTrait entry"
+    );
 }
 
-/// The full chain to `StartTraitMenu`'s confirming state and the DEFERRED newGame
-/// launch: toggle exactly two of three guardians (→ `confirming`), select "Yes",
-/// FIRE → `startGame()` populates [`pending_new_game`] with `(false, classId,
-/// guardianMask)`.
+/// The full chain to `StartTraitMenu`'s confirming state and the New Game launch:
+/// toggle exactly two of three guardians (→ `confirming`), select "Yes", FIRE →
+/// `startGame()` → `GameState.newGame(false, classId, guardianSelected)` disposes the
+/// menu, creates the Hero, and leaves the front-menu screen.
 #[test]
-fn full_chain_reaches_confirming_and_records_new_game() {
+fn full_chain_reaches_confirming_and_launches_new_game() {
     let mut g = drive_to_main_menu();
     press_and_step(&mut g, KEY_FIRE); // → ClassSelect
     press_and_step(&mut g, KEY_FIRE); // → ClassConfirm (No)
@@ -191,26 +194,27 @@ fn full_chain_reaches_confirming_and_records_new_game() {
         "exactly two guardians selected → confirming"
     );
     assert!(!g.start_trait_menu.confirm_yes, "confirmYes starts false");
-    assert_eq!(
-        g.start_trait_menu.pending_new_game, None,
-        "no launch recorded before firing Yes"
+    assert!(
+        g.game_state.hero.is_none(),
+        "no game launched before firing Yes"
     );
 
     // In the confirmation: toggle to "Yes" (RIGHT), then FIRE → startGame().
     press_and_step(&mut g, KEY_RIGHT); // confirmYes = true
     assert!(g.start_trait_menu.confirm_yes);
 
-    press_and_step(&mut g, KEY_FIRE); // FIRE on Yes → startGame()
+    press_and_step(&mut g, KEY_FIRE); // FIRE on Yes → startGame() → GameState.newGame(...)
 
-    // DEFERRED SEAM: startGame records GameState.newGame(false, classId=6,
-    // guardianSelected={true,true,false}) as (false, 6, mask). mask bits 0|1 = 0b011.
-    assert_eq!(
-        g.start_trait_menu.pending_new_game,
-        Some((false, 6, 0b011)),
-        "startGame populated the DEFERRED newGame launch request"
+    // startGame() calls GameState.newGame(false, classId=6, guardianSelected={true,true,false}):
+    // MainMenu is disposed, a Hero is created, the class is recorded, and the game leaves
+    // the front-menu screen (setScreen(0) + requestState(21) begins the New Game load).
+    assert!(
+        g.game_state.hero.is_some(),
+        "startGame launched newGame — the Hero was created"
     );
-    // The chain stays linked down to StartTrait.
-    assert_eq!(g.main_menu.base.child, MenuChild::ClassSelect);
-    assert_eq!(g.class_select_menu.base.child, MenuChild::ClassConfirm);
-    assert_eq!(g.class_confirm_menu.base.child, MenuChild::StartTrait);
+    assert_eq!(g.game_state.class_id, 6, "newGame recorded the chosen class");
+    assert_eq!(
+        g.game_state.screen, 0,
+        "newGame left the front menu (screen 9 → 0; the New Game load is pending)"
+    );
 }

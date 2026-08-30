@@ -118,8 +118,8 @@ pub struct Game {
     /// `Game` field, linked/unlinked by the [`MenuChild`](crate::menu::MenuChild).
     pub class_confirm_menu: ClassConfirmMenuState,
     /// `bk` / `StartTraitMenu` state (the starting-guardian picker + its `cb`/`Menu`
-    /// base fields + the guardian/confirmation state + the DEFERRED-SEAM
-    /// `pending_new_game` launch record). Not a Java static — a per-instance child of
+    /// base fields + the guardian/confirmation state; its `startGame` launches
+    /// `GameState.newGame`). Not a Java static — a per-instance child of
     /// `ClassConfirmMenu`; the flat model carries the reusable child slot as a `Game`
     /// field, linked/unlinked by the [`MenuChild`](crate::menu::MenuChild).
     pub start_trait_menu: StartTraitMenuState,

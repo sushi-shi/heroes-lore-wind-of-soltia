@@ -13,17 +13,14 @@
 //! [`start_game`] to launch a new game with the chosen
 //! [`class_id`](StartTraitMenuState::class_id) and guardian mask.
 //!
-//! ## ANTI-BOG boundary + the newGame seam
+//! ## ANTI-BOG boundary
 //!
 //! This increment ports the constructor, `handleKey` (the full guardian-toggle
 //! logic incl. the exactly-2-of-3 rule + the `confirming`/`confirmYes` state
 //! machine), a **PARTIAL** `paint` (the shared parchment fill + title plate +
-//! heading + menu panel only), and `startGame`. In `startGame`, the real
-//! `GameState.newGame(false, classId, guardianSelected)` launch
-//! (`StartTraitMenu.java:180-182`) is a **DEFERRED SEAM**: a parallel lane owns
-//! `GameState`, so instead of calling in, the launch is recorded as
-//! [`pending_new_game`](StartTraitMenuState::pending_new_game) for the integrator
-//! to wire. The class/guardian art (`AssetCache.menuGuardianPreview` /
+//! heading + menu panel only), and `startGame`, which launches the real
+//! `GameState.newGame(false, classId, guardianSelected)`
+//! (`StartTraitMenu.java:180-182`). The class/guardian art (`AssetCache.menuGuardianPreview` /
 //! `AssetCache.commonText` / `AssetCache.guardianText` / `FontManager.drawWrappedText`
 //! / `FontManager.labelBack`), the icon-bob animation, and the soft keys are
 //! DEFERRED in `paint` (unported statics; the start-trait art is not
@@ -73,12 +70,6 @@ pub struct StartTraitMenuState {
     /// `private byte bounceOffset;` — vertical bob offset (0..3) of the highlighted
     /// guardian icon.
     pub bounce_offset: i8,
-    /// **DEFERRED SEAM** — not a Java field. Records the `startGame` launch request
-    /// `GameState.newGame(false, classId, guardianSelected)` for the integrator to
-    /// wire (a parallel lane owns `GameState`). `(false, classId, guardianMask)`
-    /// where `guardianMask` has bit `i` set iff `guardianSelected[i]` — the seam's
-    /// lossless encoding of the `boolean[3]`. `None` until the confirm "Yes" fires.
-    pub pending_new_game: Option<(bool, i8, i8)>,
 }
 
 /// `public StartTraitMenu(ClassConfirmMenu parentMenu, byte classId)`
@@ -100,8 +91,6 @@ pub fn construct(g: &mut Game, class_id: i8) {
     g.start_trait_menu.confirm_yes = false;
     // this.classId = classId;
     g.start_trait_menu.class_id = class_id;
-    // Not a Java field — reset the deferred-launch record on (re)construction.
-    g.start_trait_menu.pending_new_game = None;
     // showMessage(new Object[]{AssetCache.commonText.get(16), AssetCache.commonText.get(13)});
     // (DEFERRED: showMessage intro popup — PopupMenu / AssetCache.commonText unported;
     // the flat model leaves child == MenuChild::None, so keys reach the toggle logic.)
@@ -266,24 +255,13 @@ pub fn paint(g: &mut Game, origin_x: i32, origin_y: i32) {
 }
 
 /// `private void startGame()` (`bk.d:()V => []`): launches a new game with the chosen
-/// class and guardian selection mask.
-///
-/// **DEFERRED SEAM: `GameState.newGame(false, this.classId, this.guardianSelected)`
-/// — wired at integration.** A parallel lane owns `GameState`; instead of calling
-/// in, the launch request is recorded on
-/// [`pending_new_game`](StartTraitMenuState::pending_new_game) so the build stays
-/// runnable and the integrator can wire the real launch. The `boolean[3]`
-/// `guardianSelected` is packed losslessly into a 3-bit mask (bit `i` set iff
-/// guardian `i` is chosen) — the seam's own encoding, NOT a transliterated Java op.
+/// class and guardian selection.
 fn start_game(g: &mut Game) {
     // GameState.newGame(false, this.classId, this.guardianSelected);
-    // DEFERRED SEAM: GameState.newGame(...) — wired at integration.
     let class_id = g.start_trait_menu.class_id;
-    let mut guardian_mask: i8 = 0;
-    for i in 0..3usize {
-        if g.start_trait_menu.guardian_selected[i] {
-            guardian_mask |= 1i8 << i;
-        }
-    }
-    g.start_trait_menu.pending_new_game = Some((false, class_id, guardian_mask));
+    // `guardianSelected` is read by newGame (read-only); a cross-owner read is
+    // taken as an explicit snapshot param (docs/TRANSLITERATION.md) so `g` can be
+    // borrowed mutably for the call.
+    let traits = g.start_trait_menu.guardian_selected.clone();
+    crate::game_state::new_game(g, false, class_id, &traits);
 }
