@@ -2,6 +2,15 @@
 
 Living record of what is recovered and verified. Newest first.
 
+## Portable runtime dependency (2026-08-30)
+
+The active workspace consumes `j2me-jvm` and `j2me-me` from the public
+[`j2me-preservation-kit`](https://github.com/sushi-shi/j2me-preservation-kit),
+pinned to full commit `7aeba277a270eb58658d211bd3621b30956f6212`.
+The earlier `crates/j2me-*` snapshots remain in the repository as recovery
+evidence, but are explicitly excluded from the active workspace and no longer
+make a fresh clone depend on local path copies.
+
 ## Phase 0 — resource-free foundation (scaffolded)
 
 - Repo initialized resource-free (R1): CC0 `LICENSE`, `.gitignore` written first

@@ -1,7 +1,7 @@
 # Workspace root for the Heroes Lore: Wind of Soltia native (Rust) port.
 #
-# The shared foundation is the canonical `j2me-*` crate family standardized in the
-# j2me home `_template/` and adopted here so every game shares one foundation:
+# The shared foundation is the canonical `j2me-*` crate family published from
+# j2me-preservation-kit and pinned below to one immutable commit:
 # `j2me-jvm` (Java integer/JVM semantics), `j2me-canvas` (a neutral 2D ARGB
 # buffer), `j2me-me` (the Java ME/MIDP device runtime), and `j2me-codec` (no_std
 # bounded readers). The per-game work sits on top: `crates/formats`
@@ -11,10 +11,6 @@
 # native host (`apps/heroes-lore-wind-of-soltia-linux`).
 [workspace]
 members = [
-    "crates/j2me-canvas",
-    "crates/j2me-codec",
-    "crates/j2me-jvm",
-    "crates/j2me-me",
     "transliteration/game-xlat",
     "crates/formats",
     "apps/heroes-lore-wind-of-soltia-linux",
@@ -22,6 +18,15 @@ members = [
     # per-node Java/Rust crosswalk gate (tools/ast). Game-agnostic; adopted from
     # the j2me home `_template/tools/ast/`.
     "tools/ast/j2me-ast-audit",
+]
+exclude = [
+    # Retained historical snapshots; active consumers use the immutable public
+    # dependencies below, so these directories are evidence rather than shadow
+    # copies in the build graph.
+    "crates/j2me-canvas",
+    "crates/j2me-codec",
+    "crates/j2me-jvm",
+    "crates/j2me-me",
 ]
 resolver = "2"
 
@@ -33,6 +38,8 @@ license = "CC0-1.0"
 # Foundational dependencies pinned here so one version is chosen across the whole
 # workspace. Add them to a crate with `dep = { workspace = true }`.
 [workspace.dependencies]
+j2me-jvm = { git = "https://github.com/sushi-shi/j2me-preservation-kit.git", rev = "7aeba277a270eb58658d211bd3621b30956f6212" }
+j2me-me = { git = "https://github.com/sushi-shi/j2me-preservation-kit.git", rev = "7aeba277a270eb58658d211bd3621b30956f6212" }
 # `zip` is used only by the format/transliteration tests to extract resource
 # blobs from the baseline JAR at test time. Deflate-only (no bzip2/zstd/aes) keeps
 # the build pure-Rust and offline friendly — JAR entries are STORE or DEFLATE.

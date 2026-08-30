@@ -11,8 +11,8 @@ publish = false
 # executable spec — NOT good Rust. Do not refactor it. It depends only on the
 # JVM-primitive and device-runtime layers below it (the shared `j2me-*` crates).
 [dependencies]
-j2me-jvm = { path = "../../crates/j2me-jvm" }
-j2me-me = { path = "../../crates/j2me-me" }
+j2me-jvm = { workspace = true }
+j2me-me = { workspace = true }
 
 # Test-only. The cross-check oracles ("two implementations, one truth") diff the
 # transliterated decoders against INDEPENDENT references over real blobs pulled

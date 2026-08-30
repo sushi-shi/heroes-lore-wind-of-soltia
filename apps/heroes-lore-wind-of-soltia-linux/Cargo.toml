@@ -23,12 +23,12 @@ publish = false
 # The game and its device runtime (consumed as public APIs; never edited here —
 # the other lane owns heroes-lore-wind-of-soltia-game-xlat).
 heroes-lore-wind-of-soltia-game-xlat = { path = "../../transliteration/game-xlat" }
-j2me-me = { path = "../../crates/j2me-me" }
+j2me-me = { workspace = true }
 # The `Clock`/`VirtualClock` the game loop reads through `Game::clock`. The host
 # seeds it deterministically for reproducible captures (a `VirtualClock` seed
 # stands in for gothic's injected `Box<dyn Clock>`: here the `Game` owns the
 # clock, so the host injects its starting value rather than the clock object).
-j2me-jvm = { path = "../../crates/j2me-jvm" }
+j2me-jvm = { workspace = true }
 
 # Read the JAR members in-process (no `unzip` subprocess at runtime); deflate is
 # the only codec the JARs use (matches the content importer / test corpus reader).

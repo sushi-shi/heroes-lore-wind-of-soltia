@@ -563,18 +563,17 @@ dependencies = [
 [[package]]
 name = "j2me-canvas"
 version = "0.1.0"
-
-[[package]]
-name = "j2me-codec"
-version = "0.1.0"
+source = "git+https://github.com/sushi-shi/j2me-preservation-kit.git?rev=7aeba277a270eb58658d211bd3621b30956f6212#7aeba277a270eb58658d211bd3621b30956f6212"
 
 [[package]]
 name = "j2me-jvm"
 version = "0.1.0"
+source = "git+https://github.com/sushi-shi/j2me-preservation-kit.git?rev=7aeba277a270eb58658d211bd3621b30956f6212#7aeba277a270eb58658d211bd3621b30956f6212"
 
 [[package]]
 name = "j2me-me"
 version = "0.1.0"
+source = "git+https://github.com/sushi-shi/j2me-preservation-kit.git?rev=7aeba277a270eb58658d211bd3621b30956f6212#7aeba277a270eb58658d211bd3621b30956f6212"
 dependencies = [
  "j2me-canvas",
  "j2me-jvm",
