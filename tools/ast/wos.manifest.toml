@@ -13,7 +13,7 @@ schema_version = 2
 build = "heroes-lore-wind-of-soltia v2.0.7 named-Java oracle"
 total_body_count = 90
 reviewed_body_count = 30
-crosswalked_body_count = 26
+crosswalked_body_count = 27
 
 [policy]
 blanket_max_span = 48
@@ -596,7 +596,8 @@ opcode_sha256 = "875cf492682c583807b824cabbfa9d71f57ff547b31082a29d1e7aede2913f9
 java_ast_sha256 = "1a05f3f7976f52b277f41b386efb237e3726f090e0316afeefffe75f1dc30a93"
 java_nodes_sha256 = "6d0444bc6372f23afd902291ad1cb763aaed8f8961ac1712b5edf4e1a595bdd9"
 java_node_count = 3799
-review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+semantic_status = "crosswalked"
+review = "Ported-slice crosswalk. AssetCache (obf `ce`) is the whole game's static asset manager (~79 banks, 43 load/unload methods). This increment ports ONLY the first-frame render path: the title/logo banks (loadLogo, unloadLogo, loadTitleScreen, unloadTitleScreen), the main-menu frame atlas (the menuFrames slice of loadMainMenuAssets), the item/shop record loaders (loadItemRecord, loadShopItemData) and the shared readResource/getResourceAsStream byte seam, plus the 5 field banks those read (logoFrames, titleBgFrames, titleMenuFrames, menuFrames, readBuffer) and AssetCacheState::new. All 489 Rust nodes pair to their true Java statement in one of those loaders; the record-framing reads (unsigned length via `& 255`, the pos-cursor skip loops) are realized genuinely, and the InputStream read position is modelled as an explicit index (tagged representation-adapter). The remaining ~3300 Java nodes are DEFERRED: the full sprite/enemy/boss/npc/map/tile/effect/audio/string banks and their many load*/unload* methods, the assembleSprites decoder, bossSlot, the private no-op constructor, and the javac <clinit> re-emission of every deferred field initializer — each claimed as an `erased` adapt naming its method/region. No Java DIVIDE/REMAINDER/shift node exists anywhere in this class, so operator-realization parity is vacuously satisfied. Split: ported slice ~14% of the Java nodes (10 methods + 5 field banks); deferred ~86%."
 rust = [
   { file = "transliteration/game-xlat/src/asset_cache.rs", item = "field:AssetCacheState::logo_frames", ast_sha256 = "cf6c47a22f5f69d8b40edc793780d66e2b9e980b6e1f6d8c45d1312b965beac6", nodes_sha256 = "e36e9143eb3e2d9f788fc131b190dc3d6642258e029e3132f45c6580e14a61ba", node_count = 4 },
   { file = "transliteration/game-xlat/src/asset_cache.rs", item = "field:AssetCacheState::title_bg_frames", ast_sha256 = "6143e4413f3abf499fa05807cfaea108bd5c6ef43d634c863a4f88802fb7222d", nodes_sha256 = "50d6ede1dd076809f01d9e62218b4b309e882771f29b3aac2a37b1bae54159bc", node_count = 4 },
@@ -614,8 +615,93 @@ rust = [
   { file = "transliteration/game-xlat/src/asset_cache.rs", item = "fn:load_item_record", ast_sha256 = "4cb4e58151e91b005ab91e7566140116c454d3c7cd60c1d34eb5acb4da31fdc4", nodes_sha256 = "a6bf17350ef1fd959a73f5741d1415e9b6faa74e9cd8eafd0fa4316e82a774ff", node_count = 115 },
   { file = "transliteration/game-xlat/src/asset_cache.rs", item = "fn:load_shop_item_data", ast_sha256 = "606b94321c5575dadffe1f2f5666dea72eb8b291ec4153e1d5dcc54ff1456d1e", nodes_sha256 = "02ec4576a2ab9a33d8d76eadbfa8cb8a97f16161750b8bd9014329c7f726faf0", node_count = 7 },
 ]
-op = []
-adapt = []
+op = [
+  { semantic = "field logoFrames: `public static Image[] logoFrames` (obf ce.i) <-> AssetCacheState.logo_frames: Option<Vec<Image>>", java_range = [[152, 155]], rust_range = [{ target = 0, start = 0, end = 3 }] },
+  { semantic = "field titleBgFrames (obf ce.j) <-> title_bg_frames: Option<Vec<Image>>", java_range = [[156, 159]], rust_range = [{ target = 1, start = 0, end = 3 }] },
+  { semantic = "field titleMenuFrames (obf ce.k) <-> title_menu_frames: Option<Vec<Image>>", java_range = [[160, 163]], rust_range = [{ target = 2, start = 0, end = 3 }] },
+  { semantic = "field menuFrames (obf ce.l) <-> menu_frames: Option<Vec<Image>>", java_range = [[164, 167]], rust_range = [{ target = 3, start = 0, end = 3 }] },
+  { semantic = "field readBuffer decl: `public static byte[] readBuffer` (obf ce.n) <-> read_buffer: Vec<i8>", java_range = [[315, 318]], rust_range = [{ target = 4, start = 0, end = 2 }] },
+  { semantic = "readBuffer initializer `new byte[512]` <-> read_buffer: vec![0i8; 512] (AssetCacheState::new)", java_range = [[319, 321]], rust_range = [{ target = 6, start = 15, end = 17 }] },
+  { semantic = "loadItemRecord: idText = String.valueOf((int) itemId)", java_range = [[3096, 3096], [3102, 3110]], rust_range = [{ target = 13, start = 0, end = 4 }] },
+  { semantic = "if (itemId < 10) idText = '0' + idText -- zero-pad the item file id", java_range = [[3111, 3129]], rust_range = [{ target = 13, start = 5, end = 14 }] },
+  { semantic = "in = new Object().getClass().getResourceAsStream('/itm/'+idText) -- host resource seam; the try/? models the missing-resource null", java_range = [[3130, 3150]], rust_range = [{ target = 13, start = 15, end = 26 }] },
+  { semantic = "for (i=0;i<record;i++) in.skip(in.read()) -- skip `record` length-framed records; Rust reads the unsigned length ((src[pos] as i32)&255), advances past it (pos+=1) and skips it (pos+=len)", java_range = [[3151, 3169]], rust_range = [{ target = 13, start = 30, end = 73 }] },
+  { semantic = "result = new byte[in.read()] -- read the record's unsigned length byte ((src[pos]&255) as usize) and allocate", java_range = [[3170, 3177]], rust_range = [{ target = 13, start = 74, end = 94 }] },
+  { semantic = "in.read(result) -- fill the record buffer via result.copy_from_slice(&src[pos..pos+rec_len])", java_range = [[3178, 3182]], rust_range = [{ target = 13, start = 95, end = 109 }] },
+  { semantic = "return result -> Some(result)", java_range = [[3196, 3197]], rust_range = [{ target = 13, start = 110, end = 114 }] },
+  { semantic = "loadShopItemData: return readResource('/itm/forshop')", java_range = [[3198, 3202]], rust_range = [{ target = 14, start = 0, end = 6 }] },
+  { semantic = "loadLogo: logoFrames = new PngMerger('/img/logo').allImages() -> Some(all_images)", java_range = [[3287, 3297]], rust_range = [{ target = 8, start = 0, end = 26 }] },
+  { semantic = "unloadLogo: logoFrames = null -> g.asset_cache.logo_frames = None", java_range = [[3303, 3307]], rust_range = [{ target = 10, start = 0, end = 7 }] },
+  { semantic = "loadTitleScreen: title = new PngMerger('/img/title1')", java_range = [[3308, 3316]], rust_range = [{ target = 9, start = 0, end = 7 }] },
+  { semantic = "titleBgFrames = title.allImages() -> Some(frames)", java_range = [[3317, 3322]], rust_range = [{ target = 9, start = 8, end = 26 }] },
+  { semantic = "BaseCanvas.yieldTick()", java_range = [[3323, 3327]], rust_range = [{ target = 9, start = 27, end = 31 }] },
+  { semantic = "title = new PngMerger('/img/title2')", java_range = [[3328, 3333]], rust_range = [{ target = 9, start = 32, end = 38 }] },
+  { semantic = "title.preloadAll = true", java_range = [[3334, 3338]], rust_range = [{ target = 9, start = 39, end = 43 }] },
+  { semantic = "titleMenuFrames = new Image[10] -- the port stages a Vec<Option<Image>> of 10 Nones, filled in the loop and committed to the field after it", java_range = [[3339, 3344]], rust_range = [{ target = 9, start = 44, end = 56 }] },
+  { semantic = "for (i=0;i<5;i++) loop control -- the port lifts the counter to `let mut i=0` before `while i<5` whose tail does i=i.wrapping_add(1)", java_range = [[3345, 3356]], rust_range = [{ target = 9, start = 57, end = 65 }, { target = 9, start = 121, end = 127 }] },
+  { semantic = "titleMenuFrames[i] = title.image(i) -- staged as menu[i as usize] = Some(img)", java_range = [[3357, 3365]], rust_range = [{ target = 9, start = 66, end = 89 }] },
+  { semantic = "titleMenuFrames[i+5] = title.imageMirrored(i) -- staged as menu[i.wrapping_add(5) as usize] = Some(mirrored)", java_range = [[3366, 3376]], rust_range = [{ target = 9, start = 90, end = 115 }] },
+  { semantic = "BaseCanvas.yieldTick() (inside the frame loop)", java_range = [[3377, 3381]], rust_range = [{ target = 9, start = 116, end = 120 }] },
+  { semantic = "BaseCanvas.yieldTick() (after the frame loop)", java_range = [[3382, 3386]], rust_range = [{ target = 9, start = 128, end = 132 }] },
+  { semantic = "unloadTitleScreen: titleBgFrames = null; titleMenuFrames = null -> None", java_range = [[3403, 3411]], rust_range = [{ target = 11, start = 0, end = 14 }] },
+  { semantic = "loadMainMenuAssets (ported slice): menuFrames = new PngMerger('/sgui/mm/etc').allImages() -> Some", java_range = [[3503, 3510]], rust_range = [{ target = 12, start = 0, end = 26 }] },
+  { semantic = "readResource entry + open: in = getResourceAsStream(path); if (in==null) return null -- host resource seam + missing-resource null via g.resources.get(path)?.to_vec()", java_range = [[3603, 3603], [3613, 3632]], rust_range = [{ target = 7, start = 0, end = 11 }] },
+  { semantic = "out = new ByteArrayOutputStream() -> let mut out: Vec<i8> = Vec::new()", java_range = [[3633, 3637]], rust_range = [{ target = 7, start = 12, end = 17 }] },
+  { semantic = "read-loop header: while ((read = in.read(readBuffer)) ...) -> while pos < source.len() { let read = min(read_buffer.len(), source.len()-pos) }", java_range = [[3638, 3648]], rust_range = [{ target = 7, start = 21, end = 44 }] },
+  { semantic = "out.write(readBuffer, 0, read) -- copy the chunk through the shared readBuffer, append to out, advance pos", java_range = [[3656, 3662]], rust_range = [{ target = 7, start = 45, end = 82 }] },
+  { semantic = "result = out.toByteArray() -> result = Some(out)", java_range = [[3663, 3668]], rust_range = [{ target = 7, start = 83, end = 91 }] },
+  { semantic = "while (GameState.screen == 15) Thread.sleep(100) -- the loading-screen spin, preserved verbatim (never entered here, screen != 15; the sleep body is a no-op in the single-threaded port)", java_range = [[3693, 3716]], rust_range = [{ target = 7, start = 92, end = 99 }] },
+  { semantic = "return result", java_range = [[3717, 3718]], rust_range = [{ target = 7, start = 100, end = 101 }] },
+]
+adapt = [
+  { category = "erased", reason = "DEFERRED field banks: sprite-frame script banks (heroFrames, mageAuraScripts, weaponPreviewFrames, guardianFrames, enemyFrames, attackEffectScripts, deathFxScripts, bossFrames, bossExtraFrames, npcFrames), the npc/boss/enemy registries (npcAnimFrames0/1, bossSpriteIds, enemySpriteIds) and the decoded-atlas spriteBanks[38][] -- none on the title/logo/menu/item render path (anti-bog)", java_range = [[0, 98]] },
+  { category = "erased", reason = "DEFERRED localized string tables: heroText, guardianText, guardianSkillText, mapNameText, helpText, classSkillText, commonText (TextTable banks) -- read by the character/help/quest screens", java_range = [[99, 119]] },
+  { category = "erased", reason = "DEFERRED image-array banks: guardianBeam, guardianIcons, guardianSkillIcons, itemIcons, mapTiles, mapObjects, mapNpcImages, dialoguePortraits -- guardian/item/map art off the ported path", java_range = [[120, 151]] },
+  { category = "erased", reason = "DEFERRED menu/HUD/effect image-array banks: classFaces, menuGuardianPreview, menuTabIcons, equipSlotIcons, shopCategoryIcons, hudFrame, dialogBorder, attackFx1/2/3, statusIcons, emoticons", java_range = [[168, 216]] },
+  { category = "erased", reason = "DEFERRED single HUD/menu/map-UI Images: statusPanelIcon..entityShadow (shop/stat/cursor/scroll/portrait/gold/digit-font/drop-marker/floater/shadow icons) -- HUD chrome off the ported title path", java_range = [[217, 306]] },
+  { category = "erased", reason = "DEFERRED byte-array script banks: levelUpScript (/char/lvup.eif) and guardianSpriteScript (/grd/spr/0_02.eif)", java_range = [[307, 314]] },
+  { category = "erased", reason = "private no-op constructor AssetCache() (synthetic super + empty body): the class is never instantiated; the port models it as a non-instanceable state struct", java_range = [[322, 323]] },
+  { category = "erased", reason = "DEFERRED loadAttackEffects/unloadAttackEffects/tintAttackEffect -- the element-tinted attack-effect frame sets (/img/atteff1..3)", java_range = [[324, 539]] },
+  { category = "erased", reason = "DEFERRED unloadMapTiles/unloadMapObjects/unloadMapNpcImages/resetEnemyBossBanks -- map image + enemy/boss bank teardown", java_range = [[540, 593]] },
+  { category = "erased", reason = "DEFERRED loadGuardianSprite/unloadGuardianSprites -- guardian sprite scripts (/grd/spr/*.eif)", java_range = [[594, 730]] },
+  { category = "erased", reason = "DEFERRED assembleSprites -- the animation-script decoder that resolves atlas image indices into spriteBanks (the core sprite assembler; unused by the image-only title/logo/menu path)", java_range = [[731, 954]] },
+  { category = "erased", reason = "DEFERRED loadInGameUi/unloadInGameUi -- the in-game HUD frame/glyph/icon set + level-up effect (/img/uifrm, /img/etcui, /char/lvup)", java_range = [[955, 1264]] },
+  { category = "erased", reason = "DEFERRED loadStatusEffectIcons/unloadStatusEffectIcons -- status icons + emoticons (/img/keepst, /img/emoti)", java_range = [[1265, 1361]] },
+  { category = "erased", reason = "DEFERRED loadGuardianElement/unloadGuardianElement -- the guardian element atlas (bank 12) + summon beam (/grd/fi|wa|gr, /grd/<n>)", java_range = [[1362, 1478]] },
+  { category = "erased", reason = "DEFERRED loadEnemySprite/unloadEnemySprite -- enemy (and npc-style) sprite sets + attack effects (/enm/*)", java_range = [[1479, 1885]] },
+  { category = "erased", reason = "DEFERRED loadDeathEffects -- enemy death/explosion frame scripts (/enm/die/*)", java_range = [[1886, 1951]] },
+  { category = "erased", reason = "DEFERRED loadNpcSprite/unloadNpcSprite -- npc sprite sets (/npc/*)", java_range = [[1952, 2226]] },
+  { category = "erased", reason = "DEFERRED loadBossSprite/unloadBossSprite -- boss sprite sets, extras and attack effects (/boss/*)", java_range = [[2227, 2584]] },
+  { category = "erased", reason = "DEFERRED loadGameMenuIcons -- character-menu tab + equip-slot icons (/sgui/gmico)", java_range = [[2585, 2689]] },
+  { category = "erased", reason = "DEFERRED loadGlobalUi -- the global UI image set + help string table (/img/glb, /sgui/help)", java_range = [[2690, 2828]] },
+  { category = "erased", reason = "DEFERRED loadItemIcons/unloadItemIcons -- item-type icons (/img/icoitm)", java_range = [[2829, 2852]] },
+  { category = "erased", reason = "DEFERRED loadShopUi/unloadShopUi -- shop category/cursor/buy-sell icons (/sgui/shop)", java_range = [[2853, 2976]] },
+  { category = "erased", reason = "DEFERRED loadGuardianIcons/unloadGuardianIcons -- guardian + per-skill icons (/grd/grdico)", java_range = [[2977, 3095]] },
+  { category = "erased", reason = "byte[] result = null seed -- the port returns Option<Vec<i8>> (None on a missing resource via ?, Some(result) on success), so the explicit null result local is elided", java_range = [[3097, 3101]] },
+  { category = "representation-adapter", reason = "let mut pos: usize = 0 -- Java's InputStream carries an implicit read cursor; the port models it as an explicit index into the copied /itm/<id> byte Vec", rust_range = [{ target = 13, start = 27, end = 29 }] },
+  { category = "erased", reason = "in.close() -- the port's byte-slice read owns no stream handle; no Rust counterpart", java_range = [[3183, 3186]] },
+  { category = "erased", reason = "catch (IOException) e.printStackTrace() -- on a missing resource the Rust ? already returned None; the transliteration has no fallible read past the seam", java_range = [[3187, 3195]] },
+  { category = "erased", reason = "catch (IOException unused) -- the /img/logo atlas is present on the classpath; the port subsumes the IOException path (no fallible I/O in the transliteration)", java_range = [[3298, 3302]] },
+  { category = "representation-adapter", reason = "commit the staged title2 frames: g.asset_cache.title_menu_frames = Some(menu.into_iter().map(|o| o.expect(...)).collect()) -- the Java writes each frame directly into the static titleMenuFrames array in-loop (paired above), so this end-of-method commit of the Option<Image> staging Vec has no separate Java node", rust_range = [{ target = 9, start = 133, end = 150 }] },
+  { category = "erased", reason = "AudioManager.loadClip((byte) 22) -- the title jingle; audio subsystem DEFERRED (not ported)", java_range = [[3387, 3393]] },
+  { category = "erased", reason = "catch (IOException) e.printStackTrace() -- the title1/title2 atlases are present on the classpath; the port has no fallible I/O here", java_range = [[3394, 3402]] },
+  { category = "erased", reason = "AudioManager.unloadClip((byte) 22) -- the title jingle; audio subsystem DEFERRED (not ported)", java_range = [[3412, 3418]] },
+  { category = "erased", reason = "loadMainMenuAssets: method-body/try scaffolding + the DEFERRED class-portrait faces loader (classFaces = new PngMerger('/sgui/mm/face') + image/imageGray) -- read by the class-select screen, not the main-menu render (anti-bog); only menuFrames is ported", java_range = [[3419, 3502]] },
+  { category = "erased", reason = "loadMainMenuAssets: the DEFERRED menuGuardianPreview loader (new Image[3][2]; per-guardian /grd/<i> preview.image(0/1)) and the catch(IOException) tail -- read by the guardian-preview screen, not the main-menu render", java_range = [[3511, 3585]] },
+  { category = "erased", reason = "System.gc() -- advisory GC hint; a no-op in the port", java_range = [[3604, 3607]] },
+  { category = "erased", reason = "byte[] result = null seed -- the port returns Option<Vec<i8>>; the null-on-error is None (via ? on a missing resource), so the explicit null seed is elided", java_range = [[3608, 3612]] },
+  { category = "representation-adapter", reason = "let mut pos: usize = 0 -- the Java in.read(readBuffer)/out.write streaming carries an implicit cursor; the port drives it with an explicit index into the copied source Vec", rust_range = [{ target = 7, start = 18, end = 20 }] },
+  { category = "erased", reason = "if (read == -1) break -- the EOF guard; the port's `while pos < source.len()` condition already encodes end-of-stream, so the explicit break has no Rust node", java_range = [[3649, 3655]] },
+  { category = "erased", reason = "out.close() -- the port's out: Vec<i8> needs no close; no Rust counterpart", java_range = [[3669, 3672]] },
+  { category = "erased", reason = "catch (Exception): the 'miss - '+path debug StringBuffer + e.printStackTrace() -- the port's ? already returned None on a missing resource, so this diagnostic path has no Rust node", java_range = [[3673, 3692]] },
+  { category = "erased", reason = "DEFERRED loadGuardian -- full guardian load (element atlas + per-type sprite scripts); orchestrates the deferred guardian loaders", java_range = [[3203, 3279]] },
+  { category = "erased", reason = "DEFERRED unloadGuardian -- drops the guardian element atlas + sprite scripts", java_range = [[3280, 3286]] },
+  { category = "erased", reason = "DEFERRED unloadMainMenuAssets -- drops menuFrames/classFaces/menuGuardianPreview; teardown not exercised on the ported render path yet", java_range = [[3586, 3602]] },
+  { category = "erased", reason = "DEFERRED bossSlot -- reverse-maps a boss sprite id to its slot via bossSpriteIds (boss subsystem)", java_range = [[3719, 3757]] },
+  { category = "erased", reason = "DEFERRED <clinit> field initializers (javac re-emits every field initializer inside the synthesized static initializer): mageAuraScripts=null, guardianFrames[3], enemyFrames[60], attackEffectScripts[5], deathFxScripts[3], bossFrames[80], bossExtraFrames[12], npcFrames[60], npcAnimFrames0/1[5], bossSpriteIds[5], enemySpriteIds[5], spriteBanks=new Image[38][] -- all deferred banks", java_range = [[3758, 3795]] },
+  { category = "erased", reason = "the <clinit> re-emission of readBuffer = new byte[512] (javac lists field initializers a second time inside the static initializer); the port realizes this initializer once -- paired against the field's inline initializer above -- so the <clinit> duplicate is elided", java_range = [[3796, 3798]] },
+  { category = "representation-adapter", reason = "AssetCacheState::new() scaffolding: the fn/struct-literal block plus the JVM-default None initializers for the four ported Image banks (logo_frames, title_bg_frames, title_menu_frames, menu_frames) -- the Java fields carry no initializer (implicit null default), so these have no Java node; readBuffer's init pairs above", rust_range = [{ target = 6, start = 0, end = 14 }] },
+]
 
 [[body]]
 java_item = "defpackage.PngMerger"
