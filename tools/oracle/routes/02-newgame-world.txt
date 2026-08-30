@@ -1,0 +1,42 @@
+# Route: newgame-world -- play New Game all the way to the first walkable world
+# frame, then walk a few tiles to show the camera scroll. Port-side capture (a
+# demonstration of the playable path); the world frames are dynamic, not part of
+# the byte-exact static-menu oracle.
+
+fps 20
+seed 305419896
+
+# Boot: the state-10 publisher splash slides to the state-1 title on its own.
+wait java_frames=40 java_ms=2000
+wait java_frames=90 java_ms=4500
+
+# Title -> parchment main menu (any key).
+tap FIRE 60 1000 java_frames=1 java_settle_frames=30
+# NEW GAME -> ClassSelectMenu.
+tap FIRE 60 400 java_frames=1 java_settle_frames=20
+# select the starting class -> ClassConfirmMenu (cursor on No).
+tap FIRE 60 400 java_frames=1 java_settle_frames=20
+# No -> Yes.
+tap LEFT 60 400 java_frames=1 java_settle_frames=20
+# Yes -> StartTraitMenu.
+tap FIRE 60 400 java_frames=1 java_settle_frames=20
+# toggle guardian 0.
+tap FIRE 60 400 java_frames=1 java_settle_frames=20
+# cursor 0 -> 1.
+tap RIGHT 60 400 java_frames=1 java_settle_frames=20
+# toggle guardian 1 -> confirming.
+tap FIRE 60 400 java_frames=1 java_settle_frames=20
+# confirm cursor -> Yes.
+tap RIGHT 60 400 java_frames=1 java_settle_frames=20
+# FIRE Yes -> startGame() -> GameState.newGame() -> the loading sequence.
+tap FIRE 60 400 java_frames=1 java_settle_frames=20
+
+# Let the New Game load reach the world (screen 2) and settle.
+wait java_frames=600 java_ms=30000
+shot world
+
+# NOTE: a longer walk is not scripted here yet — with collision DEFERRED
+# (tryStepForward never blocks until the .evt collision grid is parsed), walking
+# past a few tiles reaches a tile the real game would block and trips a faithful
+# Battler.move bounds `Debug.assertTrue`. Short movement is covered by the
+# game-xlat `hero_moves` gate; free-roam awaits the collision parse.
