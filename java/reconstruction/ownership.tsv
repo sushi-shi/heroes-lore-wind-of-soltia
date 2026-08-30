@@ -344,6 +344,24 @@ EnemyType	a	attackHitFrame	[B	enemy_type	ATTACK_HIT_FRAME
 #                              StatAllocMenuState; the flat model carries the reusable
 #                              child slot as the Game.stat_alloc_menu field, linked by
 #                              StatusPage's Menu.child.)
+#   ItemsTab      -> ay.class  (no rows: instance-only, no statics — no fields of its own
+#                              beyond the Menu base, per-INSTANCE on ItemsTabState; the flat
+#                              model carries the reusable child slot as the Game.items_tab
+#                              field, linked by CharacterMenu's Menu.child, tab 1.)
+#   EquipTab      -> bz.class  (no rows: instance-only, no statics — no fields of its own;
+#                              per-INSTANCE on EquipTabState; the Game.equip_tab child slot,
+#                              linked by CharacterMenu's Menu.child, tab 2.)
+#   GuardianTab   -> bm.class  (no rows: instance-only, no statics — no fields of its own;
+#                              per-INSTANCE on GuardianTabState; the Game.guardian_tab child
+#                              slot, linked by CharacterMenu's Menu.child, tab 3.)
+#   SkillTab      -> s.class   (no rows: instance-only, no statics — skillEntries (`h`, `[B`)
+#                              / skillIndex (`c`, `B`) / skillVariant (`d`, `B`) / skillName
+#                              (`a`, `[C`) / skillDesc (`b`, `[C`) are per-INSTANCE on
+#                              SkillTabState; the Game.skill_tab child slot, linked by
+#                              CharacterMenu's Menu.child, tab 4.)
+#   SystemTab     -> d.class   (no rows: instance-only, no statics — saveState (`c`, `B`) is
+#                              per-INSTANCE on SystemTabState; the Game.system_tab child slot,
+#                              linked by CharacterMenu's Menu.child, tab 5.)
 CharacterMenu	a	panelX	I	CharacterMenuState	panel_x
 CharacterMenu	b	panelY	I	CharacterMenuState	panel_y
 CharacterMenu	a	text	Lz;	CharacterMenuState	text

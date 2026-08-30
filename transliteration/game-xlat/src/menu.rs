@@ -63,8 +63,11 @@ use crate::confirm_dialog;
 use crate::continue_menu;
 use crate::cost_confirm_dialog;
 use crate::enchant_menu;
+use crate::equip_tab;
 use crate::game::Game;
+use crate::guardian_tab;
 use crate::item_picker_list;
+use crate::items_tab;
 use crate::main_menu;
 use crate::options_menu;
 use crate::popup_menu;
@@ -72,9 +75,11 @@ use crate::refine_menu;
 use crate::sell_list;
 use crate::shop_item_list;
 use crate::shop_menu;
+use crate::skill_tab;
 use crate::start_trait_menu;
 use crate::stat_alloc_menu;
 use crate::status_page;
+use crate::system_tab;
 use j2me_jvm::{java_div, java_rem};
 
 /// The pushed sub-screen of a menu — the flat model of the polymorphic
@@ -112,8 +117,18 @@ pub enum MenuChild {
     ShopItemList,
     /// `child instanceof BuySellDialog` (`ab`) — the buy/sell confirm-and-quantity dialog.
     BuySell,
-    /// `child instanceof StatusPage` (`q`) — the character menu's status tab.
+    /// `child instanceof StatusPage` (`q`) — the character menu's status tab (tab 0).
     Status,
+    /// `child instanceof ItemsTab` (`ay`) — the character menu's items tab (tab 1).
+    Items,
+    /// `child instanceof EquipTab` (`bz`) — the character menu's equipment tab (tab 2).
+    Equip,
+    /// `child instanceof GuardianTab` (`bm`) — the character menu's guardian tab (tab 3).
+    Guardian,
+    /// `child instanceof SkillTab` (`s`) — the character menu's class-skill tab (tab 4).
+    Skill,
+    /// `child instanceof SystemTab` (`d`) — the character menu's system tab (tab 5).
+    System,
     /// `child instanceof StatAllocMenu` (`bi`) — the level-up stat-allocation dialog.
     StatAlloc,
     /// `child instanceof EnchantMenu` (`ap`) — the refinery's armor-enchant screen.
@@ -160,8 +175,18 @@ pub enum MenuNode {
     BuySell,
     /// `CharacterMenu` (`ai`) — the six-tab character-menu singleton (a separate root from `MainMenu`).
     Character,
-    /// `StatusPage` (`q`) — the character menu's status tab (pushed as `CharacterMenu`'s child).
+    /// `StatusPage` (`q`) — the character menu's status tab (tab 0, pushed as `CharacterMenu`'s child).
     Status,
+    /// `ItemsTab` (`ay`) — the character menu's items tab (tab 1, pushed as `CharacterMenu`'s child).
+    Items,
+    /// `EquipTab` (`bz`) — the character menu's equipment tab (tab 2, pushed as `CharacterMenu`'s child).
+    Equip,
+    /// `GuardianTab` (`bm`) — the character menu's guardian tab (tab 3, pushed as `CharacterMenu`'s child).
+    Guardian,
+    /// `SkillTab` (`s`) — the character menu's class-skill tab (tab 4, pushed as `CharacterMenu`'s child).
+    Skill,
+    /// `SystemTab` (`d`) — the character menu's system tab (tab 5, pushed as `CharacterMenu`'s child).
+    System,
     /// `StatAllocMenu` (`bi`) — the stat-allocation dialog (pushed as `StatusPage`'s child).
     StatAlloc,
     /// `RefineMenu` (`ax`) — the item-refinery hub singleton (a separate root from `MainMenu`,
@@ -178,7 +203,7 @@ pub enum MenuNode {
 /// Every concrete [`MenuNode`], for the parent-scan ([`parent_of`]). The flat model
 /// is a singleton stack, so a node's parent is the unique node whose resolved
 /// [`child_node`] is that node.
-const ALL_NODES: [MenuNode; 21] = [
+const ALL_NODES: [MenuNode; 26] = [
     MenuNode::Main,
     MenuNode::ClassSelect,
     MenuNode::ClassConfirm,
@@ -195,6 +220,11 @@ const ALL_NODES: [MenuNode; 21] = [
     MenuNode::BuySell,
     MenuNode::Character,
     MenuNode::Status,
+    MenuNode::Items,
+    MenuNode::Equip,
+    MenuNode::Guardian,
+    MenuNode::Skill,
+    MenuNode::System,
     MenuNode::StatAlloc,
     MenuNode::Refine,
     MenuNode::Enchant,
@@ -266,6 +296,11 @@ fn node_base(g: &Game, node: MenuNode) -> &MenuBase {
         MenuNode::BuySell => &g.buy_sell_dialog.base,
         MenuNode::Character => &g.character_menu.base,
         MenuNode::Status => &g.status_page.base,
+        MenuNode::Items => &g.items_tab.base,
+        MenuNode::Equip => &g.equip_tab.base,
+        MenuNode::Guardian => &g.guardian_tab.base,
+        MenuNode::Skill => &g.skill_tab.base,
+        MenuNode::System => &g.system_tab.base,
         MenuNode::StatAlloc => &g.stat_alloc_menu.base,
         MenuNode::Refine => &g.refine_menu.base,
         MenuNode::Enchant => &g.enchant_menu.base,
@@ -293,6 +328,11 @@ fn node_base_mut(g: &mut Game, node: MenuNode) -> &mut MenuBase {
         MenuNode::BuySell => &mut g.buy_sell_dialog.base,
         MenuNode::Character => &mut g.character_menu.base,
         MenuNode::Status => &mut g.status_page.base,
+        MenuNode::Items => &mut g.items_tab.base,
+        MenuNode::Equip => &mut g.equip_tab.base,
+        MenuNode::Guardian => &mut g.guardian_tab.base,
+        MenuNode::Skill => &mut g.skill_tab.base,
+        MenuNode::System => &mut g.system_tab.base,
         MenuNode::StatAlloc => &mut g.stat_alloc_menu.base,
         MenuNode::Refine => &mut g.refine_menu.base,
         MenuNode::Enchant => &mut g.enchant_menu.base,
@@ -325,6 +365,11 @@ fn child_node(child: MenuChild) -> Option<MenuNode> {
         MenuChild::ShopItemList => Some(MenuNode::ShopItemList),
         MenuChild::BuySell => Some(MenuNode::BuySell),
         MenuChild::Status => Some(MenuNode::Status),
+        MenuChild::Items => Some(MenuNode::Items),
+        MenuChild::Equip => Some(MenuNode::Equip),
+        MenuChild::Guardian => Some(MenuNode::Guardian),
+        MenuChild::Skill => Some(MenuNode::Skill),
+        MenuChild::System => Some(MenuNode::System),
         MenuChild::StatAlloc => Some(MenuNode::StatAlloc),
         MenuChild::Enchant => Some(MenuNode::Enchant),
         MenuChild::Combine => Some(MenuNode::Combine),
@@ -367,6 +412,11 @@ fn paint_node(g: &mut Game, node: MenuNode, origin_x: i32, origin_y: i32) {
         MenuNode::BuySell => buy_sell_dialog::paint(g, origin_x, origin_y),
         MenuNode::Character => character_menu::paint(g, origin_x, origin_y),
         MenuNode::Status => status_page::paint(g, origin_x, origin_y),
+        MenuNode::Items => items_tab::paint(g, origin_x, origin_y),
+        MenuNode::Equip => equip_tab::paint(g, origin_x, origin_y),
+        MenuNode::Guardian => guardian_tab::paint(g, origin_x, origin_y),
+        MenuNode::Skill => skill_tab::paint(g, origin_x, origin_y),
+        MenuNode::System => system_tab::paint(g, origin_x, origin_y),
         MenuNode::StatAlloc => stat_alloc_menu::paint(g, origin_x, origin_y),
         MenuNode::Refine => refine_menu::paint(g, origin_x, origin_y),
         MenuNode::Enchant => enchant_menu::paint(g, origin_x, origin_y),
@@ -394,6 +444,11 @@ fn dispatch_handle_key(g: &mut Game, node: MenuNode, action: i32, key_code: i32)
         MenuNode::BuySell => buy_sell_dialog::handle_key(g, action, key_code),
         MenuNode::Character => character_menu::handle_key(g, action, key_code),
         MenuNode::Status => status_page::handle_key(g, action, key_code),
+        MenuNode::Items => items_tab::handle_key(g, action, key_code),
+        MenuNode::Equip => equip_tab::handle_key(g, action, key_code),
+        MenuNode::Guardian => guardian_tab::handle_key(g, action, key_code),
+        MenuNode::Skill => skill_tab::handle_key(g, action, key_code),
+        MenuNode::System => system_tab::handle_key(g, action, key_code),
         MenuNode::StatAlloc => stat_alloc_menu::handle_key(g, action, key_code),
         MenuNode::Refine => refine_menu::handle_key(g, action, key_code),
         MenuNode::Enchant => enchant_menu::handle_key(g, action, key_code),
@@ -686,6 +741,11 @@ pub fn on_popup_result(g: &mut Game, node: MenuNode, tag: i8, result: i8) {
         MenuNode::Refine => refine_menu::on_popup_result(g, tag, result),
         MenuNode::Enchant => enchant_menu::on_popup_result(g, tag, result),
         MenuNode::Combine => combine_menu::on_popup_result(g, tag, result),
+        MenuNode::Items => items_tab::on_popup_result(g, tag, result),
+        MenuNode::Equip => equip_tab::on_popup_result(g, tag, result),
+        MenuNode::Guardian => guardian_tab::on_popup_result(g, tag, result),
+        MenuNode::Skill => skill_tab::on_popup_result(g, tag, result),
+        MenuNode::System => system_tab::on_popup_result(g, tag, result),
         _ => on_popup_result_base(g, node, tag, result),
     }
 }
