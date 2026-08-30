@@ -90,3 +90,18 @@ Each lift = add to the kit source, re-publish/re-pin, switch game-xlat to the ge
 8. ByteArrayIn/OutputStream (rms_file.rs) → `j2me-me`.
 9. MIDlet JAD property reader (app_config.rs get_app_property) → `j2me-me`; `String.trim`/`indexOf` (app_config.rs) → `j2me-jvm`.
 Already-correct (do not touch): j2me-me media.rs (MMAPI), rms.rs (RecordStore) — consumed via the host seam.
+
+### CAVEAT — the peer is actively building the kit; several lifts already exist there
+Checked the home repo (2026-08-30): the peer ships kit generics faster than WoS's
+pinned rev (`7aeba277`) reflects. Already present in `_template/crates`:
+`j2me-jvm/src/random.rs` (lift #3 java.util.Random — DONE upstream), `j2me-me/src/
+image.rs` (an image-resource seam overlapping lift #4), and `j2me-platform-native`
+already has `input.rs`/`evdev.rs`/`lifecycle.rs`/`audio.rs`/`haptics.rs` (overlaps
+lifts #2/#5). So for those the action is NOT to fork the kit but to **re-pin WoS to a
+newer kit rev and switch game-xlat to the generic API** (delete the local dup). Do
+NOT edit `_template/crates` concurrently with the peer — coordinate; contribute only
+genuinely-missing generics, and prefer re-pin+switch for ones already upstream.
+Genuinely-missing candidates to confirm before contributing: named Nokia negative
+keycodes in `j2me-me::canvas` (#1), `readUTF` in `j2me-codec` (#7), the DataOutput
+`write_i32_be` (#6). Treat the whole generic-lift track as a post-port cleanup pass
+that re-pins once, then switches all dups — sequenced with the peer.
