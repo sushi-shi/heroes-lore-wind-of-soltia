@@ -54,6 +54,7 @@
 //! `cb.c:()V => []` (invalidateDown).
 
 use crate::about_screen;
+use crate::buy_sell_dialog;
 use crate::class_confirm_menu;
 use crate::class_select_menu;
 use crate::confirm_dialog;
@@ -64,6 +65,8 @@ use crate::main_menu;
 use crate::options_menu;
 use crate::popup_menu;
 use crate::sell_list;
+use crate::shop_item_list;
+use crate::shop_menu;
 use crate::start_trait_menu;
 use j2me_jvm::{java_div, java_rem};
 
@@ -98,6 +101,10 @@ pub enum MenuChild {
     ItemPicker,
     /// `child instanceof SellList` (`bb`) — the shop's sell-from-bag list.
     SellList,
+    /// `child instanceof ShopItemList` (`v`) — the shop's per-category stock list.
+    ShopItemList,
+    /// `child instanceof BuySellDialog` (`ab`) — the buy/sell confirm-and-quantity dialog.
+    BuySell,
 }
 
 /// Identifies a *concrete* menu that owns a `MenuBase` + `paint`/`handleKey` — the
@@ -128,12 +135,18 @@ pub enum MenuNode {
     ItemPicker,
     /// `SellList` (`bb`) — the shop sell list (pushed by the shop menu; extends `ItemPickerList`).
     SellList,
+    /// `ShopMenu` (`bp`) — the six-tab merchant shop singleton (a separate root from `MainMenu`).
+    ShopMenu,
+    /// `ShopItemList` (`v`) — the shop's per-category stock list (pushed as `ShopMenu`'s child).
+    ShopItemList,
+    /// `BuySellDialog` (`ab`) — the buy/sell confirm dialog (pushed by `ShopItemList`/`SellList`).
+    BuySell,
 }
 
 /// Every concrete [`MenuNode`], for the parent-scan ([`parent_of`]). The flat model
 /// is a singleton stack, so a node's parent is the unique node whose resolved
 /// [`child_node`] is that node.
-const ALL_NODES: [MenuNode; 11] = [
+const ALL_NODES: [MenuNode; 14] = [
     MenuNode::Main,
     MenuNode::ClassSelect,
     MenuNode::ClassConfirm,
@@ -145,6 +158,9 @@ const ALL_NODES: [MenuNode; 11] = [
     MenuNode::About,
     MenuNode::ItemPicker,
     MenuNode::SellList,
+    MenuNode::ShopMenu,
+    MenuNode::ShopItemList,
+    MenuNode::BuySell,
 ];
 
 /// The instance fields of a `Menu` (`cb`), carried by each concrete menu's state
@@ -206,6 +222,9 @@ fn node_base(g: &Game, node: MenuNode) -> &MenuBase {
         MenuNode::About => &g.about_screen.base,
         MenuNode::ItemPicker => &g.item_picker_list.base,
         MenuNode::SellList => &g.sell_list.picker.base,
+        MenuNode::ShopMenu => &g.shop_menu.base,
+        MenuNode::ShopItemList => &g.shop_item_list.base,
+        MenuNode::BuySell => &g.buy_sell_dialog.base,
     }
 }
 
@@ -223,7 +242,16 @@ fn node_base_mut(g: &mut Game, node: MenuNode) -> &mut MenuBase {
         MenuNode::About => &mut g.about_screen.base,
         MenuNode::ItemPicker => &mut g.item_picker_list.base,
         MenuNode::SellList => &mut g.sell_list.picker.base,
+        MenuNode::ShopMenu => &mut g.shop_menu.base,
+        MenuNode::ShopItemList => &mut g.shop_item_list.base,
+        MenuNode::BuySell => &mut g.buy_sell_dialog.base,
     }
+}
+
+/// Sets a node's `needsRepaint` flag — the flat model of `someMenu.needsRepaint =
+/// value` (e.g. `ShopItemList`'s vertical nav marking `((Menu) this).parent`).
+pub fn set_needs_repaint(g: &mut Game, node: MenuNode, value: bool) {
+    node_base_mut(g, node).needs_repaint = value;
 }
 
 /// Resolves a child discriminant to the [`MenuNode`] to recurse into
@@ -241,6 +269,8 @@ fn child_node(child: MenuChild) -> Option<MenuNode> {
         MenuChild::About => Some(MenuNode::About),
         MenuChild::ItemPicker => Some(MenuNode::ItemPicker),
         MenuChild::SellList => Some(MenuNode::SellList),
+        MenuChild::ShopItemList => Some(MenuNode::ShopItemList),
+        MenuChild::BuySell => Some(MenuNode::BuySell),
     }
 }
 
@@ -274,6 +304,9 @@ fn paint_node(g: &mut Game, node: MenuNode, origin_x: i32, origin_y: i32) {
         MenuNode::About => about_screen::paint(g, origin_x, origin_y),
         MenuNode::ItemPicker => item_picker_list::paint(g, origin_x, origin_y),
         MenuNode::SellList => sell_list::paint(g, origin_x, origin_y),
+        MenuNode::ShopMenu => shop_menu::paint(g, origin_x, origin_y),
+        MenuNode::ShopItemList => shop_item_list::paint(g, origin_x, origin_y),
+        MenuNode::BuySell => buy_sell_dialog::paint(g, origin_x, origin_y),
     }
 }
 
@@ -291,6 +324,9 @@ fn dispatch_handle_key(g: &mut Game, node: MenuNode, action: i32, key_code: i32)
         MenuNode::About => about_screen::handle_key(g, action, key_code),
         MenuNode::ItemPicker => item_picker_list::handle_key(g, action, key_code),
         MenuNode::SellList => sell_list::handle_key(g, action, key_code),
+        MenuNode::ShopMenu => shop_menu::handle_key(g, action, key_code),
+        MenuNode::ShopItemList => shop_item_list::handle_key(g, action, key_code),
+        MenuNode::BuySell => buy_sell_dialog::handle_key(g, action, key_code),
     }
 }
 
@@ -392,6 +428,54 @@ pub fn move_cursor(base: &mut MenuBase, direction: i8) {
     step_cursor(base, direction, true);
 }
 
+/// Dispatches the virtual `Menu.moveCursor(direction)` to `node`'s concrete override.
+/// `ShopMenu` (rebuilds its `ShopItemList` child) and `BuySellDialog` (adjusts its
+/// quantity) override it; every other ported menu uses the base [`move_cursor`].
+pub fn move_cursor_node(g: &mut Game, node: MenuNode, direction: i8) {
+    match node {
+        MenuNode::ShopMenu => shop_menu::move_cursor(g, direction),
+        MenuNode::BuySell => buy_sell_dialog::move_cursor(g, direction),
+        _ => move_cursor(node_base_mut(g, node), direction),
+    }
+}
+
+/// `moveCursorHorizontal` routed through the virtual [`move_cursor_node`], so a
+/// menu that overrides `moveCursor` (`ShopMenu`/`BuySellDialog`) runs its override.
+/// Mirrors [`move_cursor_horizontal`] otherwise (keys 4/6 or LEFT/RIGHT actions).
+pub fn move_cursor_horizontal_node(
+    g: &mut Game,
+    node: MenuNode,
+    action: i32,
+    key_code: i32,
+) -> bool {
+    match key_code {
+        // case 52: moveCursor((byte) 3); return true;
+        52 => {
+            move_cursor_node(g, node, 3);
+            true
+        }
+        // case 54: moveCursor((byte) 4); return true;
+        54 => {
+            move_cursor_node(g, node, 4);
+            true
+        }
+        _ => match action {
+            // case 2: moveCursor((byte) 3); return true;
+            2 => {
+                move_cursor_node(g, node, 3);
+                true
+            }
+            // case 5: moveCursor((byte) 4); return true;
+            5 => {
+                move_cursor_node(g, node, 4);
+                true
+            }
+            // default: return false;
+            _ => false,
+        },
+    }
+}
+
 /// `public final void stepCursor(byte direction, boolean wrap)`
 /// (`cb.a:(BZ)V => [iadd,i2b,isub,i2b,isub,i2b,isub,i2b]`): steps the cursor one
 /// entry (`direction` 4 advances, otherwise retreats), with optional wrap.
@@ -449,6 +533,13 @@ pub fn render(g: &mut Game, origin_x: i32, origin_y: i32) {
     render_node(g, MenuNode::Main, origin_x, origin_y);
 }
 
+/// `Menu.render` entry for a non-`MainMenu` root subtree — the `ShopMenu` singleton
+/// is a separate root (`this` in `ShopMenu.draw`'s `render(...)`), reached via the
+/// world's screen-6 dispatch rather than the main-menu stack.
+pub fn render_at(g: &mut Game, node: MenuNode, origin_x: i32, origin_y: i32) {
+    render_node(g, node, origin_x, origin_y);
+}
+
 /// The generic per-node render walk (the abstract `Menu.render`, dispatched by
 /// [`MenuNode`]). With `child == MenuChild::None` this is bit-for-bit the old
 /// main-menu-only specialisation.
@@ -503,6 +594,7 @@ pub fn on_popup_result(g: &mut Game, node: MenuNode, tag: i8, result: i8) {
     match node {
         MenuNode::Main => main_menu::on_popup_result(g, tag, result),
         MenuNode::SellList => sell_list::on_popup_result(g, tag, result),
+        MenuNode::BuySell => buy_sell_dialog::on_popup_result(g, tag, result),
         _ => on_popup_result_base(g, node, tag, result),
     }
 }
