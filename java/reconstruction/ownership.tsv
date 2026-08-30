@@ -19,13 +19,26 @@
 #   GameScreen  -> as.class   (PARTIAL: the geometry statics + the case-9 main-menu
 #                              dispatch; the world/HUD/other-screen statics deferred)
 #   Menu        -> cb.class   (no rows: the abstract menu base has NO static fields —
-#                              every field is per-instance, carried by MainMenuState.base)
+#                              every field is per-instance, carried by the concrete
+#                              menus' *State.base, e.g. MainMenuState/ClassSelectMenuState)
 #   MainMenu    -> bf.class
+#   ClassSelectMenu -> c.class (no rows: instance menu, no static fields — its Menu
+#                              base fields are per-instance, carried by
+#                              ClassSelectMenuState.base; the flat model holds the
+#                              reusable child slot as the Game.class_select_menu field,
+#                              linked by MainMenu's Menu.child discriminant)
 #   AssetCache  -> ce.class   (PARTIAL: the title/logo render-path statics + the
 #                              main-menu frame atlas `menuFrames`)
 #   FontManager -> bh.class   (PARTIAL: the title text path's fonts + labels, plus the
 #                              main-menu item labels + Ok/Exit soft-key labels)
 #   StringTable -> cj.class
+#   TextTable   -> z.class    (no rows: instance class, no static fields — its
+#                              `stringIds` (`[I`) and `count` (`S`) are per-INSTANCE,
+#                              carried by a TextTableState the owner holds when ported
+#                              (AssetCache.commonText/heroText, Item.typeNames,
+#                              Armor.attributeNames — the DEFERRED `Lz;` statics noted
+#                              on Item/Armor below). `get` resolves through the
+#                              StringTable singleton at read time.)
 #   BitmapFont  -> az.class   (no rows: no static mutable state — its `crcTable`
 #                              is a `static final` constant, reproduced by a fn;
 #                              a BitmapFont's data is per-instance, modelled by the

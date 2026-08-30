@@ -10,18 +10,20 @@
 //!
 //! - `create` / the private constructor / `instance` / `dispose`;
 //! - `handleKey` — the cursor navigation (`moveCursorVertical` + the disabled-Load
-//!   skip + `logoFrame` reset); the FIRE-select dispatch (into `ClassSelectMenu` /
-//!   `ContinueMenu` / `OptionsMenu` / `HelpMenu` / `AboutScreen` / exit-buy popups)
-//!   and the `keyCode == -8` exit-popup are DEFERRED (their target screens are not
-//!   ported and the `01-menu` route never presses FIRE/Back);
+//!   skip + `logoFrame` reset) plus the FIRE-select `switch(cursorIndex)`: **case 0
+//!   ("New Game")** is wired on a fresh install (`!hasSave` → push
+//!   `ClassSelectMenu` as the child). The other cases (`ContinueMenu` /
+//!   `OptionsMenu` / `HelpMenu` / `AboutScreen` / the save-overwrite + exit/buy
+//!   popups) and the `keyCode == -8` exit-popup remain DEFERRED (their target
+//!   screens are not ported);
 //! - `draw` (the `demoExpiry <= 0` branch: `render` + the `logoFrame` intro
 //!   animation) — the demo trial-splash branch is DEFERRED (`demoExpiry` is 0 on a
 //!   fresh install);
 //! - `paint` (the parchment fill + panel + selection sprite + item labels +
-//!   soft keys) and the static `drawMenuPanel`.
+//!   soft keys) and the statics `drawMenuPanel` / `drawTitlePlate` (the latter used
+//!   by the front-menu subscreens, e.g. `ClassSelectMenu.paint`).
 //!
-//! `onPopupResult`, `drawTitlePlate`, the demo splash, and the save-blob plumbing
-//! are DEFERRED.
+//! `onPopupResult`, the demo splash, and the save-blob plumbing are DEFERRED.
 //!
 //! Opcode shapes (R8, `_reference/numeric_shapes.json`):
 //! `bf.a:(Z[B)V => [isub, isub]` (create — `halfW-77`, `halfH-85`),
@@ -31,12 +33,14 @@
 //! `bf.a:(…Graphics;)V => [ishr, isub, ishr, iadd, i2b]` (draw — the ported subset
 //! is `logoFrame + 1`; the ishr/isub/ishr are the DEFERRED demo branch),
 //! `bf.a:(…Graphics;II)V => [iinc,isub,isub,iadd,ishr,iadd,imul,iadd,iadd,imul,iadd,imul,i2b,iadd,i2b,iadd,ishr,iinc]` (paint),
-//! `bf.b:(…Graphics;III)V => [iinc×…,iadd×…,imul×…]` (drawMenuPanel).
+//! `bf.b:(…Graphics;III)V => [iinc×…,iadd×…,imul×…]` (drawMenuPanel),
+//! `bf.c:(…Graphics;II)V => [iinc,iinc,iinc,iinc,iadd,iinc,iadd,iinc,iadd,iinc,iinc,iadd]` (drawTitlePlate).
 
 use crate::asset_cache::AssetCacheState;
+use crate::class_select_menu;
 use crate::font_manager::{self, APP_CONFIG_MENU_BUY_ENABLED};
 use crate::game::Game;
-use crate::menu;
+use crate::menu::{self, MenuChild, MenuNode};
 use j2me_jvm::ishr;
 
 /// Java `bf` / `MainMenu` state: the `Menu` instance fields (as [`menu::MenuBase`]),
@@ -124,8 +128,8 @@ pub fn create(g: &mut Game, has_save: bool, save_blob: Vec<i8>) {
 /// `private MainMenu(boolean hasSave, byte[] saveBlob)`
 /// (`bf.<init>:(Z[B)V => [iadd, i2b, ladd]`).
 pub fn construct(g: &mut Game, has_save: bool, save_blob: Vec<i8>) {
-    // super(null, (byte) 6);
-    g.main_menu.base = menu::construct(6);
+    // super(null, (byte) 6);   (null parent → the main menu is the root)
+    g.main_menu.base = menu::construct(false, 6);
     // if (AppConfig.menuBuyEnabled) itemCount = (byte) (itemCount + 1);
     if APP_CONFIG_MENU_BUY_ENABLED {
         g.main_menu.base.item_count = (g.main_menu.base.item_count as i32).wrapping_add(1) as i8;
@@ -150,8 +154,12 @@ pub fn dispose(g: &mut Game) {
 }
 
 /// `public final boolean handleKey(int action, int keyCode)`
-/// (`bf.a:(II)Z => [iadd, i2b, isub, i2b]`): the ported subset is the cursor
-/// navigation. Returns whether the key was consumed.
+/// (`bf.a:(II)Z => [iadd, i2b, isub, i2b]`): the cursor navigation plus the
+/// FIRE-select `switch(cursorIndex)`. This increment wires **case 0 ("New Game")**
+/// on a fresh install (`!hasSave` → push `ClassSelectMenu` as the child); the
+/// remaining cases (Continue / Options / Help / About / Exit + the save-overwrite
+/// and buy/exit popups) are DEFERRED (their target screens are not ported).
+/// Returns whether the key was consumed.
 pub fn handle_key(g: &mut Game, action: i32, key_code: i32) -> bool {
     // if (this.demoExpiry > 0) { ...demo buy/exit... }
     if g.main_menu.demo_expiry > 0 {
@@ -159,7 +167,7 @@ pub fn handle_key(g: &mut Game, action: i32, key_code: i32) -> bool {
         return true;
     }
     // if (passKeyToChild(action, keyCode)) return true;
-    if menu::pass_key_to_child(&mut g.main_menu.base, action, key_code) {
+    if menu::pass_key_to_child(g, MenuNode::Main, action, key_code) {
         return true;
     }
     // if (moveCursorVertical(action, keyCode, false)) { ... }
@@ -190,10 +198,50 @@ pub fn handle_key(g: &mut Game, action: i32, key_code: i32) -> bool {
         return false;
     }
     // switch (cursorIndex) { ...FIRE-select... }
-    // (DEFERRED: FIRE-select dispatch into ClassSelectMenu / ContinueMenu /
-    // OptionsMenu / HelpMenu / AboutScreen / exit+buy popups — their target screens
-    // are not ported and the 01-menu nav route never presses FIRE.)
-    false
+    match g.main_menu.base.cursor_index as i32 {
+        // case 0:  New Game
+        0 => {
+            // if (!this.hasSave) { child = new ClassSelectMenu(this); return false; }
+            if !g.main_menu.has_save {
+                // new ClassSelectMenu(this)  — materialise the child state, then link it.
+                class_select_menu::construct(g);
+                g.main_menu.base.child = MenuChild::ClassSelect;
+                return false;
+            }
+            // this.pendingAction = (byte) 0;
+            g.main_menu.pending_action = 0;
+            // showPopup((byte) 12, (byte) 2, {getString(3929)}, labelOk, labelBack);
+            // (DEFERRED: save-overwrite confirm popup — PopupMenu / getString(3929) /
+            // labelBack not ported; hasSave is false on the wired fresh-install path.)
+            false
+        }
+        // case 1: child = new ContinueMenu(this, saveBlob);
+        1 => {
+            // (DEFERRED: ContinueMenu — not ported.)
+            false
+        }
+        // case 2: child = new OptionsMenu(this, false);
+        2 => {
+            // (DEFERRED: OptionsMenu — not ported.)
+            false
+        }
+        // case 3: child = new HelpMenu(this, false);
+        3 => {
+            // (DEFERRED: HelpMenu — not ported.)
+            false
+        }
+        // case 4: child = new AboutScreen(this, false);
+        4 => {
+            // (DEFERRED: AboutScreen — not ported.)
+            false
+        }
+        // default: aboutIndex → exit-confirm popup; exitIndex → buy popup.
+        _ => {
+            // (DEFERRED: about/exit + buy popups — PopupMenu not ported; the fresh
+            // install's aboutIndex/exitIndex are both 5 and are DEFERRED.)
+            false
+        }
+    }
 }
 
 /// `public final void draw(Graphics graphics)`
@@ -207,7 +255,7 @@ pub fn draw(g: &mut Game) {
         let py = g.main_menu.panel_y;
         menu::render(g, px, py);
         // if (this.logoFrame >= 2 || this.child != null) return;
-        if (g.main_menu.logo_frame as i32) >= 2 || g.main_menu.base.child {
+        if (g.main_menu.logo_frame as i32) >= 2 || g.main_menu.base.child != MenuChild::None {
             return;
         }
         // this.needsRepaint = true;
@@ -394,4 +442,54 @@ pub fn draw_menu_panel(
     }
     // graphics.drawImage(menuFrames[13], bottomX + 32, bottomY, 20);
     draw(graphics, 13, bottom_x.wrapping_add(32), bottom_y);
+}
+
+/// `public static final void drawTitlePlate(Graphics graphics, int x, int y)`
+/// (`bf.c:(…Graphics;II)V`): the two-row decorative title plate from the UI atlas
+/// at (`x`,`y`). Reused by the front-menu subscreens (`ClassSelectMenu.paint`).
+pub fn draw_title_plate(
+    asset_cache: &AssetCacheState,
+    graphics: &mut j2me_me::Graphics,
+    x: i32,
+    y: i32,
+) {
+    let mf = asset_cache
+        .menu_frames
+        .as_ref()
+        .expect("AssetCache.menuFrames null");
+    let draw = |graphics: &mut j2me_me::Graphics, idx: usize, ix: i32, iy: i32| {
+        graphics
+            .draw_image(&mf[idx], ix, iy, 20)
+            .expect("drawImage(menuFrames)");
+    };
+    // graphics.drawImage(menuFrames[0], x, y, 20);
+    draw(graphics, 0, x, y);
+    // int topX = x + 12;
+    let mut top_x: i32 = x.wrapping_add(12);
+    // graphics.drawImage(menuFrames[1], topX, y, 20);
+    draw(graphics, 1, top_x, y);
+    // for (int col = 0; col < 3; col++) { topX += 32; drawImage(menuFrames[1], topX, y, 20); }
+    let mut col: i32 = 0;
+    while col < 3 {
+        top_x = top_x.wrapping_add(32);
+        draw(graphics, 1, top_x, y);
+        col = col.wrapping_add(1);
+    }
+    // graphics.drawImage(menuFrames[2], topX + 32, y, 20);
+    draw(graphics, 2, top_x.wrapping_add(32), y);
+    // graphics.drawImage(menuFrames[11], x, y + 12, 20);
+    draw(graphics, 11, x, y.wrapping_add(12));
+    // int bottomX = x + 12;
+    let mut bottom_x: i32 = x.wrapping_add(12);
+    // graphics.drawImage(menuFrames[12], bottomX, y + 12, 20);
+    draw(graphics, 12, bottom_x, y.wrapping_add(12));
+    // for (int col2 = 0; col2 < 3; col2++) { bottomX += 32; drawImage(menuFrames[12], bottomX, y + 12, 20); }
+    let mut col2: i32 = 0;
+    while col2 < 3 {
+        bottom_x = bottom_x.wrapping_add(32);
+        draw(graphics, 12, bottom_x, y.wrapping_add(12));
+        col2 = col2.wrapping_add(1);
+    }
+    // graphics.drawImage(menuFrames[13], bottomX + 32, y + 12, 20);
+    draw(graphics, 13, bottom_x.wrapping_add(32), y.wrapping_add(12));
 }

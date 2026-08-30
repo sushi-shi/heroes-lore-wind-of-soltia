@@ -26,6 +26,7 @@ use crate::asset_cache::AssetCacheState;
 use crate::audio_manager::AudioManagerState;
 use crate::base_canvas::BaseCanvasState;
 use crate::byte_util::ByteUtilState;
+use crate::class_select_menu::ClassSelectMenuState;
 use crate::debug::DebugState;
 use crate::font_manager::FontManagerState;
 use crate::game_loop::GameLoopState;
@@ -96,6 +97,11 @@ pub struct Game {
     pub game_screen: GameScreenState,
     /// `bf` / `MainMenu` state (the front menu + its `cb`/`Menu` base fields).
     pub main_menu: MainMenuState,
+    /// `c` / `ClassSelectMenu` state (the starting-class picker + its `cb`/`Menu`
+    /// base fields). Not a Java static/singleton — a per-instance child of
+    /// `MainMenu`; the flat model carries the reusable child slot as a `Game` field,
+    /// linked/unlinked by `MainMenu`'s [`MenuChild`](crate::menu::MenuChild).
+    pub class_select_menu: ClassSelectMenuState,
     /// `bw` / `AudioManager` state (the `snd/` clip pool + volume/mixer state).
     pub audio: AudioManagerState,
     /// `ce` / `AssetCache` state (PARTIAL — only the title/logo render-path banks
@@ -148,6 +154,7 @@ impl Game {
             title_screen: TitleScreenState::default(),
             game_screen: GameScreenState::default(),
             main_menu: MainMenuState::default(),
+            class_select_menu: ClassSelectMenuState::default(),
             asset_cache: AssetCacheState::new(),
             font_manager: FontManagerState::default(),
             string_table: StringTableData::default(),
