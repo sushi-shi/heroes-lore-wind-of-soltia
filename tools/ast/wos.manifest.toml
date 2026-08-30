@@ -13,7 +13,7 @@ schema_version = 2
 build = "heroes-lore-wind-of-soltia v2.0.7 named-Java oracle"
 total_body_count = 90
 reviewed_body_count = 30
-crosswalked_body_count = 5
+crosswalked_body_count = 9
 
 [policy]
 blanket_max_span = 48
@@ -664,13 +664,54 @@ opcode_sha256 = "f563d92e6eea0243806d14ed4ae74538c88743f7855340d9608f7b40fc52b1b
 java_ast_sha256 = "3207f955e343c745a049614465c031236963758b776c18da23ca02d8a91ff0cf"
 java_nodes_sha256 = "b0fae7092ad7d883af1753024c9cdd88d8980685b4467771cd7daa0934e2c7f0"
 java_node_count = 203
-review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+semantic_status = "crosswalked"
+review = "The RMS save obfuscation cipher — a rolling XOR against a repeating key plus a trailing additive checksum — crosswalked node-for-node (203 Java / 284 Rust nodes, each decided exactly once). It is XOR/mask dense but contains NO shifts or divides, so the operator-realization tooth never fires; each Java `^` and `& 255` is still paired to a genuine Rust `^`/`&` for faithfulness, and each byte baload sign-extend is realized by `as i32`. encrypt's `for` becomes init + `while` + a tail increment; the checksum byte is appended after the loop. decrypt preserves two subtleties honestly: (1) the per-byte `try { ... } catch(Exception){ return null; }` is realized as a checked `let key_byte = match key.get(key_index as usize) { Some(&b) => b, None => return None }` — the one access that can throw (key[keyIndex]) is read once into a hoisted local and the None arm reproduces the catch's `return null`, so both inline Java key[keyIndex] reads pair to that hoisted key_byte; (2) Java's `return out`/`return null` map to Rust `Some(out)`/`None` (the byte[]-or-null contract becomes Option). The preserved allocation quirk (out is cipher.length+1 bytes though only cipher.length-1 are written) lives in the code, not in a node decision. One-sided nodes: the synthetic class constructor (erased), modifiers (erased), the if/while-condition parens (erased), and the unused caught `Exception` variable (erased — no Rust binding)."
 rust = [
   { file = "transliteration/game-xlat/src/save_cipher.rs", item = "fn:encrypt", ast_sha256 = "1c23296ad3cb056b745d69b6935d15f13c244a2640a6c1140c519577dfbe78c5", nodes_sha256 = "90d4565be1ae8d7c16c8e1f198eeaf0a2fccbe3a12bb4eb19af2a8f1e7117938", node_count = 123 },
   { file = "transliteration/game-xlat/src/save_cipher.rs", item = "fn:decrypt", ast_sha256 = "9ebe8a6b7dd9b8767bfc29e0aed3125110a67c1919fa38e6d0c9b8fbc908a590", nodes_sha256 = "32547f80842ac1fc1a5b167d6f56132bdf9fee4efb0ae48c61d41c1ca5d1b1cc", node_count = 161 },
 ]
-op = []
-adapt = []
+op = [
+  { semantic = "encrypt() method body block", java = [1], rust = ["0:0"] },
+  { semantic = "byte[] out = new byte[plaintext.length + 1] <-> let mut out = vec![0i8; (plaintext.len() as i32).wrapping_add(1) as usize] — the length + 1 (PLUS) realized inside the vec! macro by wrapping_add", java = [2, 4, 5, 6, 7, 8, 9, 10, 11], rust_range = [{ target = 0, start = 1, end = 5 }] },
+  { semantic = "int checksum = 0 <-> let mut checksum: i32 = 0", java = [12, 14, 15], rust_range = [{ target = 0, start = 6, end = 8 }] },
+  { semantic = "int keyIndex = 0 <-> let mut key_index: i32 = 0", java = [16, 18, 19], rust_range = [{ target = 0, start = 9, end = 11 }] },
+  { semantic = "for-init `int i = 0` <-> let mut i: i32 = 0", java = [21, 23, 24], rust_range = [{ target = 0, start = 12, end = 14 }] },
+  { semantic = "for-loop header `i < plaintext.length` <-> while i < plaintext.len() as i32 (FOR_LOOP -> while; condition; body block)", java = [20, 25, 26, 27, 28], rust_range = [{ target = 0, start = 15, end = 23 }] },
+  { semantic = "loop body block", java = [32], rust = ["0:24"] },
+  { semantic = "byte plain = plaintext[i] <-> let plain: i8 = plaintext[i as usize]", java = [33, 35, 36, 37, 38], rust_range = [{ target = 0, start = 25, end = 33 }] },
+  { semantic = "keyIndex++ <-> key_index = key_index.wrapping_add(1) — the key index is advanced before each byte", java = [39, 40, 41], rust_range = [{ target = 0, start = 34, end = 40 }] },
+  { semantic = "if (keyIndex == key.length) keyIndex = 0 <-> if key_index == key.len() as i32 { key_index = 0 } — wraps the key index", java = [42, 44, 45, 46, 47, 48, 49, 50, 51, 52], rust_range = [{ target = 0, start = 41, end = 54 }] },
+  { semantic = "int cipher = plain ^ key[keyIndex] <-> let cipher: i32 = (plain as i32) ^ (key[key_index as usize] as i32) — XOR realized by Rust `^`; both bytes baload sign-extend via `as i32`", java = [53, 55, 56, 57, 58, 59, 60], rust_range = [{ target = 0, start = 55, end = 72 }] },
+  { semantic = "checksum += key[keyIndex] & 255 <-> checksum = checksum.wrapping_add((key[key_index as usize] as i32) & 255) — AND realized by Rust `&`, accumulate keystream byte zero-extended", java = [61, 62, 63, 64, 65, 66, 67, 68], rust_range = [{ target = 0, start = 73, end = 90 }] },
+  { semantic = "out[i] = (byte) cipher <-> out[i as usize] = cipher as i8 — TYPE_CAST byte realized by `as i8`", java = [69, 70, 71, 72, 73, 74, 75, 76], rust_range = [{ target = 0, start = 91, end = 102 }] },
+  { semantic = "for-update i++ <-> i = i.wrapping_add(1) (tail of the loop body)", java = [29, 30, 31], rust_range = [{ target = 0, start = 103, end = 109 }] },
+  { semantic = "out[plaintext.length] = (byte) checksum <-> out[plaintext.len()] = checksum as i8 — the appended checksum byte; TYPE_CAST byte -> `as i8`", java = [77, 78, 79, 80, 81, 82, 83, 84, 85], rust_range = [{ target = 0, start = 110, end = 120 }] },
+  { semantic = "return out <-> trailing `out`", java = [86, 87], rust = ["0:121", "0:122"] },
+  { semantic = "decrypt() method body block", java = [88], rust = ["1:0"] },
+  { semantic = "byte[] out = new byte[cipher.length + 1] <-> let mut out = vec![0i8; (cipher.len() as i32).wrapping_add(1) as usize] — preserved quirk: cipher.length+1 allocated though only cipher.length-1 written; PLUS realized in the macro by wrapping_add", java = [89, 91, 92, 93, 94, 95, 96, 97, 98], rust_range = [{ target = 1, start = 1, end = 5 }] },
+  { semantic = "int checksum = 0 <-> let mut checksum: i32 = 0", java = [99, 101, 102], rust_range = [{ target = 1, start = 6, end = 8 }] },
+  { semantic = "if (cipher.length < 1) return null <-> if (cipher.len() as i32) < 1 { return None } — empty-input guard; Rust PAREN around the cast has no Java counterpart", java = [103, 105, 106, 107, 108, 109, 110, 111], rust_range = [{ target = 1, start = 9, end = 21 }] },
+  { semantic = "int keyIndex = 0 <-> let mut key_index: i32 = 0", java = [112, 114, 115], rust_range = [{ target = 1, start = 22, end = 24 }] },
+  { semantic = "int i = 0 <-> let mut i: i32 = 0", java = [116, 118, 119], rust_range = [{ target = 1, start = 25, end = 27 }] },
+  { semantic = "while (i < cipher.length - 1) <-> while i < (cipher.len() as i32).wrapping_sub(1) — MINUS realized by wrapping_sub; Rust PAREN around the cast has no Java counterpart", java = [120, 122, 123, 124, 125, 126, 127], rust_range = [{ target = 1, start = 28, end = 39 }] },
+  { semantic = "while body block (Java try's inner block; Rust has no try, statements live directly here)", java = [128], rust = ["1:40"] },
+  { semantic = "byte enc = cipher[i] <-> let enc: i8 = cipher[i as usize] — provably in range (i < cipher.length - 1)", java = [131, 133, 134, 135, 136], rust_range = [{ target = 1, start = 41, end = 49 }] },
+  { semantic = "keyIndex++ <-> key_index = key_index.wrapping_add(1)", java = [137, 138, 139], rust_range = [{ target = 1, start = 50, end = 56 }] },
+  { semantic = "if (keyIndex == key.length) keyIndex = 0 <-> if key_index == key.len() as i32 { key_index = 0 }", java = [140, 142, 143, 144, 145, 146, 147, 148, 149, 150], rust_range = [{ target = 1, start = 57, end = 70 }] },
+  { semantic = "try/catch guard on key[keyIndex]: `try { ... key[keyIndex] ... } catch(Exception){ return null; }` <-> let key_byte: i8 = match key.get(key_index as usize) { Some(&b) => b, None => return None } — the one access that can throw is read once into key_byte and the None arm reproduces the catch's `return null`", java = [129, 130, 178, 182, 183, 184], rust_range = [{ target = 1, start = 71, end = 86 }] },
+  { semantic = "int plain = enc ^ key[keyIndex] <-> let plain: i32 = (enc as i32) ^ (key_byte as i32) — XOR realized by Rust `^`; Java's inline key[keyIndex] read pairs to the hoisted key_byte local", java = [151, 153, 154, 155, 156, 157, 158], rust_range = [{ target = 1, start = 87, end = 99 }] },
+  { semantic = "checksum += key[keyIndex] & 255 <-> checksum = checksum.wrapping_add((key_byte as i32) & 255) — AND realized by Rust `&`; second inline key[keyIndex] read pairs to the same hoisted key_byte", java = [159, 160, 161, 162, 163, 164, 165, 166], rust_range = [{ target = 1, start = 100, end = 112 }] },
+  { semantic = "out[i] = (byte) plain <-> out[i as usize] = plain as i8 — TYPE_CAST byte -> `as i8`", java = [167, 168, 169, 170, 171, 172, 173, 174], rust_range = [{ target = 1, start = 113, end = 124 }] },
+  { semantic = "i++ <-> i = i.wrapping_add(1)", java = [175, 176, 177], rust_range = [{ target = 1, start = 125, end = 131 }] },
+  { semantic = "if ((checksum & 255) != (cipher[i] & 255)) return null <-> if (checksum & 255) != ((cipher[i as usize] as i32) & 255) { return None } — checksum verify (outside the try); both AND realized by Rust `&`, the two Java sub-parens pair to Rust parens", java = [185, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200], rust_range = [{ target = 1, start = 132, end = 155 }] },
+  { semantic = "return out <-> Some(out) — the Java byte[]-or-null contract becomes Rust Option, so `return out` wraps in Some", java = [201, 202], rust_range = [{ target = 1, start = 156, end = 160 }] },
+]
+adapt = [
+  { category = "erased", reason = "the synthetic implicit no-arg constructor javac emits for the static-only utility class; the Rust port is free functions with no constructor", java = [0] },
+  { category = "erased", reason = "javac MODIFIERS metadata for the method locals in encrypt (out/checksum/keyIndex/i/plain/cipher) and decrypt (out/checksum/keyIndex/i/enc/plain) plus the caught Exception param; Rust carries mutability in the let pattern, not a distinct node", java = [3, 13, 17, 22, 34, 54, 90, 100, 113, 117, 132, 152, 180] },
+  { category = "erased", reason = "redundant javac PARENTHESIZED grouping nodes: the if/while condition parens (encrypt keyIndex==length; decrypt cipher.length<1, the while, keyIndex==length, and the final checksum-verify if). Rust carries the same conditions unparenthesized; the two Java sub-parens around (checksum & 255)/(cipher[i] & 255) instead pair to real Rust parens in the verify op", java = [43, 104, 121, 141, 186] },
+  { category = "erased", reason = "the catch clause's `Exception unused` variable (VARIABLE + type IDENTIFIER): the Rust match arm binds no exception value, so the caught-variable declaration is one-sided; the catch's structure and its `return null` pair to the checked get/match None arm above", java = [179, 181] },
+]
 
 [[body]]
 java_item = "defpackage.RmsFile"
@@ -915,7 +956,8 @@ opcode_sha256 = "dcd5f2836917df6b892b42df7c7238325392f46952323c1ce375064830ab3f2
 java_ast_sha256 = "5d583017c87e5c97c9fe93e8658089c9494e74530e06f3a7313fe9261497d2e2"
 java_nodes_sha256 = "d18731e0ed0efc05e877d2f379e3cd5cb202bb6d99f357318c4c094def5ea780"
 java_node_count = 348
-review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+semantic_status = "crosswalked"
+review = "Equipment extends Item (e extends ad) — the equippable base (value/levelReq/identify + a four-slot enchant), crosswalked node-for-node (348 Java / 433 Rust nodes, each decided exactly once). parseRecord chains the base Item parser then parseEquipStats; the base name/desc/price parser ignores rollEnchants, so the Rust `parse_record_base` omits that parameter and the Java argument is one-sided (erased). parseEquipStats decodes value = (short)(data[offset] & 255) (TYPE_CAST short -> `as i16`, AND -> `&`), the level/identify bytes, scans the eight enchant-range bytes (a `for` -> init + while + tail increment), and when rolling is due builds the mins/maxs `new byte[]{...}` literals — the port HOISTS these into `let mins`/`let maxs: [i8;4]` locals, so each inline Java array literal pairs to its hoisted Rust binding, and every rangeBase + k index is realized by wrapping_add + `as usize`. serialize writes the identify/refine bytes (the `?:` ternary -> an if/else expression) and System.arraycopy(enchant,0,out,5,4) -> out[5..9].copy_from_slice(&enchant[0..4]). rollEnchant's while(true) becomes a `loop` bound to `let slot` (the (true) guard is a faithful-noop), with slot = randRange -> a fresh `let s` broken out of the loop, and the (byte) casts on rolled values -> `as i8`. No divides or shifts anywhere; every Java int `+` is realized by wrapping_add. One-sided nodes: modifiers (erased), the six instance fields flattened onto the shared Item struct (representation-adapter, declared in item.rs), the Java constructor incl. this.enchant = new byte[4] (representation-adapter — the flattened Item is built elsewhere), the dropped rollEnchants base-parser argument (erased), the if-condition parens (erased), and the (true) inner-loop guard (faithful-noop)."
 rust = [
   { file = "transliteration/game-xlat/src/equipment.rs", item = "fn:parse_record", ast_sha256 = "5730646022681bb2c9c404a076015a1fba6105d51d042ad800532a54ba5cf712", nodes_sha256 = "1bc3386d158c9de23bad3c65834393aea4fb1aead21f46875e5ba983ab5ef8da", node_count = 27 },
   { file = "transliteration/game-xlat/src/equipment.rs", item = "fn:parse_equip_stats", ast_sha256 = "894fa728c7b92abf75db54931564ef6329ff1e5f8d52945df4be914b17b589bf", nodes_sha256 = "d7a15471c557ccc70a7dd3172a65b99a7161f43d8915cc0b0b8eaf6ca412cdc9", node_count = 219 },
@@ -923,8 +965,61 @@ rust = [
   { file = "transliteration/game-xlat/src/equipment.rs", item = "fn:roll_enchant", ast_sha256 = "473fc55f85f2170daeada9c824f6c0f4f33444a6fc30cc01b5b98c7ae6441182", nodes_sha256 = "3b0826ada81e5a6a9e35b633005bf9923cffcff48425e4d37c0304572da69c29", node_count = 108 },
   { file = "transliteration/game-xlat/src/equipment.rs", item = "fn:set_enchant", ast_sha256 = "df7d1c73716c203ed69ccb0f1e5a355a438004ee1d63b305389e5a4bd16d194a", nodes_sha256 = "d80c0e70f0ee9172d8bfcdc3aa85a15cb67b7a02bcb57ecf94a649a893c2d51b", node_count = 33 },
 ]
-op = []
-adapt = []
+op = [
+  { semantic = "parseRecord() method body block", java = [32], rust = ["0:0"] },
+  { semantic = "int afterBase = super.parseRecord(rollEnchants, data, offset) <-> let after_base = item::parse_record_base(item, data, offset) — super is Item.parseRecord; the base name/desc/price parser ignores rollEnchants (dropped arg adapted below)", java = [33, 35, 36, 37, 38, 40, 41], rust_range = [{ target = 0, start = 1, end = 10 }] },
+  { semantic = "return afterBase + parseEquipStats(data, afterBase, rollEnchants) <-> after_base.wrapping_add(parse_equip_stats(item, byte_util, data, after_base, roll_enchants)) — PLUS realized by wrapping_add; item/byte_util threaded", java = [42, 43, 44, 45, 46, 47, 48, 49], rust_range = [{ target = 0, start = 11, end = 26 }] },
+  { semantic = "parseEquipStats() method body block", java = [50], rust = ["1:0"] },
+  { semantic = "int p = offset + 1 <-> let p = offset.wrapping_add(1)", java = [51, 53, 54, 55, 56], rust_range = [{ target = 1, start = 1, end = 5 }] },
+  { semantic = "this.value = (short)(data[offset] & 255) <-> item.value = ((data[offset as usize] as i32) & 255) as i16 — TYPE_CAST short -> `as i16`, AND -> `&`; the Java grouping paren pairs a Rust paren, plus a Rust-only paren around the cast", java = [57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68], rust_range = [{ target = 1, start = 6, end = 24 }] },
+  { semantic = "int p2 = p + 1 <-> let p2 = p.wrapping_add(1)", java = [69, 71, 72, 73, 74], rust_range = [{ target = 1, start = 25, end = 29 }] },
+  { semantic = "this.levelReq = data[p] <-> item.level_req = data[p as usize]", java = [75, 76, 77, 78, 79, 80, 81], rust_range = [{ target = 1, start = 30, end = 40 }] },
+  { semantic = "int rangeBase = p2 + 1 <-> let range_base = p2.wrapping_add(1)", java = [82, 84, 85, 86, 87], rust_range = [{ target = 1, start = 41, end = 45 }] },
+  { semantic = "this.needsIdentify = data[p2] != 0 <-> item.needs_identify = data[p2 as usize] != 0 — NOT_EQUAL_TO -> Rust `!=`", java = [88, 89, 90, 91, 92, 93, 94, 95, 96], rust_range = [{ target = 1, start = 46, end = 58 }] },
+  { semantic = "boolean hasEnchant = false <-> let mut has_enchant = false", java = [97, 99, 100], rust_range = [{ target = 1, start = 59, end = 60 }] },
+  { semantic = "for-init `int i = 1` <-> let mut i: i32 = 1", java = [102, 104, 105], rust_range = [{ target = 1, start = 61, end = 63 }] },
+  { semantic = "for-loop header `i <= 8` <-> while i <= 8 (FOR_LOOP -> while; LESS_THAN_EQUAL condition)", java = [101, 106, 107, 108], rust_range = [{ target = 1, start = 64, end = 68 }] },
+  { semantic = "loop body block", java = [112], rust = ["1:69"] },
+  { semantic = "if (data[rangeBase + i] != 0) { hasEnchant = true; break; } <-> if data[range_base.wrapping_add(i) as usize] != 0 { has_enchant = true; break; } — PLUS realized by wrapping_add, NOT_EQUAL_TO by `!=`", java = [113, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127], rust_range = [{ target = 1, start = 70, end = 88 }] },
+  { semantic = "for-update i++ <-> i = i.wrapping_add(1) (tail of the loop body)", java = [109, 110, 111], rust_range = [{ target = 1, start = 89, end = 95 }] },
+  { semantic = "if (!hasEnchant) this.identified = true <-> if !has_enchant { item.identified = true } — LOGICAL_COMPLEMENT -> Rust `!`", java = [128, 130, 131, 132, 133, 134, 135, 136, 137], rust_range = [{ target = 1, start = 96, end = 105 }] },
+  { semantic = "if (!rollEnchants || !hasEnchant) return 12 <-> if !roll_enchants || !has_enchant { return 12 } — CONDITIONAL_OR -> `||`, both LOGICAL_COMPLEMENT -> `!`", java = [138, 140, 141, 142, 143, 144, 145, 146, 147], rust_range = [{ target = 1, start = 106, end = 116 }] },
+  { semantic = "rollEnchant(data[rangeBase], mins, maxs, (byte) 0) <-> roll_enchant(item, byte_util, data[range_base as usize], &mins, &maxs, 0) — the call; item/byte_util threaded, (byte) 0 -> `0`; the two array-literal args are the hoisted let mins/let maxs below", java = [148, 149, 150, 151, 152, 153, 198, 199, 200], rust_range = [{ target = 1, start = 197, end = 217 }] },
+  { semantic = "mins array literal new byte[]{data[rangeBase+1], +3, +5, +7} <-> hoisted let mins: [i8;4] = [...] — each rangeBase + k realized by wrapping_add + `as usize` (four indexed reads)", java_range = [[154, 175]], rust_range = [{ target = 1, start = 117, end = 156 }] },
+  { semantic = "maxs array literal new byte[]{data[rangeBase+2], +4, +6, +8} <-> hoisted let maxs: [i8;4] = [...] — each rangeBase + k realized by wrapping_add + `as usize` (four indexed reads)", java_range = [[176, 197]], rust_range = [{ target = 1, start = 157, end = 196 }] },
+  { semantic = "return 12 <-> trailing `12`", java = [201, 202], rust = ["1:218"] },
+  { semantic = "serialize() method body block", java = [203], rust = ["2:0"] },
+  { semantic = "byte[] out = super.serialize() <-> let mut out = item::serialize_base(item) — super is Item.serialize; item threaded", java = [204, 206, 207, 208, 209, 210], rust_range = [{ target = 2, start = 1, end = 6 }] },
+  { semantic = "out[3] = this.identified ? (byte)1 : (byte)0 <-> out[3] = if item.identified { 1 } else { 0 } — CONDITIONAL_EXPRESSION realized as an if/else expression; the (byte) casts -> inferred i8 literals", java = [211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224], rust_range = [{ target = 2, start = 7, end = 20 }] },
+  { semantic = "out[4] = this.refineLevel <-> out[4] = item.refine_level", java = [225, 226, 227, 228, 229, 230, 231], rust_range = [{ target = 2, start = 21, end = 28 }] },
+  { semantic = "System.arraycopy(this.enchant, 0, out, 5, 4) <-> out[5..9].copy_from_slice(&item.enchant[0..4]) — src/srcPos/dst/dstPos/len map to the two slice ranges", java = [232, 233, 234, 235, 236, 237, 238, 239, 240, 241], rust_range = [{ target = 2, start = 29, end = 43 }] },
+  { semantic = "return out <-> trailing `out`", java = [242, 243], rust = ["2:44", "2:45"] },
+  { semantic = "rollEnchant() method body block", java = [244], rust = ["3:0"] },
+  { semantic = "int slot (uninitialized decl before the loop) <-> let slot: i32 (bound to the loop result inside the for body) — same variable, scope shifted into the loop", java = [245, 247], rust = ["3:13", "3:14"] },
+  { semantic = "for-init `int i = 0` <-> let mut i: i32 = 0", java = [249, 251, 252], rust_range = [{ target = 3, start = 1, end = 3 }] },
+  { semantic = "for-loop header `i < count` <-> while i < count as i32 (FOR_LOOP -> while; count byte widened by `as i32`)", java = [248, 253, 254, 255], rust_range = [{ target = 3, start = 4, end = 11 }] },
+  { semantic = "for body block", java = [259], rust = ["3:12"] },
+  { semantic = "inner while (true) <-> unconditional loop bound to `let slot = loop { ... }`", java = [260], rust = ["3:15"] },
+  { semantic = "inner loop body block", java = [263], rust = ["3:16"] },
+  { semantic = "slot = defpackage.ByteUtil.randRange(0, 3) <-> let s = byte_util::rand_range(byte_util, 0, 3) — Java re-assigns the outer slot; Rust binds a fresh `s` that the loop breaks out as slot; byte_util threaded", java = [264, 265, 266, 267, 268, 269, 270, 271, 272], rust_range = [{ target = 3, start = 17, end = 24 }] },
+  { semantic = "if (this.enchant[slot] == 0 && (mins[slot] != 0 || maxs[slot] != 0)) break <-> if item.enchant[s as usize] == 0 && (mins[s as usize] != 0 || maxs[s as usize] != 0) { break s; } — CONDITIONAL_AND -> `&&`, EQUAL_TO -> `==`, CONDITIONAL_OR -> `||`, both NOT_EQUAL_TO -> `!=`; the Java grouping paren pairs the Rust paren; `break` -> `break s`", java = [273, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295], rust_range = [{ target = 3, start = 25, end = 60 }] },
+  { semantic = "for-update i++ <-> i = i.wrapping_add(1) (tail of the for body)", java = [256, 257, 258], rust_range = [{ target = 3, start = 95, end = 101 }] },
+  { semantic = "this.enchant[slot] = (byte) defpackage.ByteUtil.randRange(mins[slot], maxs[slot]) <-> item.enchant[slot as usize] = byte_util::rand_range(byte_util, mins[slot as usize] as i32, maxs[slot as usize] as i32) as i8 — TYPE_CAST byte -> `as i8`; the byte args widened by `as i32`", java = [296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313], rust_range = [{ target = 3, start = 61, end = 94 }] },
+  { semantic = "this.refineLevel = refine <-> item.refine_level = refine", java = [314, 315, 316, 317, 318], rust_range = [{ target = 3, start = 102, end = 107 }] },
+  { semantic = "setEnchant() method body block", java = [319], rust = ["4:0"] },
+  { semantic = "this.enchant[0] = e0 <-> item.enchant[0] = e0", java = [320, 321, 322, 323, 324, 325, 326], rust_range = [{ target = 4, start = 1, end = 8 }] },
+  { semantic = "this.enchant[1] = e1 <-> item.enchant[1] = e1", java = [327, 328, 329, 330, 331, 332, 333], rust_range = [{ target = 4, start = 9, end = 16 }] },
+  { semantic = "this.enchant[2] = e2 <-> item.enchant[2] = e2", java = [334, 335, 336, 337, 338, 339, 340], rust_range = [{ target = 4, start = 17, end = 24 }] },
+  { semantic = "this.enchant[3] = e3 <-> item.enchant[3] = e3", java = [341, 342, 343, 344, 345, 346, 347], rust_range = [{ target = 4, start = 25, end = 32 }] },
+]
+adapt = [
+  { category = "erased", reason = "javac MODIFIERS metadata for the six fields and the method locals (afterBase; p/p2/rangeBase/hasEnchant/i in parseEquipStats; out in serialize; slot/i in rollEnchant); Rust carries visibility/mutability in pub/let, not distinct nodes", java = [1, 4, 7, 10, 13, 16, 34, 52, 70, 83, 98, 103, 205, 246, 250] },
+  { category = "representation-adapter", reason = "the six instance fields (value/levelReq/needsIdentify/identified/refineLevel/enchant — VARIABLE + type nodes): flattened onto the shared crate::item::Item struct and declared in item.rs, so their declarations are one-sided in this body; their uses pair throughout the methods", java = [0, 2, 3, 5, 6, 8, 9, 11, 12, 14, 15, 17, 18] },
+  { category = "representation-adapter", reason = "the Java constructor `Equipment(type, subId){ super(type, subId); this.enchant = new byte[4]; }` (BLOCK + super invocation + enchant array alloc): the port constructs the flattened Item and its enchant array through the shared construction path, so these nodes are one-sided", java_range = [[19, 31]] },
+  { category = "erased", reason = "the rollEnchants argument passed to super.parseRecord: the base name/description/price parser never reads it, so the Rust `parse_record_base` signature omits the unused parameter and the Java argument is one-sided", java = [39] },
+  { category = "erased", reason = "redundant javac PARENTHESIZED if-condition grouping nodes (the enchant-range scan if, the !hasEnchant if, the !rollEnchants||!hasEnchant if, and the rollEnchant break if); Rust carries these conditions unparenthesized", java = [114, 129, 139, 274] },
+  { category = "faithful-noop", reason = "the (true) condition of rollEnchant's inner `while (true)` (PARENTHESIZED + BOOLEAN_LITERAL true); the port renders it as an unconditional Rust `loop`, an exact no-op", java = [261, 262] },
+]
 
 [[body]]
 java_item = "defpackage.Armor"
@@ -933,15 +1028,34 @@ opcode_sha256 = "34dae35102c66fc5d4d6631875b70acafff767b1ed5ff7a4d57956d75ca367b
 java_ast_sha256 = "21ce80cd992be9b26da8e994377080297dc109a3f82b70daae02cbf8fc7229d4"
 java_nodes_sha256 = "29e2acc7936d603bb9d02d513be0d2f2977db85fbdd00f1d3580f7dac510ea01"
 java_node_count = 102
-review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+semantic_status = "crosswalked"
+review = "Armor extends Equipment (t extends e) — combat-attribute equipment, crosswalked node-for-node (102 Java / 74 Rust nodes, each decided exactly once). The two static-final proc tables (PROC_STATUS/PROC_CHANCE) map to `pub const [i8;9]`, realized element-for-element; Java's -1 INT_LITERAL becomes Rust's UNARY-minus + LITERAL 1, so each of those literals pairs one Java node to two Rust nodes. parseRecord chains super.parseRecord (Equipment) then reads the trailing attribute byte; serialize chains super.serialize then writes out[9]. Java int `+` is realized by wrapping_add and each data[i] index by `as usize`. No divides or shifts. One-sided nodes: modifiers (erased); the deferred attributeNames TextTable static (erased — not ported); the attribute instance field flattened onto the shared Item struct (representation-adapter, declared in item.rs); the Java constructor (representation-adapter — the flattened Item is built elsewhere); and javac's synthetic <clinit> re-materialization of the two array initializers (erased — the Rust `const` carries a single compile-time occurrence)."
 rust = [
   { file = "transliteration/game-xlat/src/armor.rs", item = "const:PROC_STATUS", ast_sha256 = "3b61cc0cd62c95ee19cdae6b6999861f1271b5c530e14c10b9a0c75a23c8597f", nodes_sha256 = "a718fa72c7bded2019cc788da0c09b6819b2a050be3e11d0be4be46058561beb", node_count = 14 },
   { file = "transliteration/game-xlat/src/armor.rs", item = "const:PROC_CHANCE", ast_sha256 = "7d7a7648ab670cc2d05978bbf856d1ceba1c76661ef145a49603018cbe9757da", nodes_sha256 = "db8044bfbdcc0fe7e6447af1c050a5f7e80520fbdc311f33cc2e8940ec5ca2dd", node_count = 10 },
   { file = "transliteration/game-xlat/src/armor.rs", item = "fn:parse_record", ast_sha256 = "c0c7d74a1ed0b3626ef76319919f760a0cdea7e83c8fd74e14a1cf6a4edaf063", nodes_sha256 = "94c54b0b8544966b180a7b1436abea618a732ec40b4246c435f0fe9c4025b4b1", node_count = 33 },
   { file = "transliteration/game-xlat/src/armor.rs", item = "fn:serialize", ast_sha256 = "ea60dbe4ab8d8f2a4f5fd84f7c18d5fbaacb79ec8456e62b976210994a002b2f", nodes_sha256 = "d51478d5b730318502abbf2c82d8f5d20b351ca59fdffcc14ac0ce7f274bf6fe", node_count = 17 },
 ]
-op = []
-adapt = []
+op = [
+  { semantic = "static final byte[] PROC_STATUS = {0,1,-1,-1,-1,4,3,2,-1} <-> pub const PROC_STATUS: [i8;9] — element-for-element; each Java -1 INT_LITERAL pairs to Rust UNARY-minus + LITERAL 1", java = [6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], rust_range = [{ target = 0, start = 0, end = 13 }] },
+  { semantic = "static final byte[] PROC_CHANCE = {20,16,6,13,13,10,10,10,10} <-> pub const PROC_CHANCE: [i8;9] — element-for-element (all non-negative, so one literal each side)", java = [20, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33], rust_range = [{ target = 1, start = 0, end = 9 }] },
+  { semantic = "parseRecord() method body block", java = [40], rust = ["2:0"] },
+  { semantic = "int afterEquip = super.parseRecord(rollEnchants, data, offset) <-> let after_equip = equipment::parse_record(item, byte_util, roll_enchants, data, offset) — super is Equipment.parseRecord; the Rust threads item/byte_util as extra receiver/state args", java = [41, 43, 44, 45, 46, 47, 48, 49], rust_range = [{ target = 2, start = 1, end = 14 }] },
+  { semantic = "int end = afterEquip + 1 <-> let end = after_equip.wrapping_add(1) — Java int PLUS realized by wrapping_add", java = [50, 52, 53, 54, 55], rust_range = [{ target = 2, start = 15, end = 19 }] },
+  { semantic = "this.attribute = data[afterEquip] <-> item.attribute = data[after_equip as usize] — the array index realized by `as usize`", java = [56, 57, 58, 59, 60, 61, 62], rust_range = [{ target = 2, start = 20, end = 30 }] },
+  { semantic = "return end <-> trailing `end`", java = [63, 64], rust = ["2:31", "2:32"] },
+  { semantic = "serialize() method body block", java = [65], rust = ["3:0"] },
+  { semantic = "byte[] out = super.serialize() <-> let mut out = equipment::serialize(item) — super is Equipment.serialize; item threaded as receiver", java = [66, 68, 69, 70, 71, 72], rust_range = [{ target = 3, start = 1, end = 6 }] },
+  { semantic = "out[9] = this.attribute <-> out[9] = item.attribute", java = [73, 74, 75, 76, 77, 78, 79], rust_range = [{ target = 3, start = 7, end = 14 }] },
+  { semantic = "return out <-> trailing `out`", java = [80, 81], rust = ["3:15", "3:16"] },
+]
+adapt = [
+  { category = "erased", reason = "javac MODIFIERS metadata (field visibility + local absence of modifiers); Rust encodes visibility as pub/module scope and mutability in the let pattern, neither a distinct AST node", java = [1, 4, 7, 21, 42, 51, 67] },
+  { category = "erased", reason = "the deferred `public static TextTable attributeNames` static (VARIABLE + type IDENTIFIER): TextTable is not ported, so per armor.rs's Deferred cross-class boundary note the field is omitted entirely — no Rust node", java = [0, 2] },
+  { category = "representation-adapter", reason = "the `public byte attribute` instance field (VARIABLE + PRIMITIVE_TYPE): flattened onto the shared crate::item::Item struct and declared in item.rs, so its declaration is one-sided in this body; its uses pair inside parseRecord/serialize", java = [3, 5] },
+  { category = "representation-adapter", reason = "the Java constructor `Armor(type, subId){ super(type, subId); }` (BLOCK + super invocation): the port constructs the flattened Item through its shared construction path, not a per-subclass constructor, so these nodes are one-sided", java = [34, 35, 36, 37, 38, 39] },
+  { category = "erased", reason = "javac's synthetic <clinit> re-materialization of the two static-final array initializers (a second NEW_ARRAY + literals for PROC_STATUS then PROC_CHANCE): the Rust `const` carries a single compile-time occurrence, already paired above, so the clinit duplicate is one-sided", java_range = [[82, 101]] },
+]
 
 [[body]]
 java_item = "defpackage.Weapon"
@@ -950,12 +1064,31 @@ opcode_sha256 = "d018c0970dc64d5af5c64822657e0471d99cb4192ca28b94fc677bd7aa7eda9
 java_ast_sha256 = "f83ff21be3daea536474c715f23e156df43baba852d3628a1b77976515277629"
 java_nodes_sha256 = "81206f89e516fb831c227f8c1b0660e1decf0eb433e8dcc9fbdc190d0fb866db"
 java_node_count = 91
-review = "BASELINE (pre-decision): this class was transliterated before per-node op/adapt decisions existed. Zero nodes are decided here — every Java and Rust node is UNCHECKED at the node level, pending atomic-step authoring. This is the honest starting point, not a passing crosswalk."
+semantic_status = "crosswalked"
+review = "Weapon extends Armor (l extends t) — a wieldable adding accuracy/critBonus, crosswalked node-for-node (91 Java / 107 Rust nodes, each decided exactly once). parseRecord is a full override (it does NOT chain super): it calls the base name/description/price parsers and Equipment.parseEquipStats directly, then reads the two weapon bytes and the shared attribute byte. Each `offset + parseX(...)` is realized by wrapping_add and each data[p] index by `as usize`. No divides or shifts. One-sided nodes: modifiers (erased); the accuracy/critBonus fields flattened onto the shared Item struct (representation-adapter, declared in item.rs); and the Java constructor (representation-adapter — the flattened Item is built elsewhere)."
 rust = [
   { file = "transliteration/game-xlat/src/weapon.rs", item = "fn:parse_record", ast_sha256 = "e71066bb95fcb245e9e4359599a3f6ca1d8d2591932ebbe4ee5b6cb7736ab13e", nodes_sha256 = "50200e271850cfd96d7c3b3b183fb511bd46c5710392210fbeb3fb41a41b4261", node_count = 107 },
 ]
-op = []
-adapt = []
+op = [
+  { semantic = "parseRecord() method body block (full override; does not chain super)", java = [12], rust = ["0:0"] },
+  { semantic = "int afterName = offset + parseName(data, offset) <-> let after_name = offset.wrapping_add(item::parse_name(item, data, offset)) — PLUS realized by wrapping_add", java = [13, 15, 16, 17, 18, 19, 20, 21], rust_range = [{ target = 0, start = 1, end = 13 }] },
+  { semantic = "int afterDesc = afterName + parseDescription(data, afterName) <-> after_name.wrapping_add(item::parse_description(item, data, after_name))", java = [22, 24, 25, 26, 27, 28, 29, 30], rust_range = [{ target = 0, start = 14, end = 26 }] },
+  { semantic = "int afterPrice = afterDesc + parsePrice(data, afterDesc) <-> after_desc.wrapping_add(item::parse_price(item, data, after_desc))", java = [31, 33, 34, 35, 36, 37, 38, 39], rust_range = [{ target = 0, start = 27, end = 39 }] },
+  { semantic = "int afterEquip = afterPrice + parseEquipStats(data, afterPrice, rollEnchants) <-> after_price.wrapping_add(equipment::parse_equip_stats(item, byte_util, data, after_price, roll_enchants)) — item/byte_util threaded", java = [40, 42, 43, 44, 45, 46, 47, 48, 49], rust_range = [{ target = 0, start = 40, end = 56 }] },
+  { semantic = "int p = afterEquip + 1 <-> let p = after_equip.wrapping_add(1)", java = [50, 52, 53, 54, 55], rust_range = [{ target = 0, start = 57, end = 61 }] },
+  { semantic = "this.accuracy = data[afterEquip] <-> item.accuracy = data[after_equip as usize]", java = [56, 57, 58, 59, 60, 61, 62], rust_range = [{ target = 0, start = 62, end = 72 }] },
+  { semantic = "int p2 = p + 1 <-> let p2 = p.wrapping_add(1)", java = [63, 65, 66, 67, 68], rust_range = [{ target = 0, start = 73, end = 77 }] },
+  { semantic = "this.critBonus = data[p] <-> item.crit_bonus = data[p as usize]", java = [69, 70, 71, 72, 73, 74, 75], rust_range = [{ target = 0, start = 78, end = 88 }] },
+  { semantic = "int end = p2 + 1 <-> let end = p2.wrapping_add(1)", java = [76, 78, 79, 80, 81], rust_range = [{ target = 0, start = 89, end = 93 }] },
+  { semantic = "this.attribute = data[p2] <-> item.attribute = data[p2 as usize]", java = [82, 83, 84, 85, 86, 87, 88], rust_range = [{ target = 0, start = 94, end = 104 }] },
+  { semantic = "return end <-> trailing `end`", java = [89, 90], rust = ["0:105", "0:106"] },
+]
+adapt = [
+  { category = "erased", reason = "javac MODIFIERS metadata for the two fields and the seven method locals; Rust carries visibility/mutability in pub/let, not distinct nodes", java = [1, 4, 14, 23, 32, 41, 51, 64, 77] },
+  { category = "representation-adapter", reason = "the `public byte accuracy` field (VARIABLE + PRIMITIVE_TYPE): flattened onto the shared crate::item::Item struct (declared in item.rs), one-sided here; its use pairs in the accuracy assignment", java = [0, 2] },
+  { category = "representation-adapter", reason = "the `public byte critBonus` field (VARIABLE + PRIMITIVE_TYPE): flattened onto crate::item::Item (declared in item.rs), one-sided here; its use pairs in the critBonus assignment", java = [3, 5] },
+  { category = "representation-adapter", reason = "the Java constructor `Weapon(type, subId){ super(type, subId); }` (BLOCK + super invocation): the flattened Item is built through the shared construction path, not a per-subclass constructor, so these nodes are one-sided", java = [6, 7, 8, 9, 10, 11] },
+]
 
 [[body]]
 java_item = "defpackage.ItemBag"
