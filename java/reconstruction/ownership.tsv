@@ -465,3 +465,16 @@ RefineMenu	a	singleton	Lax;	RefineMenuState	singleton
 #                              (`v`/`w`, `B`) are per-INSTANCE on geb_hand_right::GebHandRightData.)
 RockyBoss	h	patternSequence	[B	rocky_boss	PATTERN_SEQUENCE
 RockyBoss	i	patternCooldowns	[B	rocky_boss	PATTERN_COOLDOWNS
+#
+# obf class map (the Nord boss family that extends Boss `av`; all instance-only, no
+# statics — no data rows, so their fields live on the per-INSTANCE subclass structs
+# carried by the boss::BossSubclass tag inside boss::BossData):
+#   NordBody1     -> ar.class  (no rows: it adds NO instance fields; the
+#                              boss::BossSubclass::NordBody1 tag is a unit variant.)
+#   NordBody2     -> ag.class  (no rows: healer/striker (`a`/`f31a`, `Lcd;`/`Lbd;`) are
+#                              per-INSTANCE Option<EntityId> on nord_body2::NordBody2Data.)
+#   NordHealer    -> cd.class  (no rows: body/striker (`a`/`f187a`, `Lag;`/`Lbd;`) +
+#                              healRotation (`v`, `B`) are per-INSTANCE on
+#                              nord_healer::NordHealerData.)
+#   NordTentacle  -> bd.class  (no rows: markedTileX/markedTileY (`v`/`w`, `B`) are
+#                              per-INSTANCE on nord_tentacle::NordTentacleData.)
