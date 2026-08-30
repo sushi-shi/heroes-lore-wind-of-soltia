@@ -27,8 +27,10 @@ use crate::audio_manager::AudioManagerState;
 use crate::base_canvas::BaseCanvasState;
 use crate::byte_util::ByteUtilState;
 use crate::debug::DebugState;
+use crate::entity::{EntityArena, EntityState};
 use crate::font_manager::FontManagerState;
 use crate::game_loop::GameLoopState;
+use crate::game_map::GameMapClassState;
 use crate::game_midlet::ApplicationState;
 use crate::game_screen::GameScreenState;
 use crate::game_state::GameStateData;
@@ -79,6 +81,11 @@ pub struct Game {
     /// ordered host-audio op sink that `SoundPlayer` (`ci`) drives. A device
     /// runtime owned here, like [`display`](Self::display).
     pub media: j2me_me::MediaRuntime,
+    /// The shared `Entity` (`ck`) heap — the arena every entity record lives in;
+    /// `GameState.hero` and `GameMap.entities` hold handles into it. A host/heap
+    /// seam like [`resources`](Self::resources) / [`rms`](Self::rms); not a Java
+    /// static (no `ownership.tsv` row).
+    pub entity_arena: EntityArena,
 
     /// `rpg.GameMIDlet` state.
     pub application: ApplicationState,
@@ -111,6 +118,14 @@ pub struct Game {
     /// seam — `randRange` is not exercised on the single first-frame drive).
     pub byte_util: ByteUtilState,
 
+    // --- World data model (field-layer foundation; see `entity`, `game_map`). The
+    //     active `GameMap` instance and the hero handle live in `game_state`
+    //     (`map` / `hero`); these carry the two classes' persistent statics. ---
+    /// `ck` / `Entity` class state — the shared `static Random rng`.
+    pub entity: EntityState,
+    /// `ae` / `GameMap` mutable class statics (`minimapScale` / `lastTilesetId`).
+    pub game_map_class: GameMapClassState,
+
     // --- Independent leaf/util/save classes increment (parallel lane: merge these
     //     three fields into the aggregator). ---
     /// The host-owned MIDP record-store namespace behind `au`/`RmsFile` (a host
@@ -140,6 +155,7 @@ impl Game {
             clock: j2me_jvm::VirtualClock::new(0),
             resources: ResourceBank::new(),
             media: j2me_me::MediaRuntime::new(),
+            entity_arena: EntityArena::new(),
             application: ApplicationState::default(),
             game_loop: GameLoopState::default(),
             game_state: GameStateData::default(),
@@ -152,6 +168,8 @@ impl Game {
             font_manager: FontManagerState::default(),
             string_table: StringTableData::default(),
             byte_util: ByteUtilState::seeded(0),
+            entity: EntityState::default(),
+            game_map_class: GameMapClassState::default(),
             rms: j2me_me::RmsRuntime::new(),
             app_config: AppConfigState::default(),
             debug: DebugState::default(),

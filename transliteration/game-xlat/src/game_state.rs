@@ -13,18 +13,22 @@
 //! Opcode shape (R8, `_reference/numeric_shapes.json`): `n.<clinit>:()V => []`
 //! (pure array/String construction — no arithmetic).
 
+use crate::entity::EntityId;
 use crate::game::Game;
 use crate::game_loop;
+use crate::game_map::GameMapState;
 use crate::main_menu;
 
 /// Java `n` / `GameState` state. Every field is `static` (see
 /// `java/reconstruction/ownership.tsv`); struct order preserves the reviewed
-/// declaration order. Reference-typed statics (`map`, `hero`) are presence flags
-/// (`false` while null); their referent classes are not ported yet.
+/// declaration order. The reference-typed statics `map` and `hero` now carry real
+/// state: the active [`GameMapState`] and the hero's [`EntityId`] handle into the
+/// shared [`crate::entity::EntityArena`]; both are `None` (Java `null`) until New
+/// Game — DEFERRED — constructs them.
 #[derive(Debug)]
 pub struct GameStateData {
-    /// `public static GameMap map;` — active map; GameMap not ported (null → false).
-    pub map: bool,
+    /// `public static GameMap map;` — the active map (`None` == null).
+    pub map: Option<GameMapState>,
     /// `public static int camTargetX;`
     pub cam_target_x: i32,
     /// `public static int camTargetY;`
@@ -33,9 +37,9 @@ pub struct GameStateData {
     pub cam_x: i32,
     /// `public static int camY;`
     pub cam_y: i32,
-    /// `private static Hero hero;` — the player character; Hero not ported
-    /// (null → false).
-    pub hero: bool,
+    /// `private static Hero hero;` — the player character's arena handle
+    /// (`None` == null).
+    pub hero: Option<EntityId>,
     /// `public static byte classId;` — selected class id (6..8).
     pub class_id: i8,
     /// `public static byte arg0;`
@@ -119,12 +123,12 @@ impl Default for GameStateData {
         // Uninitialized statics at their JVM defaults (0 / false / null); the
         // `<clinit>` initializers run via `clinit_apply`.
         let mut s = GameStateData {
-            map: false,
+            map: None,
             cam_target_x: 0,
             cam_target_y: 0,
             cam_x: 0,
             cam_y: 0,
-            hero: false,
+            hero: None,
             class_id: 0,
             arg0: 0,
             arg1: 0,

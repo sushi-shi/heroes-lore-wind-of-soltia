@@ -59,4 +59,14 @@ pub mod item;
 pub mod item_bag;
 pub mod weapon;
 
+// The on-map entity/world data model: the `Entity -> Battler -> Hero` and
+// `Entity -> MapObject` hierarchy (flattened onto the shared `EntityArena` that
+// extends `entity_list`), plus the per-level `GameMap`. Field-layer foundation for
+// the render + world-logic lanes.
+pub mod battler;
+pub mod entity;
+pub mod game_map;
+pub mod hero;
+pub mod map_object;
+
 pub use game::Game;

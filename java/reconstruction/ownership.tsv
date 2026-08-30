@@ -42,6 +42,20 @@
 #   SaveCipher  -> bq.class   (no rows: pure static utility, no fields)
 #   RmsFile     -> au.class   (no rows: instance class, no static fields)
 #   EntityList  -> aq.class   (no rows: instance class, no static fields)
+#   Entity      -> ck.class   (one row: `rng`, the shared `static Random`; owned by
+#                              EntityState. The base instance fields — pixel/tile
+#                              pos, halfW/halfH, next/prev, layer, removed — are
+#                              per-INSTANCE on entity::EntityNode, NOT static.)
+#   Battler     -> o.class    (no rows: all fields per-instance on battler::BattlerData)
+#   Hero        -> ao.class   (no rows: Hero data is per-INSTANCE on hero::HeroData;
+#                              `COMBO_FRAMES_CLASS6/7/8` are `static final` consts
+#                              reproduced as `const` — crcTable/QUICK_TYPES precedent)
+#   MapObject   -> aj.class   (no rows: instance-only, no statics)
+#   GameMap     -> ae.class   (two rows: `minimapScale`/`lastTilesetId`, the mutable
+#                              statics owned by GameMapClassState. `minimapColors`
+#                              (`a`) / `musicByTileset` (`h`) are `static final`
+#                              consts reproduced as `const`; the active-map instance
+#                              fields live on game_map::GameMapState, in GameState.map)
 #   Item        -> ad.class   (no rows: item data is per-INSTANCE on the flattened
 #                              `item::Item` struct — like the singleton instance
 #                              fields above, NOT static. `STACKABLE`/`QUICK_USABLE`
@@ -181,3 +195,6 @@ AudioManager	b	bgm2	Lci;	AudioManagerState	bgm2
 AudioManager	c	sfx	Lci;	AudioManagerState	sfx
 AudioManager	a	clips	[Lci;	AudioManagerState	clips
 AudioManager	a	fileTable	[Ljava/lang/String;	AudioManagerState	file_table
+Entity	a	rng	Ljava/util/Random;	EntityState	rng
+GameMap	c	minimapScale	B	GameMapClassState	minimap_scale
+GameMap	d	lastTilesetId	B	GameMapClassState	last_tileset_id
