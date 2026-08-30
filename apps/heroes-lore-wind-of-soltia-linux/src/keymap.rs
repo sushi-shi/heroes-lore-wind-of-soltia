@@ -14,36 +14,78 @@
 //! | `]` / `\`                             | pound `#`        | 35     |
 //!
 //! (Escape is handled by the window shell as "quit", not routed to the game.)
+//!
+//! ## Where these codes come from
+//! The numeric-keypad codes are the GENERIC MIDP constants defined once in the
+//! device runtime [`j2me_me::canvas`] (`KEY_NUM0..KEY_NUM9`, `KEY_STAR`,
+//! `KEY_POUND`) — the very values the ported menu code branches on (`case 52/54/56`)
+//! and `Canvas::common_game_action` decodes. They are sourced from there, not
+//! re-hardcoded, so the phone-keypad contract has a single home.
+//!
+//! The negative D-pad / FIRE / soft-key codes are the MIDP Nokia device codes; the
+//! generic `j2me-me` surface does not (yet) give them names, so they live here as
+//! documented [`nokia`] constants. They belong in the generic device runtime
+//! alongside `KEY_NUM*` (and this whole winit→J2ME adapter belongs in a generic
+//! `j2me-platform-native` host crate so every game inherits it) — see the port's
+//! integration notes.
 
+use j2me_me::canvas::{
+    KEY_NUM0, KEY_NUM1, KEY_NUM2, KEY_NUM3, KEY_NUM4, KEY_NUM5, KEY_NUM6, KEY_NUM7, KEY_NUM8,
+    KEY_NUM9, KEY_POUND, KEY_STAR,
+};
 use winit::keyboard::KeyCode;
+
+/// The MIDP Nokia device key codes (the negative half of the keypad) that the
+/// generic [`j2me_me::canvas`] surface does not yet name. Kept together and
+/// documented so the mapping below carries no bare magic numbers; these are the
+/// exact codes `Canvas::common_game_action` decodes (`-1..-5`) and the shared
+/// headless routes / `capture` driver inject. Candidates to lift into `j2me-me`.
+mod nokia {
+    /// `Canvas.KEY_UP` — D-pad up.
+    pub const KEY_UP: i32 = -1;
+    /// `Canvas.KEY_DOWN` — D-pad down.
+    pub const KEY_DOWN: i32 = -2;
+    /// `Canvas.KEY_LEFT` — D-pad left.
+    pub const KEY_LEFT: i32 = -3;
+    /// `Canvas.KEY_RIGHT` — D-pad right.
+    pub const KEY_RIGHT: i32 = -4;
+    /// `Canvas.KEY_FIRE` — centre select.
+    pub const KEY_FIRE: i32 = -5;
+    /// Left soft key.
+    pub const KEY_SOFT1: i32 = -6;
+    /// Right soft key.
+    pub const KEY_SOFT2: i32 = -7;
+}
 
 /// The raw Nokia code for a physical key, or `None` if the game has no use for it.
 pub fn nokia_code(key: KeyCode) -> Option<i32> {
     Some(match key {
-        KeyCode::ArrowUp => -1,
-        KeyCode::ArrowDown => -2,
-        KeyCode::ArrowLeft => -3,
-        KeyCode::ArrowRight => -4,
+        KeyCode::ArrowUp => nokia::KEY_UP,
+        KeyCode::ArrowDown => nokia::KEY_DOWN,
+        KeyCode::ArrowLeft => nokia::KEY_LEFT,
+        KeyCode::ArrowRight => nokia::KEY_RIGHT,
 
-        KeyCode::Enter | KeyCode::NumpadEnter | KeyCode::Space | KeyCode::Numpad5 => -5,
+        KeyCode::Enter | KeyCode::NumpadEnter | KeyCode::Space | KeyCode::Numpad5 => {
+            nokia::KEY_FIRE
+        }
 
-        KeyCode::F1 => -6,
-        KeyCode::F2 => -7,
+        KeyCode::F1 => nokia::KEY_SOFT1,
+        KeyCode::F2 => nokia::KEY_SOFT2,
 
-        KeyCode::Digit0 | KeyCode::Numpad0 => b'0' as i32,
-        KeyCode::Digit1 | KeyCode::Numpad1 => b'1' as i32,
-        KeyCode::Digit2 | KeyCode::Numpad2 => b'2' as i32,
-        KeyCode::Digit3 | KeyCode::Numpad3 => b'3' as i32,
-        KeyCode::Digit4 | KeyCode::Numpad4 => b'4' as i32,
+        KeyCode::Digit0 | KeyCode::Numpad0 => KEY_NUM0,
+        KeyCode::Digit1 | KeyCode::Numpad1 => KEY_NUM1,
+        KeyCode::Digit2 | KeyCode::Numpad2 => KEY_NUM2,
+        KeyCode::Digit3 | KeyCode::Numpad3 => KEY_NUM3,
+        KeyCode::Digit4 | KeyCode::Numpad4 => KEY_NUM4,
         // Numpad5 is Fire above; the top-row 5 remains a digit.
-        KeyCode::Digit5 => b'5' as i32,
-        KeyCode::Digit6 | KeyCode::Numpad6 => b'6' as i32,
-        KeyCode::Digit7 | KeyCode::Numpad7 => b'7' as i32,
-        KeyCode::Digit8 | KeyCode::Numpad8 => b'8' as i32,
-        KeyCode::Digit9 | KeyCode::Numpad9 => b'9' as i32,
+        KeyCode::Digit5 => KEY_NUM5,
+        KeyCode::Digit6 | KeyCode::Numpad6 => KEY_NUM6,
+        KeyCode::Digit7 | KeyCode::Numpad7 => KEY_NUM7,
+        KeyCode::Digit8 | KeyCode::Numpad8 => KEY_NUM8,
+        KeyCode::Digit9 | KeyCode::Numpad9 => KEY_NUM9,
 
-        KeyCode::NumpadMultiply | KeyCode::BracketLeft => b'*' as i32,
-        KeyCode::BracketRight | KeyCode::Backslash => b'#' as i32,
+        KeyCode::NumpadMultiply | KeyCode::BracketLeft => KEY_STAR,
+        KeyCode::BracketRight | KeyCode::Backslash => KEY_POUND,
 
         _ => return None,
     })
