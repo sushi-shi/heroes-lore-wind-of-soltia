@@ -14,13 +14,32 @@
 //! `paint` `case 1` (loading overlay) and `case 2` (`GameMap.paint` → the tiles) —
 //! and the two in-game menu screens wired this lane: `case 5` (CharacterMenu) and
 //! `case 6` (ShopMenu), each dispatching `paint`/`keyPressed` to the ported menu.
+//! This slice adds the remaining PORTABLE overlays: `paint` `case 10` (game-over →
+//! [`draw_game_over`] + the `fxTimer` fade-out), `case 14` (stage-cleared →
+//! [`draw_clear_menu`]) and `case 15` (paused), their `keyPressed` arms (14/15),
+//! [`activate`], the HUD dirty flags ([`mark_hp_dirty`]/[`mark_mp_dirty`]/
+//! [`mark_exp_dirty`]/[`reset_hud_state`]/[`set_target`]), and the HUD itself —
+//! [`draw_hud`] (the HP/MP/exp bars) + [`draw_hud_frame`].
+//!
+//! DEFERRED image banks (`AssetCache` models none of these — `load_in_game_ui`
+//! DEFERS the `/img/uifrm` decode): `hudFrame` (so [`draw_hud_frame`] is a documented
+//! stub), `statPointAlert`, `itemIcons`, `numberFont0` (so every `drawNumberAt` in
+//! [`draw_hud`]), `guardianSkillIcons` / `skillChargeFill`, and `commonText` (so the
+//! game-over caption and the four clear-menu labels). Also DEFERRED: `getActiveGuardian`
+//! (Guardian is unported — the skill-charge icons, the cast banner, the target-panel
+//! `castState` gate), `Hero.drawSummonPose` (game-over pose), the target-monster panel
+//! and floating-message box (unported `Enemy` state / `Menu.drawSelectableBox` /
+//! `Menu.drawTextField`), `FontManager.pausedLabel` (the `loadLabels` subset the
+//! font hub leaves unfilled), and `AssetLoader.loadMainMenu` (game-over → screen 1).
 //! Inside `case 2` the pre-render `GameState.update()` (world sim + the unported
-//! Guardian), the follow-camera easing (`scrollCamera`) and `drawHud` (which derefs
-//! the Guardian) are DEFERRED; `drawWorldBehindMenu`'s `drawHud` is likewise DEFERRED
-//! (and its body is unreached while `worldVisible` is false — `activate` is unported).
-//! Still DEFERRED: the remaining `screen` cases (event scenes, refine/blacksmith
-//! menus, minimap, game-over, credits, endings, paused overlay) and the whole
-//! HUD / ending / staff-roll machinery.
+//! Guardian), the follow-camera easing (`scrollCamera`) and `drawHud` stay DEFERRED
+//! (the existing screen is left unchanged — [`draw_hud`] is ported and driven directly
+//! by the `hud_screens` gate, not yet wired into the case-2 render);
+//! `drawWorldBehindMenu`'s `drawHud` is likewise DEFERRED (and its body is unreached
+//! while `worldVisible` is false unless [`activate`] set it). Still DEFERRED cases:
+//! `4` (event scenes — EventScript), `7`/`8` (refine/blacksmith menus), `11` (minimap
+//! — `GameMap.paintMinimap` unported), `12`/`13` (credits/ending — ScrollCaption +
+//! `commonText` + `endingText`).
 //!
 //! Opcode shapes (R8, `_reference/numeric_shapes.json`): `as.<init>:()V` (the
 //! geometry `idiv`s — `width/2`, `worldHeight/2`, `(width-74)/6`),
@@ -29,7 +48,10 @@
 
 use crate::asset_cache::AssetCacheState;
 use crate::asset_loader;
+use crate::audio_manager;
 use crate::character_menu;
+use crate::entity::EntityId;
+use crate::font_manager;
 use crate::game::Game;
 use crate::game_loop;
 use crate::game_map;
@@ -73,6 +95,22 @@ pub struct GameScreenState {
     pub message_ttl: i32,
     /// `private int targetTtl;` (instance).
     pub target_ttl: i32,
+    /// `private boolean hpDirty;` (instance) — HP bar needs redraw.
+    pub hp_dirty: bool,
+    /// `private boolean mpDirty;` (instance) — MP bar needs redraw.
+    pub mp_dirty: bool,
+    /// `private boolean expDirty;` (instance) — exp bar needs redraw.
+    pub exp_dirty: bool,
+    /// `private boolean messageReplaced;` (instance) — set when a new message replaced
+    /// one still showing (skip a frame). Written by [`reset_hud_state`] / the DEFERRED
+    /// `showMessage`; read only by the DEFERRED drawHud message box.
+    pub message_replaced: bool,
+    /// `private Enemy targetMonster;` (instance, obf `as.a` : `Enemy`) — the monster
+    /// currently shown in the (DEFERRED) target-monster panel. Modelled as an arena
+    /// handle ([`EntityId`], the enemy's slot); Java reference identity becomes slot
+    /// equality. Written by [`set_target`] / [`reset_hud_state`]; read only by the
+    /// DEFERRED target-panel block of [`draw_hud`].
+    pub target_monster: Option<EntityId>,
 }
 
 /// `public GameScreen()` (`as.<init>:()V`): computes the screen geometry from the
@@ -110,6 +148,63 @@ pub fn construct(g: &mut Game) {
 pub fn mark_redraw(g: &mut Game) {
     // this.redrawAll = true;
     g.game_screen.redraw_all = true;
+}
+
+/// `public final void activate()` (`as`): activates the world view and forces a
+/// redraw. Sets `worldVisible`, which gates [`draw_world_behind_menu`]'s body.
+pub fn activate(g: &mut Game) {
+    // this.worldVisible = true;
+    g.game_screen.world_visible = true;
+    // markRedraw();
+    mark_redraw(g);
+}
+
+/// `public final void markHpDirty()` (`as`): marks the HP bar dirty.
+pub fn mark_hp_dirty(g: &mut Game) {
+    // this.hpDirty = true;
+    g.game_screen.hp_dirty = true;
+}
+
+/// `public final void markMpDirty()` (`as`): marks the MP bar dirty.
+pub fn mark_mp_dirty(g: &mut Game) {
+    // this.mpDirty = true;
+    g.game_screen.mp_dirty = true;
+}
+
+/// `public final void markExpDirty()` (`as`): marks the exp bar dirty.
+pub fn mark_exp_dirty(g: &mut Game) {
+    // this.expDirty = true;
+    g.game_screen.exp_dirty = true;
+}
+
+/// `public final void resetHudState()` (`as.f`): clears the transient HUD state (the
+/// floating message and the target-monster panel).
+pub fn reset_hud_state(g: &mut Game) {
+    // this.messageTtl = 0;
+    g.game_screen.message_ttl = 0;
+    // this.messageReplaced = false;
+    g.game_screen.message_replaced = false;
+    // this.targetTtl = 0;
+    g.game_screen.target_ttl = 0;
+    // this.targetMonster = null;
+    g.game_screen.target_monster = None;
+}
+
+/// `public final void setTarget(Enemy enemy, boolean keepCurrent)` (`as`): sets the
+/// target-monster panel to `enemy` (`keepCurrent` keeps a previously-set target).
+/// `enemy` is the arena handle of the `Enemy` (see [`GameScreenState::target_monster`]);
+/// Java's `targetMonster != enemy` reference test becomes slot equality. Only reached
+/// from the (unported) combat/targeting code; the panel it feeds is DEFERRED.
+pub fn set_target(g: &mut Game, enemy: EntityId, keep_current: bool) {
+    // this.targetTtl = 24;
+    g.game_screen.target_ttl = 24;
+    // if ((!keepCurrent || this.targetMonster == null) && this.targetMonster != enemy) {
+    if (!keep_current || g.game_screen.target_monster.is_none())
+        && g.game_screen.target_monster != Some(enemy)
+    {
+        // this.targetMonster = enemy;
+        g.game_screen.target_monster = Some(enemy);
+    }
 }
 
 /// `public final void paint(Graphics graphics)` (`as.a:(…Graphics;)V`): the ported
@@ -192,9 +287,62 @@ pub fn paint(g: &mut Game) {
             // MainMenu.instance().draw(graphics);
             main_menu::draw(g);
         }
-        // (DEFERRED: cases 4,7,8,10,11,12,13,14,15 — event scenes,
-        // refine/blacksmith menus, game-over, minimap, credits, endings, paused
-        // overlay.)
+        // case 10: the game-over screen — draw it, tick the fade-out, and on `fxTimer`
+        // reaching 0 fall back to the main-menu load. `AssetLoader.loadMainMenu()` is
+        // the one unported step (phase 5), so it is DEFERRED; `setScreen`/`unloadClip`
+        // are ported, keeping the observable screen/clip transition faithful.
+        10 => {
+            // drawGameOver(graphics);
+            draw_game_over(g);
+            // if (fxTimer > 0) fxTimer--;
+            if g.game_screen.fx_timer > 0 {
+                g.game_screen.fx_timer = g.game_screen.fx_timer.wrapping_sub(1);
+            }
+            // if (fxTimer == 0) { setScreen(1); loadMainMenu(); unloadClip((byte) 12); }
+            if g.game_screen.fx_timer == 0 {
+                game_state::set_screen(g, 1);
+                // AssetLoader.loadMainMenu();  — DEFERRED (loadMainMenu, phase 5, unported).
+                audio_manager::unload_clip(g, 12);
+            }
+        }
+        // case 14: the "stage cleared" menu box.
+        14 => {
+            // drawClearMenu(graphics);
+            draw_clear_menu(g);
+        }
+        // case 15: the paused overlay (inline in Java — no helper method). Clears to
+        // black, then draws the "OK" soft key. The centred `pausedText` draw is
+        // DEFERRED: `FontManager.pausedLabel` is one of the `loadLabels(3902..3950)`
+        // entries the font hub leaves unfilled (the boot fills only the title subset).
+        15 => {
+            // char[] pausedText = FontManager.pausedLabel;  — DEFERRED (unfilled label).
+            // FontManager.labelOk — filled by the boot's label subset; snapshot it.
+            let label_ok = g.font_manager.label_ok.clone();
+            let Game {
+                screen,
+                base_canvas,
+                font_manager,
+                ..
+            } = &mut *g;
+            let target = screen.as_mut().expect("framebuffer");
+            let mut graphics = j2me_me::Graphics::new(target);
+            // FontManager.clearScreen(graphics);
+            font_manager::clear_screen(&mut graphics, base_canvas);
+            // graphics.setColor(16777215);
+            graphics.set_color(16777215);
+            // FontManager.drawCharsCentered(graphics, halfW, halfH - 15, pausedText, 1);
+            //   — DEFERRED (pausedText / FontManager.pausedLabel unfilled).
+            // FontManager.drawSoftKeys(graphics, FontManager.labelOk, (char[]) null);
+            font_manager::draw_soft_keys(
+                font_manager,
+                &mut graphics,
+                base_canvas,
+                label_ok.as_deref(),
+                None,
+            );
+        }
+        // (DEFERRED: cases 4,7,8,11,12,13 — event scenes, refine/blacksmith menus,
+        // minimap (GameMap.paintMinimap unported), credits, endings.)
         _ => {}
     }
     // graphics.setColor(16777215);  — a trailing pen-colour set with no draw (the
@@ -386,8 +534,25 @@ pub fn key_pressed(g: &mut Game, key_code: i32) {
             // MainMenu.instance().handleKey(gameAction, keyCode);
             main_menu::handle_key(g, game_action, key_code);
         }
-        // (DEFERRED: the event / refine / blacksmith / minimap / credits / clear /
-        // paused key handling — cases 4/7/8/11/12/14/15.)
+        // case 14: if (gameAction == 8 || keyCode == 53) requestState((byte) 21, (byte) 2);
+        14 => {
+            if game_action == 8 || key_code == 53 {
+                game_state::request_state_a0(g, 21, 2);
+            }
+        }
+        // case 15: if (keyCode == 53) setScreen(1);
+        //   (kept as a `case`-body `if`, matching this file's other `case X: if (…)` arms
+        //   — the Java structure, not a merged match guard.)
+        #[allow(clippy::collapsible_match)]
+        15 => {
+            if key_code == 53 {
+                game_state::set_screen(g, 1);
+            }
+        }
+        // (DEFERRED: the event / refine / blacksmith / minimap / credits key handling
+        // — cases 4/7/8/11/12. Case 11 sets advanceCredits/minimap-exit but is gated on
+        // the unported paintMinimap; case 12 sets `advanceCredits` for the DEFERRED
+        // credits scroll.)
         _ => {}
     }
 }
@@ -470,4 +635,249 @@ fn handle_play_key(g: &mut Game, game_action: i32, key_code: i32) {
             _ => {}
         },
     }
+}
+
+/// `public final void drawHud(Graphics graphics)` (`as`): the in-game HUD.
+///
+/// This slice ports the PORTABLE, image-bank-free core — the HP/MP/exp bars (pure
+/// `fillRect`/`drawLine` geometry over the ported [`crate::hero`] stats) and the
+/// `statPoints` blink counter. Everything that binds an unmodeled `AssetCache` image
+/// bank, or the unported Guardian, is DEFERRED with a named marker:
+///
+/// - `Guardian guardian = hero.getActiveGuardian();` and its skill-slot icons /
+///   charge fills / cast banner — DEFERRED: Guardian (unported).
+/// - [`draw_hud_frame`], the `statPointAlert` blink image, the quick-item icon + its
+///   `drawNumberAt` quantity, and every bar `drawNumberAt` — DEFERRED: their
+///   `AssetCache` banks (`hudFrame` / `statPointAlert` / `itemIcons` / `numberFont0`)
+///   are unmodeled (`load_in_game_ui` DEFERS the `/img/uifrm` decode).
+/// - the target-monster panel + floating-message box — DEFERRED (unported `Enemy`
+///   state / `Menu.drawSelectableBox` / `Menu.drawTextField`).
+///
+/// The `synchronized`-free single-threaded caller (paint's case 2) does not yet wire
+/// this in (the existing screen is left unchanged); the `hud_screens` gate drives it.
+pub fn draw_hud(g: &mut Game) {
+    // Hero hero = GameState.hero();
+    let id = g.game_state.hero.expect("GameState.hero null in drawHud");
+    let (hp, max_hp, mp, max_mp, exp, exp_to_next, stat_points) = {
+        let hero = g.entity_arena[id].as_hero().expect("Hero node");
+        (
+            hero.hp,
+            hero.max_hp,
+            hero.mp,
+            hero.max_mp,
+            hero.exp,
+            hero.exp_to_next,
+            hero.stat_points,
+        )
+    };
+    // Guardian guardian = hero.getActiveGuardian();  — DEFERRED: Guardian (unported).
+    //   Every `guardian`-gated block below is DEFERRED with it.
+    // int hudY = (BaseCanvas.height - 31) - 5;
+    let hud_y = g.base_canvas.height.wrapping_sub(31).wrapping_sub(5);
+
+    let Game {
+        screen,
+        base_canvas,
+        game_screen,
+        ..
+    } = &mut *g;
+    let target = screen.as_mut().expect("framebuffer");
+    let mut graphics = j2me_me::Graphics::new(target);
+
+    // if (hero.statPoints > 0) { lowHpBlink++; if (lowHpBlink < 5) drawImage(statPointAlert…);
+    //   if (lowHpBlink >= 8) lowHpBlink = 0; }
+    if (stat_points as i32) > 0 {
+        // this.lowHpBlink++;
+        game_screen.low_hp_blink = game_screen.low_hp_blink.wrapping_add(1);
+        // if (lowHpBlink < 5) graphics.drawImage(AssetCache.statPointAlert, 5, hudY + 9, 36);
+        //   — DEFERRED (statPointAlert bank unmodeled).
+        // if (lowHpBlink >= 8) this.lowHpBlink = 0;
+        if game_screen.low_hp_blink >= 8 {
+            game_screen.low_hp_blink = 0;
+        }
+    }
+    // if (redrawAll) setClip(0,0,width,height); else setClip(0,hudY,width,15);
+    if game_screen.redraw_all {
+        graphics.set_clip(0, 0, base_canvas.width, base_canvas.height);
+    } else {
+        graphics.set_clip(0, hud_y, base_canvas.width, 15);
+    }
+    // drawHudFrame(graphics, 0, hudY);
+    draw_hud_frame(&mut graphics, 0, hud_y);
+    // Item activeItem = hero.bag.currentQuickItem();
+    //   graphics.drawImage(AssetCache.itemIcons[hero.bag.currentQuickType()], width-10, hudY+19, 3);
+    //   if (activeItem != null) drawNumberAt(graphics, activeItem.quantity, width-4, hudY+22, 24);
+    //   else drawNumberAt(graphics, 0, width-4, hudY+22, 24);
+    //   — DEFERRED (itemIcons / numberFont0 banks unmodeled).
+    // if (guardian.skillSlotA != -1) { … skill-slot A icon + charge fill … }  — DEFERRED: Guardian.
+    // if (guardian.skillSlotB != -1) { … skill-slot B icon + charge fill … }  — DEFERRED: Guardian.
+    // graphics.setClip(0, 0, width, height);
+    graphics.set_clip(0, 0, base_canvas.width, base_canvas.height);
+    // if (redrawAll || hpDirty) { … HP bar … hpDirty = false; }
+    if game_screen.redraw_all || game_screen.hp_dirty {
+        // int hpFill = (hero.hp * barWidth) / hero.maxHp;
+        let hp_fill = java_div(hp.wrapping_mul(game_screen.bar_width), max_hp)
+            .expect("(hp * barWidth) / maxHp");
+        // graphics.setClip(47, hudY + 18, barWidth, 7);
+        graphics.set_clip(47, hud_y.wrapping_add(18), game_screen.bar_width, 7);
+        // drawHudFrame(graphics, 0, hudY);
+        draw_hud_frame(&mut graphics, 0, hud_y);
+        // if (hpFill > 0) { setColor(16711680); fillRect(47, hudY+20, hpFill, 4);
+        //   setColor(16752447); fillRect(47, hudY+21, hpFill, 2); }
+        if hp_fill > 0 {
+            graphics.set_color(16711680);
+            graphics.fill_rect(47, hud_y.wrapping_add(20), hp_fill, 4);
+            graphics.set_color(16752447);
+            graphics.fill_rect(47, hud_y.wrapping_add(21), hp_fill, 2);
+        }
+        // drawNumberAt(graphics, hero.hp, (46 + barWidth) - 2, hudY + 18, 8);
+        //   — DEFERRED (numberFont0 bank unmodeled).
+        // this.hpDirty = false;
+        game_screen.hp_dirty = false;
+        // graphics.setClip(0, 0, width, height);
+        graphics.set_clip(0, 0, base_canvas.width, base_canvas.height);
+    }
+    // if (redrawAll || mpDirty) { … MP bar … mpDirty = false; }
+    if game_screen.redraw_all || game_screen.mp_dirty {
+        // int mpFill = (hero.mp * barWidth) / hero.maxMp;
+        let mp_fill = java_div(mp.wrapping_mul(game_screen.bar_width), max_mp)
+            .expect("(mp * barWidth) / maxMp");
+        // graphics.setColor(4194239); graphics.fillRect(47, hudY + 27, mpFill, 2);
+        graphics.set_color(4194239);
+        graphics.fill_rect(47, hud_y.wrapping_add(27), mp_fill, 2);
+        // graphics.setColor(0); graphics.fillRect(47 + mpFill, hudY + 27, barWidth - mpFill, 2);
+        graphics.set_color(0);
+        graphics.fill_rect(
+            47i32.wrapping_add(mp_fill),
+            hud_y.wrapping_add(27),
+            game_screen.bar_width.wrapping_sub(mp_fill),
+            2,
+        );
+        // this.mpDirty = false;
+        game_screen.mp_dirty = false;
+    }
+    // if (redrawAll || expDirty) { … exp bar … expDirty = false; }
+    if game_screen.redraw_all || game_screen.exp_dirty {
+        // int expFill = (hero.exp * expWidth) / hero.expToNext;
+        let exp_fill = java_div(exp.wrapping_mul(game_screen.exp_width), exp_to_next)
+            .expect("(exp * expWidth) / expToNext");
+        // graphics.setColor(10461055); graphics.fillRect(0, hudY + 31, width, 5);
+        graphics.set_color(10461055);
+        graphics.fill_rect(0, hud_y.wrapping_add(31), base_canvas.width, 5);
+        // graphics.setColor(4144959); graphics.fillRect(2, hudY + 32, width - 4, 3);
+        graphics.set_color(4144959);
+        graphics.fill_rect(
+            2,
+            hud_y.wrapping_add(32),
+            base_canvas.width.wrapping_sub(4),
+            3,
+        );
+        // graphics.setColor(12566399); graphics.drawLine(3, hudY + 33, (3 + expFill) - 1, hudY + 33);
+        graphics.set_color(12566399);
+        graphics.draw_line(
+            3,
+            hud_y.wrapping_add(33),
+            3i32.wrapping_add(exp_fill).wrapping_sub(1),
+            hud_y.wrapping_add(33),
+        );
+        // this.expDirty = false;
+        game_screen.exp_dirty = false;
+    }
+    // if (targetTtl <= 0 || targetMonster == null || targetMonster.state == 6) targetMonster = null;
+    //   else { Menu.drawSelectableBox(…); Menu.drawTextField(… targetMonster.stats.name …);
+    //          drawNumberAt(… targetMonster.stats.level …); … hp bar …; targetTtl--; }
+    //   — DEFERRED (unported Enemy state / Menu.drawSelectableBox / Menu.drawTextField /
+    //   the guardian.castState panel offset).
+    // if (guardian != null && guardian.castState == 2) guardian.drawSkillBanner(graphics);
+    //   — DEFERRED: Guardian.
+    // graphics.setClip(0, 0, width, height);
+    //   (dead here: the only draw that would follow — the message box — is DEFERRED.)
+    // if (messageReplaced) { messageReplaced = false; return; }
+    // if (messageTtl > 0) { Menu.drawSelectableBox(…); Menu.drawTextField(… this.message …);
+    //   messageTtl--; }  — DEFERRED (this.message + Menu.drawSelectableBox / Menu.drawTextField).
+}
+
+/// `private static final void drawHudFrame(Graphics graphics, int x, int y)` (`as.a`):
+/// the static HUD chrome.
+///
+/// **DEFERRED drawing.** Every operation binds the `AssetCache.hudFrame` image bank,
+/// which is unmodeled (`load_in_game_ui` DEFERS the `/img/uifrm` HUD-frame decode —
+/// see `asset_cache.rs`); the `hudSlots` filler loop's arithmetic is portable but its
+/// body is a `hudFrame[4]` blit, so the whole method is a faithful no-op here. The
+/// nine blits are recorded for when the bank lands:
+/// `drawImage(hudFrame[1], x, y+12, 20)`, `drawImage(hudFrame[1], x+22, y+12, 20)`,
+/// `drawImage(hudFrame[2], x+23, y+23, 20)`, `drawImage(hudFrame[3], x+44, y+12, 20)`,
+/// `for slot in 0..hudSlots: drawImage(hudFrame[4], x+49+slot*6, y+14, 20)`,
+/// `drawImage(hudFrame[0], x, y+9, 20)`, `drawImage(hudFrame[6], width-26, y, 20)`,
+/// `drawImage(hudFrame[5], width-30, y+11, 20)`.
+fn draw_hud_frame(_graphics: &mut j2me_me::Graphics, _x: i32, _y: i32) {
+    // DEFERRED: AssetCache.hudFrame bank unmodeled (see the doc comment for the body).
+}
+
+/// `public static final void drawGameOver(Graphics graphics)` (`as`): the game-over
+/// screen — a black fill, the dead-hero summon pose, and the fading caption.
+///
+/// The black fill is ported (a real frame). DEFERRED: `GameState.hero().drawSummonPose`
+/// (unported `Hero` method) and the two `FontManager.drawWrappedBlock` caption draws
+/// (their text is `AssetCache.commonText.get(32)`, and `commonText` is an unmodeled
+/// bank). `System.out.println(...)` is a dropped no-op.
+pub fn draw_game_over(g: &mut Game) {
+    // char[] text = AssetCache.commonText.get(32);  — DEFERRED (commonText bank unmodeled).
+    let Game {
+        screen,
+        base_canvas,
+        ..
+    } = &mut *g;
+    let target = screen.as_mut().expect("framebuffer");
+    let mut graphics = j2me_me::Graphics::new(target);
+    // graphics.setColor(0);
+    graphics.set_color(0);
+    // graphics.fillRect(0, 0, BaseCanvas.width, BaseCanvas.height);
+    graphics.fill_rect(0, 0, base_canvas.width, base_canvas.height);
+    // GameState.hero().drawSummonPose(graphics, halfW, halfH + 20);
+    //   — DEFERRED (Hero.drawSummonPose unported).
+    // char[] text = AssetCache.commonText.get(32); int textWidth = FontManager.stringWidth(text);
+    // System.out.println(FontManager.charsToString(text));  — dropped no-op.
+    // graphics.setColor(8355711); FontManager.drawWrappedBlock(graphics,
+    //   (halfW - textWidth/2) + 1, (halfH - 20) + 1, 200, 1, text, 0, 0, (17 - fxTimer) * 2);
+    // graphics.setColor(16777215); FontManager.drawWrappedBlock(graphics,
+    //   halfW - textWidth/2, halfH - 20, 200, 1, text, 0, 0, (17 - fxTimer) * 2);
+    //   — DEFERRED (caption text from the unmodeled commonText bank).
+}
+
+/// `private final void drawClearMenu(Graphics graphics)` (`as`): the four-line "stage
+/// cleared" menu box.
+///
+/// The black fill + the bevelled panel (frame + blue interior) are ported. DEFERRED:
+/// the four `FontManager.drawChars` label draws — their text is
+/// `AssetCache.commonText.get(33..36)`, and `commonText` is an unmodeled bank.
+fn draw_clear_menu(g: &mut Game) {
+    // char[] line1 = commonText.get(33); … line4 = commonText.get(36);
+    //   — DEFERRED (commonText bank unmodeled).
+    let Game {
+        screen,
+        base_canvas,
+        ..
+    } = &mut *g;
+    let target = screen.as_mut().expect("framebuffer");
+    let mut graphics = j2me_me::Graphics::new(target);
+    // graphics.setColor(0);
+    graphics.set_color(0);
+    // graphics.fillRect(0, 0, BaseCanvas.width, BaseCanvas.height);
+    graphics.fill_rect(0, 0, base_canvas.width, base_canvas.height);
+    // int boxX = BaseCanvas.halfW - 55;
+    let box_x = base_canvas.half_w.wrapping_sub(55);
+    // int boxY = BaseCanvas.halfH - 36;
+    let box_y = base_canvas.half_h.wrapping_sub(36);
+    // Menu.drawPanelFrame(graphics, boxX, boxY, 110, 72);
+    menu::draw_panel_frame(&mut graphics, box_x, box_y, 110, 72);
+    // Menu.fillPanelInterior(graphics, boxX, boxY, 110, 72);
+    menu::fill_panel_interior(&mut graphics, box_x, box_y, 110, 72);
+    // graphics.setColor(16777215);
+    graphics.set_color(16777215);
+    // FontManager.drawChars(graphics, boxX + 5, boxY + 5,  line1, 1);
+    // FontManager.drawChars(graphics, boxX + 5, boxY + 21, line2, 1);
+    // FontManager.drawChars(graphics, boxX + 5, boxY + 37, line3, 1);
+    // FontManager.drawChars(graphics, boxX + 5, boxY + 53, line4, 1);
+    //   — DEFERRED (label text from the unmodeled commonText bank).
 }
