@@ -11,11 +11,15 @@
 //! - `create` / the private constructor / `instance` / `dispose`;
 //! - `handleKey` — the cursor navigation (`moveCursorVertical` + the disabled-Load
 //!   skip + `logoFrame` reset) plus the FIRE-select `switch(cursorIndex)`: **case 0
-//!   ("New Game")** is wired on a fresh install (`!hasSave` → push
-//!   `ClassSelectMenu` as the child). The other cases (`ContinueMenu` /
-//!   `OptionsMenu` / `HelpMenu` / `AboutScreen` / the save-overwrite + exit/buy
-//!   popups) and the `keyCode == -8` exit-popup remain DEFERRED (their target
-//!   screens are not ported);
+//!   ("New Game")** pushes `ClassSelectMenu` (fresh install) or the save-overwrite
+//!   `showPopup`; **case 1 ("Continue")** pushes `ContinueMenu`; **case 2
+//!   ("Options")** pushes `OptionsMenu`; the `default` about/exit + buy `showPopup`s
+//!   and the `keyCode == -8` exit-`showPopup` are wired. Only cases 3/4 (`HelpMenu` /
+//!   `AboutScreen`) remain DEFERRED (their screens are not ported);
+//! - `onPopupResult` — the popup-result callback (`super` dismiss + the
+//!   `pendingAction` switch: case 0 → `ClassSelectMenu`, case 2 → the demo-splash
+//!   arm); the full-version buy popup (case 2 else) and the buy-and-exit (cases 3/4)
+//!   are DEFERRED (unported `FontManager.labelBuy`/`requestBuyAndExit`);
 //! - `draw` (the `demoExpiry <= 0` branch: `render` + the `logoFrame` intro
 //!   animation) — the demo trial-splash branch is DEFERRED (`demoExpiry` is 0 on a
 //!   fresh install);
@@ -23,7 +27,7 @@
 //!   soft keys) and the statics `drawMenuPanel` / `drawTitlePlate` (the latter used
 //!   by the front-menu subscreens, e.g. `ClassSelectMenu.paint`).
 //!
-//! `onPopupResult`, the demo splash, and the save-blob plumbing are DEFERRED.
+//! The demo splash and the save-blob plumbing are DEFERRED.
 //!
 //! Opcode shapes (R8, `_reference/numeric_shapes.json`):
 //! `bf.a:(Z[B)V => [isub, isub]` (create — `halfW-77`, `halfH-85`),
@@ -36,12 +40,14 @@
 //! `bf.b:(…Graphics;III)V => [iinc×…,iadd×…,imul×…]` (drawMenuPanel),
 //! `bf.c:(…Graphics;II)V => [iinc,iinc,iinc,iinc,iadd,iinc,iadd,iinc,iadd,iinc,iinc,iadd]` (drawTitlePlate).
 
-use crate::asset_cache::AssetCacheState;
+use crate::asset_cache::{self, AssetCacheState};
 use crate::class_select_menu;
+use crate::continue_menu;
 use crate::font_manager::{self, APP_CONFIG_MENU_BUY_ENABLED};
 use crate::game::Game;
 use crate::menu::{self, MenuChild, MenuNode};
-use j2me_jvm::ishr;
+use crate::options_menu;
+use j2me_jvm::{ishr, Clock};
 
 /// Java `bf` / `MainMenu` state: the `Menu` instance fields (as [`menu::MenuBase`]),
 /// the `MainMenu` instance fields, and its `static`s (see
@@ -188,9 +194,14 @@ pub fn handle_key(g: &mut Game, action: i32, key_code: i32) -> bool {
         g.main_menu.logo_frame = 0;
         return true;
     }
-    // if (keyCode == -8) { showPopup((byte)2,(byte)2,{confirmPrompt}); pendingAction = 2; }
+    // if (keyCode == -8) { showPopup((byte) 2, (byte) 2, new Object[]{FontManager.confirmPrompt}); pendingAction = 2; }
     if key_code == -8 {
-        // (DEFERRED: showPopup exit-confirm — PopupMenu not ported; not reached by the route.)
+        // new Object[]{FontManager.confirmPrompt} — confirmPrompt is unported, so the
+        // popup's single option line carries a DEFERRED placeholder; the popup MACHINERY
+        // (type 2 yes-no confirm, tag → onPopupResult) is wired faithfully.
+        let lines: Vec<Vec<u16>> = vec![Vec::new()]; // {FontManager.confirmPrompt} — DEFERRED content
+        menu::show_popup(g, MenuNode::Main, 2, 2, lines);
+        // this.pendingAction = (byte) 2;
         g.main_menu.pending_action = 2;
     }
     // if (action != 8 && keyCode != 53) return false;
@@ -210,19 +221,29 @@ pub fn handle_key(g: &mut Game, action: i32, key_code: i32) -> bool {
             }
             // this.pendingAction = (byte) 0;
             g.main_menu.pending_action = 0;
-            // showPopup((byte) 12, (byte) 2, {getString(3929)}, labelOk, labelBack);
-            // (DEFERRED: save-overwrite confirm popup — PopupMenu / getString(3929) /
-            // labelBack not ported; hasSave is false on the wired fresh-install path.)
+            // showPopup((byte) 12, (byte) 2, new Object[]{FontManager.getString(3929).toCharArray()}, FontManager.labelOk, FontManager.labelBack);
+            let lines = vec![font_manager::get_string(g, 3929)];
+            let ok = g.font_manager.label_ok.clone();
+            // FontManager.labelBack is unported → the cancel label is DEFERRED (None).
+            menu::show_popup_labels(g, MenuNode::Main, 12, 2, lines, ok, None);
+            // return false;
             false
         }
         // case 1: child = new ContinueMenu(this, saveBlob);
         1 => {
-            // (DEFERRED: ContinueMenu — not ported.)
+            // new ContinueMenu(this, this.saveBlob)  — materialise + link the slot picker.
+            let save_blob = g.main_menu.save_blob.clone();
+            continue_menu::construct(g, save_blob);
+            g.main_menu.base.child = MenuChild::Continue;
+            // return false;
             false
         }
         // case 2: child = new OptionsMenu(this, false);
         2 => {
-            // (DEFERRED: OptionsMenu — not ported.)
+            // new OptionsMenu(this, false)  — materialise + link the options screen.
+            options_menu::construct(g, false);
+            g.main_menu.base.child = MenuChild::Options;
+            // return false;
             false
         }
         // case 3: child = new HelpMenu(this, false);
@@ -235,11 +256,81 @@ pub fn handle_key(g: &mut Game, action: i32, key_code: i32) -> bool {
             // (DEFERRED: AboutScreen — not ported.)
             false
         }
-        // default: aboutIndex → exit-confirm popup; exitIndex → buy popup.
+        // default:
         _ => {
-            // (DEFERRED: about/exit + buy popups — PopupMenu not ported; the fresh
-            // install's aboutIndex/exitIndex are both 5 and are DEFERRED.)
+            // if (cursorIndex == aboutIndex) { pendingAction = 2; showPopup(2, 2, {confirmPrompt}); return false; }
+            if (g.main_menu.base.cursor_index as i32) == g.main_menu.about_index {
+                // this.pendingAction = (byte) 2;
+                g.main_menu.pending_action = 2;
+                // new Object[]{FontManager.confirmPrompt} — DEFERRED content (unported); the
+                // popup machinery is wired.
+                let lines: Vec<Vec<u16>> = vec![Vec::new()];
+                menu::show_popup(g, MenuNode::Main, 2, 2, lines);
+                return false;
+            }
+            // if (cursorIndex != exitIndex) return false;
+            if (g.main_menu.base.cursor_index as i32) != g.main_menu.exit_index {
+                return false;
+            }
+            // Object[] buyLines = {FontManager.getString(3918).toCharArray()};
+            // this.pendingAction = (byte) 3;
+            // showPopup((byte) 12, (byte) 2, buyLines);
+            let lines = vec![font_manager::get_string(g, 3918)];
+            g.main_menu.pending_action = 3;
+            menu::show_popup(g, MenuNode::Main, 12, 2, lines);
+            // return false;
             false
+        }
+    }
+}
+
+/// `public final void onPopupResult(byte tag, byte result)` (`bf.a:(BB)V => [ladd, ladd]`):
+/// the popup-result callback. Runs the base dismiss (`super`), then, for the exit /
+/// overwrite tags (`2`/`12`), the `pendingAction` switch: **case 0** pushes
+/// `ClassSelectMenu` (New-Game overwrite confirmed); **case 2** arms the demo splash
+/// (`!AppConfig.fullVersion` on this build). The full-version buy popup (case 2 else)
+/// and the buy-and-exit (cases 3/4) are DEFERRED (unported `FontManager.labelBuy` /
+/// `requestBuyAndExit`).
+pub fn on_popup_result(g: &mut Game, tag: i8, result: i8) {
+    // super.onPopupResult(tag, result);   (child = null; activate; invalidateUp)
+    menu::on_popup_result_base(g, MenuNode::Main, tag, result);
+    // if (tag == 2 || tag == 12) {
+    if tag == 2 || tag == 12 {
+        // if (result != 0) { switch (pendingAction) { case 4: loadLogo(); demoExpiry = now+5000; } }
+        if result != 0 && (g.main_menu.pending_action as i32) == 4 {
+            // case 4:
+            asset_cache::load_logo(g);
+            // this.demoExpiry = System.currentTimeMillis() + 5000;   (ladd)
+            g.main_menu.demo_expiry = g.clock.current_time_millis().wrapping_add(5000);
+        }
+        // switch (this.pendingAction) {
+        match g.main_menu.pending_action as i32 {
+            // case 0: ((Menu) this).child = new ClassSelectMenu(this);
+            0 => {
+                class_select_menu::construct(g);
+                g.main_menu.base.child = MenuChild::ClassSelect;
+            }
+            // case 2:
+            2 => {
+                // if (!AppConfig.fullVersion) { loadLogo(); demoExpiry = now+5000; }
+                if !g.app_config.full_version {
+                    asset_cache::load_logo(g);
+                    // this.demoExpiry = System.currentTimeMillis() + 5000;   (ladd)
+                    g.main_menu.demo_expiry = g.clock.current_time_millis().wrapping_add(5000);
+                } else {
+                    // else { buyLines = {getString(3919)}; pendingAction = 4;
+                    //        showPopup(12, 2, buyLines, labelBuy, labelExit); }
+                    // (DEFERRED: the full-version buy popup — FontManager.labelBuy is unported.
+                    //  AppConfig.fullVersion is false on the EN v207 demo build, so this
+                    //  branch is unreachable here.)
+                }
+            }
+            // case 3: case 4: FontManager.requestBuyAndExit(AppConfig.buyUrl);
+            3 | 4 => {
+                // (DEFERRED: FontManager.requestBuyAndExit / AppConfig.buyUrl — unported host
+                //  exit; reached only via the demo buy popups.)
+            }
+            _ => {}
         }
     }
 }

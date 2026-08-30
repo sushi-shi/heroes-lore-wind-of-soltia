@@ -29,6 +29,8 @@ use crate::base_canvas::BaseCanvasState;
 use crate::byte_util::ByteUtilState;
 use crate::class_confirm_menu::ClassConfirmMenuState;
 use crate::class_select_menu::ClassSelectMenuState;
+use crate::confirm_dialog::ConfirmDialogState;
+use crate::continue_menu::ContinueMenuState;
 use crate::debug::DebugState;
 use crate::entity::{EntityArena, EntityState};
 use crate::font_manager::FontManagerState;
@@ -38,6 +40,8 @@ use crate::game_midlet::ApplicationState;
 use crate::game_screen::GameScreenState;
 use crate::game_state::GameStateData;
 use crate::main_menu::MainMenuState;
+use crate::options_menu::OptionsMenuState;
+use crate::popup_menu::PopupMenuState;
 use crate::resources::ResourceBank;
 use crate::start_trait_menu::StartTraitMenuState;
 use crate::string_table::StringTableData;
@@ -123,6 +127,26 @@ pub struct Game {
     /// `ClassConfirmMenu`; the flat model carries the reusable child slot as a `Game`
     /// field, linked/unlinked by the [`MenuChild`](crate::menu::MenuChild).
     pub start_trait_menu: StartTraitMenuState,
+    /// `af` / `PopupMenu` state (the general-purpose dialog + its `cb`/`Menu` base
+    /// fields). Not a Java static — a per-instance child pushed by any menu's
+    /// `showPopup`/`showMessage`; the flat model carries the reusable child slot as a
+    /// `Game` field, linked/unlinked by the [`MenuChild`](crate::menu::MenuChild).
+    pub popup_menu: PopupMenuState,
+    /// `am` / `ConfirmDialog` state (the two-line Yes/No dialog + its `cb`/`Menu` base
+    /// fields). Not a Java static — a per-instance child (creator `SkillTab`); the flat
+    /// model carries the reusable child slot as a `Game` field, linked by the
+    /// [`MenuChild`](crate::menu::MenuChild).
+    pub confirm_dialog: ConfirmDialogState,
+    /// `a` / `ContinueMenu` state (the load-game slot picker + its `cb`/`Menu` base
+    /// fields + the save blob). Not a Java static — a per-instance child of `MainMenu`;
+    /// the flat model carries the reusable child slot as a `Game` field, linked by the
+    /// [`MenuChild`](crate::menu::MenuChild).
+    pub continue_menu: ContinueMenuState,
+    /// `be` / `OptionsMenu` state (the options screen + its `cb`/`Menu` base fields).
+    /// Not a Java static — a per-instance child of `MainMenu` (or `SystemTab`); the flat
+    /// model carries the reusable child slot as a `Game` field, linked by the
+    /// [`MenuChild`](crate::menu::MenuChild).
+    pub options_menu: OptionsMenuState,
     /// `bw` / `AudioManager` state (the `snd/` clip pool + volume/mixer state).
     pub audio: AudioManagerState,
     /// `ce` / `AssetCache` state (PARTIAL — only the title/logo render-path banks
@@ -190,6 +214,10 @@ impl Game {
             class_select_menu: ClassSelectMenuState::default(),
             class_confirm_menu: ClassConfirmMenuState::default(),
             start_trait_menu: StartTraitMenuState::default(),
+            popup_menu: PopupMenuState::default(),
+            confirm_dialog: ConfirmDialogState::default(),
+            continue_menu: ContinueMenuState::default(),
+            options_menu: OptionsMenuState::default(),
             asset_cache: AssetCacheState::new(),
             asset_loader: AssetLoaderState::default(),
             font_manager: FontManagerState::default(),
