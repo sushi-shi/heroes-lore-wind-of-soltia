@@ -27,9 +27,31 @@
 //! `AssetLoader` has one mutable static this slice models — `phase` (`bu.a:B`);
 //! `commonLoaded` (`bu.a:Z`) and the script/atlas/anim tables are DEFERRED.
 
+use crate::asset_cache;
 use crate::game::Game;
 use crate::game_map;
 use crate::game_state;
+use crate::png_merger;
+
+/// `private static final String[] scriptSuffixes` (`bu.g`) — animation-script file
+/// suffixes per sprite-bank kind (indexed by `bankKind`).
+const SCRIPT_SUFFIXES: [&str; 7] = ["a", "b", "e", "hA", "hB", "w", "s"];
+/// `public static final String[] scriptDirs` (`bu.a`) — per-class animation-script
+/// dirs (`c1/s` .. `c3/s`), indexed by `classId - 6`.
+const SCRIPT_DIRS: [&str; 3] = ["/c1/s/", "/c2/s/", "/c3/s/"];
+/// `public static final String[] atlasDirs` (`bu.a`) — per-class sprite-atlas dirs
+/// (`c1/i` .. `c3/i`), indexed by `classId - 6`.
+const ATLAS_DIRS: [&str; 3] = ["/c1/i/", "/c2/i/", "/c3/i/"];
+/// `public static final String[] armorFiles` (`bu.a`) — armor atlas file names.
+const ARMOR_FILES: [&str; 6] = ["a1", "a2", "a3", "a4", "a5", "a6"];
+/// `public static final String[] headFiles` (`bu.a`) — head atlas file names.
+const HEAD_FILES: [&str; 7] = ["h1", "h2", "h3", "h4", "h5", "h6", "h7"];
+/// `public static final String[] weaponFiles` (`bu.a`) — weapon atlas file names.
+const WEAPON_FILES: [&str; 5] = ["w1", "w2", "w3", "w4", "w5"];
+/// `public static final String[] shieldFiles` (`bu.a`) — shield atlas file names.
+const SHIELD_FILES: [&str; 5] = ["s1", "s2", "s3", "s4", "s5"];
+/// `public static final byte[] headAnim` (`bu.a`) — head-subId → atlas-file index.
+const HEAD_ANIM: [i8; 16] = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6];
 
 /// Java `bu` / `AssetLoader` state — **partial** (anti-bog). Only the `phase`
 /// static (which entry point a worker is running) is modelled; `commonLoaded` and
@@ -77,18 +99,249 @@ fn run(g: &mut Game) {
     }
 }
 
-/// `run`'s `case 1` (phase 1, "- RESOURCE"). The sprite/UI/text bank loads are
-/// DEFERRED (see the module header); the observable effect that advances the New
-/// Game sequence is the map-warp request.
+/// `run`'s `case 1` (phase 1, "- RESOURCE").
+///
+/// The decompiled Java has a JADX control-flow artifact — the `classSkillText`
+/// `TextTable` load sits in a `try { … break; } catch { }` that, as rendered, would
+/// skip the sprite loads when the table parses. The intended behaviour (and the
+/// only one that produces a visible hero) is that the hero sprites load; this slice
+/// reproduces that intent: `loadCommonAssets` (PARTIAL — only the `entityShadow` the
+/// hero paint needs; see [`asset_cache::load_in_game_ui`]) then
+/// [`load_hero_equip_sprites`], then the map-warp request that advances the New Game
+/// sequence. Still DEFERRED here: `classSkillText`, `loadGuardianSprites` (needs the
+/// DEFERRED Guardian), and `beginLoading`/`keepLoadingProgress`.
 fn run_phase_resources(g: &mut Game) {
-    // (DEFERRED: Thread.sleep; yieldTick; if (!commonLoaded) loadCommonAssets();
-    //  the classSkillText TextTable; loadHeroEquipSprites(); loadGuardianSprites().)
+    // if (!commonLoaded) loadCommonAssets();  — PARTIAL: only loadInGameUi → entityShadow.
+    asset_cache::load_in_game_ui(g);
+    // (DEFERRED: the rest of loadCommonAssets — icons/UI/status/shop/death fx/text tables/audio.)
+    // (DEFERRED: AssetCache.classSkillText = new TextTable("/sgui/q" + classId).)
+    // loadHeroEquipSprites();
+    load_hero_equip_sprites(g);
+    // loadGuardianSprites();  — DEFERRED (derefs the unported Guardian).
     // GameState.requestMapWarp(GameState.storyMapId, (byte) 1, GameState.arg0, GameState.arg1);
     let map_id = g.game_state.story_map_id;
     let a1 = g.game_state.arg0;
     let a2 = g.game_state.arg1;
     game_state::request_map_warp(g, map_id, 1, a1, a2);
     // BaseCanvas.keepLoadingProgress = true;  — DEFERRED.
+}
+
+/// `private final void loadHeroEquipSprites()` (`bu.j:()V`) — allocates the hero
+/// frame table and loads the body/armor/head/shield sprite banks from the current
+/// equipment.
+///
+/// **Equipment slots are all null in this slice** (`Hero.initClass`'s `Item.create`
+/// gear setup is DEFERRED — see [`crate::hero::init_class`]), so the accessory
+/// branches (`getAccessory1`/`getAccessory2`/`getArmor`) all take the null side: only
+/// the always-loaded **body** (`loadSpriteBank(classId, 1, 0, …)`) and the default
+/// **head** (`loadHeadSprite(classId, 0)`) land. The armor / class-8 shield loads are
+/// reproduced structurally but skipped (their `!= null` guard is false). Once the
+/// equipment lane fills the slots, the same branches load the gear layers.
+pub fn load_hero_equip_sprites(g: &mut Game) {
+    // AssetCache.heroFrames = new Object[396];
+    g.asset_cache.hero_frames = Some((0..396).map(|_| None).collect());
+    let class_id = g.game_state.class_id;
+    // Hero hero = GameState.hero();
+    let id = g
+        .game_state
+        .hero
+        .expect("GameState.hero null in loadHeroEquipSprites");
+    // if (hero.getAccessory1() != null) loadArmorSprite(classId, getEquip(2).subId);
+    if g.entity_arena[id].as_hero().expect("Hero node").equipment[2].is_some() {
+        // (DEFERRED: loadArmorSprite — reached only once equipment[2] is non-null.)
+        unimplemented!("DEFERRED: loadArmorSprite — equipment[2] is null in this slice");
+    }
+    // loadSpriteBank(classId, (byte) 1, (byte) 0, false, (byte) 0);  — the body layer.
+    load_sprite_bank(g, class_id, 1, 0, false, 0);
+    // if (hero.getAccessory2() != null) loadHeadSprite(classId, getAccessory2().subId);
+    // else loadHeadSprite(classId, (byte) 0);
+    if g.entity_arena[id].as_hero().expect("Hero node").equipment[3].is_some() {
+        // (DEFERRED: the equipped-head path — reached only once equipment[3] is non-null.)
+        unimplemented!("DEFERRED: equipped head — equipment[3] is null in this slice");
+    } else {
+        load_head_sprite(g, class_id, 0);
+    }
+    // if (classId == 8 && hero.getArmor() != null) loadShieldSprite(classId, getArmor().subId);
+    //   — DEFERRED (class 6 here, and equipment[1] null).
+}
+
+/// `public static final void loadHeadSprite(byte classId, byte subId)` (`bu.b:(BB)V`)
+/// — loads the head sprite for head sub-index `subId` (sprite bank 3 or 4). Class-6
+/// heads with `subId` in `0..=3` use script bank 3 (`hA`); everything else bank 4 (`hB`).
+pub fn load_head_sprite(g: &mut Game, class_id: i8, sub_id: i8) {
+    // byte bank = 4; if (classId == 6 && subId >= 0 && subId <= 3) bank = 3;
+    let mut bank: i8 = 4;
+    // (verbatim `subId >= 0 && subId <= 3`; kept as two comparisons, not a range.)
+    #[allow(clippy::manual_range_contains)]
+    if class_id == 6 && sub_id >= 0 && sub_id <= 3 {
+        bank = 3;
+    }
+    // loadSpriteBank(classId, bank, headAnim[subId], false, (byte) 0);
+    load_sprite_bank(g, class_id, bank, HEAD_ANIM[sub_id as usize], false, 0);
+}
+
+/// `private static final void loadSpriteBank(byte classId, byte bankKind, byte
+/// fileIndex, boolean weaponPreview, byte element)` (`bu.a:(BBBZB)V`) — opens the
+/// atlas for `fileIndex` via [`png_merger`], reads the per-class animation script for
+/// `bankKind` from the `c*/s` dir, and assembles the per-frame draw scripts into
+/// [`asset_cache::AssetCacheState::hero_frames`] while lazily decoding the referenced
+/// atlas frames into the paired sprite banks.
+///
+/// **This slice ports the non-aura decode (branch `bankKind != 2`)** — the path every
+/// body/armor/head/weapon/shield bank takes (bank kinds 0/1/3/4/5/6). The **aura**
+/// arm (`bankKind == 2`, its inline group-script decode + `loadMageShieldFrames`) is
+/// DEFERRED: it is reached only by the guardian-summon load, and its layer (7) is
+/// gated on `map.combatEnabled`, false on the class-6 start map. The `weaponPreview`
+/// branch (class-select preview) keeps its frames local (never stored into
+/// `spriteBanks`), reproduced faithfully though not driven here.
+fn load_sprite_bank(
+    g: &mut Game,
+    class_id: i8,
+    bank_kind: i8,
+    file_index: i8,
+    weapon_preview: bool,
+    element: i8,
+) {
+    // byte classIndex = (byte) (classId - 6);
+    let class_index = (class_id as i32).wrapping_sub(6) as i8;
+    let atlas_dir = ATLAS_DIRS[class_index as usize];
+    // switch (bankKind): construct the atlas merger + pick the destination sprite bank.
+    let (mut merger, sprite_bank): (png_merger::PngMergerState, i8) = match bank_kind {
+        // case 0: armor → spriteBanks[0]/[6].
+        0 => (
+            png_merger::construct(
+                g,
+                &format!("{atlas_dir}{}", ARMOR_FILES[file_index as usize]),
+            ),
+            0,
+        ),
+        // case 1: body → spriteBanks[1]/[7].
+        1 => (png_merger::construct(g, &format!("{atlas_dir}b")), 1),
+        // case 3/4: head → spriteBanks[2]/[8].
+        3 | 4 => (
+            png_merger::construct(
+                g,
+                &format!("{atlas_dir}{}", HEAD_FILES[file_index as usize]),
+            ),
+            2,
+        ),
+        // case 5: weapon → spriteBanks[3]/[9].
+        5 => (
+            png_merger::construct(
+                g,
+                &format!("{atlas_dir}{}", WEAPON_FILES[file_index as usize]),
+            ),
+            3,
+        ),
+        // case 6: shield → spriteBanks[5]/[11].
+        6 => (
+            png_merger::construct(
+                g,
+                &format!("{atlas_dir}{}", SHIELD_FILES[file_index as usize]),
+            ),
+            5,
+        ),
+        // case 2: guardian aura (spriteBanks[4]/[10] + loadMageShieldFrames) — DEFERRED.
+        _ => unimplemented!(
+            "DEFERRED: loadSpriteBank bankKind 2 (guardian aura) — not on the milestone path"
+        ),
+    };
+    // Image[] frames = new Image[merger.frameCount()];  Image[] mirroredFrames = same;
+    let frame_count = png_merger::frame_count(&merger);
+    let mut frames: Vec<Option<j2me_me::Image>> = (0..frame_count).map(|_| None).collect();
+    let mut mirrored_frames: Vec<Option<j2me_me::Image>> = (0..frame_count).map(|_| None).collect();
+    // case 5 weapon element remap (element != 0): recolour the weapon palette.
+    if bank_kind == 5 && element != 0 {
+        match element {
+            1 => png_merger::remap_palette(&mut merger, 255, 16744255),
+            2 => png_merger::remap_palette(&mut merger, 255, 6258623),
+            3 => png_merger::remap_palette(&mut merger, 255, 8388479),
+            _ => {}
+        }
+    }
+    // merger.preloadAll = true;
+    merger.preload_all = true;
+    // byte[] script = AssetCache.readResource(scriptDirs[classIndex] + scriptSuffixes[bankKind]);
+    let script = asset_cache::read_resource(
+        g,
+        &format!(
+            "{}{}",
+            SCRIPT_DIRS[class_index as usize], SCRIPT_SUFFIXES[bank_kind as usize]
+        ),
+    )
+    .expect("readResource(sprite script) returned null");
+    // int pos = 0; while (pos < script.length) { ...  (bankKind != 2 branch) ... }
+    let mut pos: i32 = 0;
+    while pos < script.len() as i32 {
+        // byte action = script[pos]; byte row = script[pos+1]; byte col = script[pos+2];
+        // byte frameCount = script[pos+3]; pos += 4;
+        let action = script[pos as usize];
+        let row = script[(pos + 1) as usize];
+        let col = script[(pos + 2) as usize];
+        let frame_count_hdr = script[(pos + 3) as usize];
+        pos = pos.wrapping_add(4);
+        // byte[] entry = new byte[1 + (frameCount * 4)]; int w = 1; entry[0] = frameCount;
+        let entry_len = 1i32.wrapping_add((frame_count_hdr as i32).wrapping_mul(4));
+        let mut entry: Vec<i8> = vec![0i8; entry_len as usize];
+        let mut w: i32 = 1;
+        entry[0] = frame_count_hdr;
+        // for (int i = 0; i < frameCount; i++)  (each frame: dx, dy, mirrorFlag, imageIndex)
+        let mut i: i32 = 0;
+        while i < frame_count_hdr as i32 {
+            // entry[w] = script[pos]  (dx);  entry[w+1] = script[pos+1]  (dy).
+            entry[w as usize] = script[pos as usize];
+            entry[(w + 1) as usize] = script[(pos + 1) as usize];
+            // boolean mirrored = script[pos+2] != 0;  entry[w+2] = mirrored ? bank+6 : bank.
+            let mirrored = script[(pos + 2) as usize] != 0;
+            entry[(w + 2) as usize] = if mirrored {
+                (sprite_bank as i32).wrapping_add(6) as i8
+            } else {
+                sprite_bank
+            };
+            // byte imageIndex = script[pos+3];  entry[w+3] = imageIndex.
+            let image_index = script[(pos + 3) as usize];
+            entry[(w + 3) as usize] = image_index;
+            // w += 4; pos += 4;
+            w = w.wrapping_add(4);
+            pos = pos.wrapping_add(4);
+            // lazily decode the referenced atlas frame into the base / mirror bank.
+            if image_index != -1 {
+                if !mirrored && frames[image_index as usize].is_none() {
+                    let img = png_merger::image(g, &mut merger, image_index as i32);
+                    frames[image_index as usize] = Some(img);
+                } else if mirrored && mirrored_frames[image_index as usize].is_none() {
+                    let img = png_merger::image_mirrored(g, &mut merger, image_index as i32);
+                    mirrored_frames[image_index as usize] = Some(img);
+                }
+            }
+            i = i.wrapping_add(1);
+        }
+        // if (weaponPreview) weaponPreviewFrames[(row*4)+col] = entry;
+        // else heroFrames[(row*36)+(col*9)+action] = entry;
+        if weapon_preview {
+            let idx = (row as i32).wrapping_mul(4).wrapping_add(col as i32);
+            g.asset_cache
+                .weapon_preview_frames
+                .as_mut()
+                .expect("weaponPreviewFrames null")[idx as usize] = Some(entry);
+        } else {
+            let idx = (row as i32)
+                .wrapping_mul(36)
+                .wrapping_add((col as i32).wrapping_mul(9))
+                .wrapping_add(action as i32);
+            g.asset_cache.hero_frames.as_mut().expect("heroFrames null")[idx as usize] =
+                Some(entry);
+        }
+    }
+    // merger.unloadAllMpd();
+    png_merger::unload_all_mpd(&mut merger);
+    // Publish the filled banks (Java aliases spriteBanks[dest]/[mirror] up front and
+    // fills them via the alias; net-identical since nothing reads them mid-decode).
+    if !weapon_preview {
+        g.asset_cache.sprite_banks[sprite_bank as usize] = Some(frames);
+        g.asset_cache.sprite_banks[(sprite_bank as i32).wrapping_add(6) as usize] =
+            Some(mirrored_frames);
+    }
 }
 
 /// `run`'s `case 2` (phase 2, "- MAP"): drops the old map, loads the destination

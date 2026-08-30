@@ -29,9 +29,10 @@
 
 use crate::asset_cache;
 use crate::base_canvas::BaseCanvasState;
-use crate::entity::EntityId;
+use crate::entity::{EntityId, EntityKind};
 use crate::entity_list::{self, EntityListState};
 use crate::game::Game;
+use crate::hero;
 use crate::png_merger;
 use j2me_jvm::java_div;
 
@@ -473,8 +474,41 @@ pub fn paint(g: &mut Game) {
     }
     // drawTiles(graphics, i, i2, i3, i4);
     draw_tiles(g, i, i2, i3, i4);
-    // (DEFERRED: drawPickups(graphics, i, i2); drawEntities(graphics, i, i2); zone banner.)
+    // drawPickups(graphics, i, i2);  — DEFERRED (no pickups in this slice's map load).
+    // drawEntities(graphics, i, i2);
+    draw_entities(g, i, i2);
+    // (DEFERRED: the zone banner.)
     // graphics.setClip(0, 0, BaseCanvas.width, BaseCanvas.height);  — no draw follows.
+}
+
+/// `private final void drawEntities(Graphics graphics, int i, int i2)`
+/// (`ae.b:(…Graphics;II)V => []`) — walks the map's z-sorted entity list head→tail
+/// (front to back by depth) and paints each at the camera offset (`i`,`i2`).
+///
+/// The concrete `Entity.paint` is a virtual call; this slice dispatches on the node's
+/// [`EntityKind`]. On the first world frame the only linked entity is the hero (the
+/// `.evt` object/npc/enemy parse that would add [`crate::map_object`]/Npc/Enemy nodes
+/// is DEFERRED), so those subclass paints are DEFERRED and cannot appear here yet.
+pub fn draw_entities(g: &mut Game, i: i32, i2: i32) {
+    // Entity ckVar = this.entities.head;
+    let mut cursor = g
+        .game_state
+        .map
+        .as_ref()
+        .expect("GameState.map null in drawEntities")
+        .entities
+        .head;
+    // while (ckVar != null) { ckVar.paint(graphics, i, i2); ckVar = ckVar.next; }
+    while let Some(id) = cursor {
+        let next = g.entity_arena[id].next;
+        match g.entity_arena[id].kind() {
+            // ckVar.paint(graphics, i, i2)  — Hero.paint (`ao.a:(…Graphics;II)V`).
+            EntityKind::Hero => hero::paint(g, id, i, i2),
+            // (MapObject / Npc / Enemy paints DEFERRED — none are linked in this slice.)
+            EntityKind::MapObject | EntityKind::Bare => {}
+        }
+        cursor = next;
+    }
 }
 
 /// `graphics.setColor(0); graphics.fillRect(0, 0, w, h);` — the small-map letterbox

@@ -190,6 +190,11 @@ AssetCache	k	titleMenuFrames	[Ljavax/microedition/lcdui/Image;	AssetCacheState	t
 AssetCache	l	menuFrames	[Ljavax/microedition/lcdui/Image;	AssetCacheState	menu_frames
 AssetCache	n	readBuffer	[B	AssetCacheState	read_buffer
 AssetCache	e	mapTiles	[Ljavax/microedition/lcdui/Image;	AssetCacheState	map_tiles
+AssetCache	a	heroFrames	[Ljava/lang/Object;	AssetCacheState	hero_frames
+AssetCache	b	mageAuraScripts	[Ljava/lang/Object;	AssetCacheState	mage_aura_scripts
+AssetCache	c	weaponPreviewFrames	[Ljava/lang/Object;	AssetCacheState	weapon_preview_frames
+AssetCache	a	spriteBanks	[[Ljavax/microedition/lcdui/Image;	AssetCacheState	sprite_banks
+AssetCache	u	entityShadow	Ljavax/microedition/lcdui/Image;	AssetCacheState	entity_shadow
 FontManager	a	smallBlack	Lb;	FontManagerState	small_black
 FontManager	b	smallWhite	Lb;	FontManagerState	small_white
 FontManager	c	smallOrange	Lb;	FontManagerState	small_orange

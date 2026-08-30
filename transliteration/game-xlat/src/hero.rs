@@ -24,9 +24,12 @@
 //! `ao.<init>:(SSBBB)V => [ldiv,l2i]` — the whole ctor's only arithmetic is
 //! `sessionStartSec = (int) (System.currentTimeMillis() / 1000)`.
 
+use crate::asset_cache::AssetCacheState;
 use crate::battler::BattlerData;
+use crate::directions::{DIR_DX, DIR_DY, REVERSE};
 use crate::entity::{self, EntityArena, EntityData, EntityId, EntityNode};
 use crate::game::Game;
+use crate::game_screen;
 use crate::item_bag::{self, ItemBag, ItemRef};
 use j2me_jvm::{java_div, java_ldiv, Clock, VirtualClock};
 
@@ -605,8 +608,278 @@ pub fn update(g: &mut Game, id: EntityId) {
 }
 
 /// `public final void paint(Graphics graphics, int originX, int originY)`
-/// (`ao.a:(Graphics;II)V`) — draws the layered character sprite. DEFERRED to the
-/// render lane.
-pub fn paint(_g: &mut Game, _id: EntityId, _origin_x: i32, _origin_y: i32) {
-    unimplemented!("DEFERRED: Hero.paint — not ported in this slice")
+/// (`ao.a:(…Graphics;II)V => [iadd,iadd,iadd,iadd,imul,iadd,imul,iadd,isub,i2b,isub,
+/// imul,imul,iadd,imul,imul,iadd,isub]`) — draws the hero: the ground shadow, then
+/// the layered character/attack sprite selected by [`BattlerData::state`], then the
+/// (empty in this slice) status/floater overlays.
+///
+/// **MILESTONE bridge (the DEFERRED pre-paint update).** In the original,
+/// `GameScreen.paint` case 2 runs `GameState.update()` — which ticks `hero.update()`,
+/// advancing `animFrame` from its post-`init` sentinel `-1` to `0` — *before*
+/// `map.paint` reaches here. That world-sim update is owned by the parallel movement
+/// lane and is DEFERRED, so on this slice's first world frame `animFrame` is still
+/// `-1`. [`draw_frame`](crate::game_screen::draw_frame) is byte-exact and would index
+/// the draw script negatively on `-1`; to render the idle rest pose (exactly the
+/// frame the first real `update()` produces) without that fault, the paint entry
+/// normalizes the `-1` sentinel up to `0` here. Once the FSM lane lands (advancing
+/// `animFrame` in `update`), `animFrame >= 0` and this normalization is identity.
+///
+/// `drawStatusIcons`/`drawFloaters` iterate the hero's `statuses`/`floaters` overlay
+/// lists, which are empty in this slice (the overlay classes are DEFERRED — see
+/// [`crate::battler`]), so they are no-ops and their bodies stay DEFERRED.
+pub fn paint(g: &mut Game, id: EntityId, origin_x: i32, origin_y: i32) {
+    // int screenX = originX + pixelX + halfW; int screenY = originY + pixelY + halfH;
+    let (pixel_x, pixel_y, half_w, half_h) = {
+        let n = &g.entity_arena[id];
+        (
+            n.pixel_x as i32,
+            n.pixel_y as i32,
+            n.half_w as i32,
+            n.half_h as i32,
+        )
+    };
+    let mut screen_x = origin_x.wrapping_add(pixel_x).wrapping_add(half_w);
+    let mut screen_y = origin_y.wrapping_add(pixel_y).wrapping_add(half_h);
+    // if (recoilTimer == 1) { screenX += dirDx[recoilDir]*2; screenY += dirDy[recoilDir]*2;
+    //   recoilTimer = (byte)(recoilTimer - 1); }
+    let recoil_timer = g.entity_arena[id]
+        .as_hero()
+        .expect("Hero node")
+        .recoil_timer;
+    if recoil_timer == 1 {
+        let recoil_dir = g.entity_arena[id].as_hero().expect("Hero node").recoil_dir;
+        screen_x = screen_x.wrapping_add((DIR_DX[recoil_dir as usize] as i32).wrapping_mul(2));
+        screen_y = screen_y.wrapping_add((DIR_DY[recoil_dir as usize] as i32).wrapping_mul(2));
+        g.entity_arena[id]
+            .as_hero_mut()
+            .expect("Hero node")
+            .recoil_timer = (recoil_timer as i32).wrapping_sub(1) as i8;
+    }
+    // Snapshot the FSM fields the switch reads (state / facing / animFrame / comboIndex /
+    // comboSteps / lungeSteps).
+    let (state, facing, anim_frame_raw, combo_index, lunge_steps) = {
+        let h = g.entity_arena[id].as_hero().expect("Hero node");
+        (
+            h.battler.state,
+            h.battler.facing,
+            h.battler.anim_frame,
+            h.combo_index,
+            h.lunge_steps,
+        )
+    };
+    let combo_steps = g.entity_arena[id]
+        .as_hero()
+        .expect("Hero node")
+        .combo_steps
+        .clone();
+    // MILESTONE bridge: normalize the -1 sentinel (see the doc note above).
+    let anim_frame = if anim_frame_raw < 0 {
+        0
+    } else {
+        anim_frame_raw
+    };
+    // The weapon/aura layers are gated on GameState.map.combatEnabled.
+    let combat_enabled = g
+        .game_state
+        .map
+        .as_ref()
+        .expect("GameState.map null in Hero.paint")
+        .combat_enabled;
+    // The world clip GameMap.paint left active (0, 0, width, worldHeight).
+    let width = g.game_screen.width;
+    let world_height = g.game_screen.world_height;
+
+    let Game {
+        screen,
+        asset_cache,
+        ..
+    } = &mut *g;
+    let target = screen.as_mut().expect("framebuffer");
+    let mut graphics = j2me_me::Graphics::new(target);
+    // (re-establish GameMap.paint's persistent world clip on this fresh Graphics.)
+    graphics.set_clip(0, 0, width, world_height);
+    // graphics.drawImage(AssetCache.entityShadow, screenX, screenY - 3, 17);
+    let shadow = asset_cache
+        .entity_shadow
+        .as_ref()
+        .expect("NullPointerException: entityShadow null");
+    graphics
+        .draw_image(shadow, screen_x, screen_y.wrapping_sub(3), 17)
+        .expect("drawImage(entityShadow)");
+    // switch (this.state)  (1/4 idle → pose 0, 2 stepping → pose 1, 3 attack, 6 dead → pose 2)
+    match state {
+        1 | 4 => draw_character_sprite(
+            &mut graphics,
+            asset_cache,
+            combat_enabled,
+            0,
+            facing,
+            anim_frame,
+            screen_x,
+            screen_y,
+        ),
+        2 => draw_character_sprite(
+            &mut graphics,
+            asset_cache,
+            combat_enabled,
+            1,
+            facing,
+            anim_frame,
+            screen_x,
+            screen_y,
+        ),
+        3 => {
+            draw_attack_sprite(
+                &mut graphics,
+                asset_cache,
+                combat_enabled,
+                combo_index,
+                &combo_steps,
+                facing,
+                anim_frame,
+                screen_x,
+                screen_y,
+            );
+            // if (lungeSteps != 0) drawAttackSprite at the afterimage offset.
+            if lunge_steps != 0 {
+                let rev = REVERSE[facing as usize];
+                let lunge_x = screen_x.wrapping_add(
+                    (DIR_DX[rev as usize] as i32)
+                        .wrapping_mul(16)
+                        .wrapping_mul(lunge_steps as i32),
+                );
+                let lunge_y = screen_y.wrapping_add(
+                    (DIR_DY[rev as usize] as i32)
+                        .wrapping_mul(16)
+                        .wrapping_mul(lunge_steps as i32),
+                );
+                draw_attack_sprite(
+                    &mut graphics,
+                    asset_cache,
+                    combat_enabled,
+                    combo_index,
+                    &combo_steps,
+                    facing,
+                    anim_frame,
+                    lunge_x,
+                    lunge_y,
+                );
+            }
+        }
+        6 => draw_character_sprite(
+            &mut graphics,
+            asset_cache,
+            combat_enabled,
+            2,
+            1,
+            anim_frame,
+            screen_x,
+            screen_y,
+        ),
+        _ => {}
+    }
+    // drawStatusIcons(graphics, screenX, screenY - 8); drawFloaters(graphics, screenX, screenY);
+    //   — statuses/floaters empty in this slice → no-op (overlay render DEFERRED).
+}
+
+/// `private void drawCharacterSprite(byte pose, byte dir, Graphics graphics, int x,
+/// int y)` (`ao.a:(BB…Graphics;II)V => [imul, isub, imul, iadd, iadd, iadd, iinc]`)
+/// — draws the 9-layer character sprite for `pose` facing `dir`. Layer 7 (aura) is a
+/// frame *group*; every other layer is a single frame. Layers 6/7 (weapon/aura) draw
+/// only while `combatEnabled`.
+#[allow(clippy::too_many_arguments)]
+fn draw_character_sprite(
+    graphics: &mut j2me_me::Graphics,
+    asset_cache: &AssetCacheState,
+    combat_enabled: bool,
+    pose: i8,
+    dir: i8,
+    anim_frame: i8,
+    x: i32,
+    y: i32,
+) {
+    // int baseIndex = (pose * 36) + ((dir - 1) * 9);
+    let base_index = (pose as i32)
+        .wrapping_mul(36)
+        .wrapping_add((dir as i32).wrapping_sub(1).wrapping_mul(9));
+    // for (int layer = 0; layer < 9; layer++)
+    let mut layer: i32 = 0;
+    while layer < 9 {
+        // if ((layer != 6 && layer != 7) || GameState.map.combatEnabled)
+        if (layer != 6 && layer != 7) || combat_enabled {
+            // heroFrames[baseIndex + layer]  (a byte[] draw script, or Java null).
+            let idx = base_index.wrapping_add(layer);
+            let frames = asset_cache
+                .hero_frames
+                .as_ref()
+                .expect("NullPointerException: heroFrames null")[idx as usize]
+                .as_deref();
+            if layer == 7 {
+                // GameScreen.drawFrameGroup(graphics, heroFrames[baseIndex+7], animFrame, x, y);
+                game_screen::draw_frame_group(graphics, asset_cache, frames, anim_frame, x, y);
+            } else {
+                // GameScreen.drawFrame(graphics, heroFrames[baseIndex+layer], animFrame, x, y);
+                game_screen::draw_frame(graphics, asset_cache, frames, anim_frame, x, y);
+            }
+        }
+        layer = layer.wrapping_add(1);
+    }
+}
+
+/// `private void drawAttackSprite(Graphics graphics, int x, int y)`
+/// (`ao.e:(…Graphics;II)V => []`) — selects the attack pose for the current combo
+/// step (`comboIndex`, and whether it is a normal `1` or special step) and draws it
+/// via [`draw_character_sprite`]. Only reached in `state == 3`, where `comboIndex`
+/// is always `0..=4`.
+#[allow(clippy::too_many_arguments)]
+fn draw_attack_sprite(
+    graphics: &mut j2me_me::Graphics,
+    asset_cache: &AssetCacheState,
+    combat_enabled: bool,
+    combo_index: i8,
+    combo_steps: &[i8],
+    facing: i8,
+    anim_frame: i8,
+    x: i32,
+    y: i32,
+) {
+    // byte pose = -1; switch (comboIndex) { ... }
+    let mut pose: i8 = -1;
+    match combo_index {
+        0 => {
+            pose = if combo_steps[combo_index as usize] != 1 {
+                7
+            } else {
+                3
+            }
+        }
+        1 => pose = 4,
+        2 => {
+            pose = if combo_steps[combo_index as usize] != 1 {
+                8
+            } else {
+                5
+            }
+        }
+        3 => {
+            pose = if combo_steps[combo_index as usize] != 1 {
+                9
+            } else {
+                6
+            }
+        }
+        4 => pose = 10,
+        _ => {}
+    }
+    // drawCharacterSprite(pose, facing, graphics, x, y);
+    draw_character_sprite(
+        graphics,
+        asset_cache,
+        combat_enabled,
+        pose,
+        facing,
+        anim_frame,
+        x,
+        y,
+    );
 }
