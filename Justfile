@@ -152,6 +152,29 @@ crosswalk-fixture-canfail:
         tools.tests.test_crosswalk_validator.CrosswalkValidatorTests.test_coarse_blanket_is_rejected \
         tools.tests.test_crosswalk_validator.CrosswalkValidatorTests.test_operator_parity_catches_div_vs_call
 
+# --- Index-safety + collapse ledger (the runtime-crash burn-down) -------------
+# The per-node crosswalk verifies faithfulness (Rust == bytecode) but CANNOT catch
+# a FAITHFUL read that panics on bad upstream state left by a collapsed/DEFERRED
+# no-op (e.g. a -1 sentinel index). This generic tooling (adopted from the home
+# _template kit) makes that crash class a countable burn-down.
+
+# Scan the transliteration for `arr[<signed> as usize]` landmines not provably >=0.
+# Advisory (does not gate `check` yet — it is a triage burn-down). A site is
+# silenced only by an inline `// index-safe: <reason>` or an allowlist.toml entry.
+index-safety:
+    python3 tools/index-safety/index_safety.py
+
+# Prove the scanner bites (the ratchet's self-test): a bare signed-index landmine
+# is flagged and an allowlist entry silences exactly it. Must exit 0.
+index-safety-canfail:
+    python3 tools/index-safety/index_safety.py --self-test
+
+# Enumerate recorded runtime-collapse landmines (the second crash axis), open vs
+# retired. Advisory. NOTE: soltia currently marks collapses `DEFERRED: <Class>`;
+# align the crash-causing ones to the ledger's markers so they are counted.
+collapse-ledger:
+    python3 tools/index-safety/collapse_ledger.py
+
 # --- Test batteries ----------------------------------------------------------
 
 test:

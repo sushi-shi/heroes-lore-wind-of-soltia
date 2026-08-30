@@ -29,3 +29,6 @@ __pycache__
 
 # Agent worktrees (isolated checkouts; never part of the repo)
 .claude/
+
+# nested cargo target dirs under tools/ (e.g. the index-safety scanner crate)
+tools/**/target/
