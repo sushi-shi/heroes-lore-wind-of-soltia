@@ -64,6 +64,19 @@
 #                              presence flag) are per-INSTANCE, carried by
 #                              OptionsMenuState; child slot is Game.options_menu, linked
 #                              by MainMenu's/SystemTab's Menu.child)
+#   AboutScreen -> bl.class   (no rows: instance menu, no static fields — the Menu base
+#                              fields + `body`/`lineOffsets` are per-INSTANCE, carried by
+#                              AboutScreenState; child slot is Game.about_screen, linked
+#                              by MainMenu's Menu.child (FIRE case 4))
+#   ItemPickerList -> m.class (no rows: instance menu, no static fields — the Menu base
+#                              fields + `slots`/`resultTag`/`title` are per-INSTANCE,
+#                              carried by ItemPickerListState; child slot is
+#                              Game.item_picker_list, linked by the equip/craft menus'
+#                              Menu.child)
+#   SellList    -> bb.class   (no rows: instance menu, no static fields — adds NO fields
+#                              over ItemPickerList; the inherited superclass state is
+#                              carried as SellListState.picker; child slot is
+#                              Game.sell_list, linked by the shop menu's Menu.child)
 #   AssetCache  -> ce.class   (PARTIAL: the title/logo render-path statics + the
 #                              main-menu frame atlas `menuFrames` + the world tileset
 #                              atlas `mapTiles`)
