@@ -58,13 +58,17 @@ use crate::buy_sell_dialog;
 use crate::character_menu;
 use crate::class_confirm_menu;
 use crate::class_select_menu;
+use crate::combine_menu;
 use crate::confirm_dialog;
 use crate::continue_menu;
+use crate::cost_confirm_dialog;
+use crate::enchant_menu;
 use crate::game::Game;
 use crate::item_picker_list;
 use crate::main_menu;
 use crate::options_menu;
 use crate::popup_menu;
+use crate::refine_menu;
 use crate::sell_list;
 use crate::shop_item_list;
 use crate::shop_menu;
@@ -112,6 +116,12 @@ pub enum MenuChild {
     Status,
     /// `child instanceof StatAllocMenu` (`bi`) — the level-up stat-allocation dialog.
     StatAlloc,
+    /// `child instanceof EnchantMenu` (`ap`) — the refinery's armor-enchant screen.
+    Enchant,
+    /// `child instanceof CombineMenu` (`k`) — the refinery's item-combine screen.
+    Combine,
+    /// `child instanceof CostConfirmDialog` (`bo`) — the combine fee confirm dialog.
+    CostConfirm,
 }
 
 /// Identifies a *concrete* menu that owns a `MenuBase` + `paint`/`handleKey` — the
@@ -154,12 +164,21 @@ pub enum MenuNode {
     Status,
     /// `StatAllocMenu` (`bi`) — the stat-allocation dialog (pushed as `StatusPage`'s child).
     StatAlloc,
+    /// `RefineMenu` (`ax`) — the item-refinery hub singleton (a separate root from `MainMenu`,
+    /// reached via the world's screen-7 dispatch).
+    Refine,
+    /// `EnchantMenu` (`ap`) — the refinery's armor-enchant screen (pushed as `RefineMenu`'s child).
+    Enchant,
+    /// `CombineMenu` (`k`) — the refinery's item-combine screen (pushed as `RefineMenu`'s child).
+    Combine,
+    /// `CostConfirmDialog` (`bo`) — the combine fee confirm dialog (pushed as `CombineMenu`'s child).
+    CostConfirm,
 }
 
 /// Every concrete [`MenuNode`], for the parent-scan ([`parent_of`]). The flat model
 /// is a singleton stack, so a node's parent is the unique node whose resolved
 /// [`child_node`] is that node.
-const ALL_NODES: [MenuNode; 17] = [
+const ALL_NODES: [MenuNode; 21] = [
     MenuNode::Main,
     MenuNode::ClassSelect,
     MenuNode::ClassConfirm,
@@ -177,6 +196,10 @@ const ALL_NODES: [MenuNode; 17] = [
     MenuNode::Character,
     MenuNode::Status,
     MenuNode::StatAlloc,
+    MenuNode::Refine,
+    MenuNode::Enchant,
+    MenuNode::Combine,
+    MenuNode::CostConfirm,
 ];
 
 /// The instance fields of a `Menu` (`cb`), carried by each concrete menu's state
@@ -244,6 +267,10 @@ fn node_base(g: &Game, node: MenuNode) -> &MenuBase {
         MenuNode::Character => &g.character_menu.base,
         MenuNode::Status => &g.status_page.base,
         MenuNode::StatAlloc => &g.stat_alloc_menu.base,
+        MenuNode::Refine => &g.refine_menu.base,
+        MenuNode::Enchant => &g.enchant_menu.base,
+        MenuNode::Combine => &g.combine_menu.base,
+        MenuNode::CostConfirm => &g.cost_confirm_dialog.base,
     }
 }
 
@@ -267,6 +294,10 @@ fn node_base_mut(g: &mut Game, node: MenuNode) -> &mut MenuBase {
         MenuNode::Character => &mut g.character_menu.base,
         MenuNode::Status => &mut g.status_page.base,
         MenuNode::StatAlloc => &mut g.stat_alloc_menu.base,
+        MenuNode::Refine => &mut g.refine_menu.base,
+        MenuNode::Enchant => &mut g.enchant_menu.base,
+        MenuNode::Combine => &mut g.combine_menu.base,
+        MenuNode::CostConfirm => &mut g.cost_confirm_dialog.base,
     }
 }
 
@@ -295,6 +326,9 @@ fn child_node(child: MenuChild) -> Option<MenuNode> {
         MenuChild::BuySell => Some(MenuNode::BuySell),
         MenuChild::Status => Some(MenuNode::Status),
         MenuChild::StatAlloc => Some(MenuNode::StatAlloc),
+        MenuChild::Enchant => Some(MenuNode::Enchant),
+        MenuChild::Combine => Some(MenuNode::Combine),
+        MenuChild::CostConfirm => Some(MenuNode::CostConfirm),
     }
 }
 
@@ -334,6 +368,10 @@ fn paint_node(g: &mut Game, node: MenuNode, origin_x: i32, origin_y: i32) {
         MenuNode::Character => character_menu::paint(g, origin_x, origin_y),
         MenuNode::Status => status_page::paint(g, origin_x, origin_y),
         MenuNode::StatAlloc => stat_alloc_menu::paint(g, origin_x, origin_y),
+        MenuNode::Refine => refine_menu::paint(g, origin_x, origin_y),
+        MenuNode::Enchant => enchant_menu::paint(g, origin_x, origin_y),
+        MenuNode::Combine => combine_menu::paint(g, origin_x, origin_y),
+        MenuNode::CostConfirm => cost_confirm_dialog::paint(g, origin_x, origin_y),
     }
 }
 
@@ -357,6 +395,10 @@ fn dispatch_handle_key(g: &mut Game, node: MenuNode, action: i32, key_code: i32)
         MenuNode::Character => character_menu::handle_key(g, action, key_code),
         MenuNode::Status => status_page::handle_key(g, action, key_code),
         MenuNode::StatAlloc => stat_alloc_menu::handle_key(g, action, key_code),
+        MenuNode::Refine => refine_menu::handle_key(g, action, key_code),
+        MenuNode::Enchant => enchant_menu::handle_key(g, action, key_code),
+        MenuNode::Combine => combine_menu::handle_key(g, action, key_code),
+        MenuNode::CostConfirm => cost_confirm_dialog::handle_key(g, action, key_code),
     }
 }
 
@@ -377,6 +419,20 @@ pub fn pass_key_to_child(g: &mut Game, node: MenuNode, action: i32, key_code: i3
     // this.needsRepaint = true; return false;
     node_base_mut(g, node).needs_repaint = true;
     false
+}
+
+/// `((Menu) this).child != null && ((Menu) this).child.handleKey(action, keyCode)` —
+/// the flat model of a bare virtual `child.handleKey` dispatch (no `needsRepaint` side
+/// effect). `CombineMenu.handleKey` calls this verbatim right after `passKeyToChild`
+/// (a copy-paste artifact in the shipped code, transliterated as-is): with `child ==
+/// null` it short-circuits to `false`; otherwise it forwards to the child's `handleKey`.
+pub fn child_handle_key(g: &mut Game, node: MenuNode, action: i32, key_code: i32) -> bool {
+    // ((Menu) this).child != null && ((Menu) this).child.handleKey(action, keyCode)
+    let child = node_base(g, node).child;
+    match child_node(child) {
+        Some(cn) => dispatch_handle_key(g, cn, action, key_code),
+        None => false,
+    }
 }
 
 /// `public final boolean moveCursorVertical(int action, int keyCode, boolean wrap)`
@@ -627,6 +683,9 @@ pub fn on_popup_result(g: &mut Game, node: MenuNode, tag: i8, result: i8) {
         MenuNode::SellList => sell_list::on_popup_result(g, tag, result),
         MenuNode::BuySell => buy_sell_dialog::on_popup_result(g, tag, result),
         MenuNode::StatAlloc => stat_alloc_menu::on_popup_result(g, tag, result),
+        MenuNode::Refine => refine_menu::on_popup_result(g, tag, result),
+        MenuNode::Enchant => enchant_menu::on_popup_result(g, tag, result),
+        MenuNode::Combine => combine_menu::on_popup_result(g, tag, result),
         _ => on_popup_result_base(g, node, tag, result),
     }
 }
