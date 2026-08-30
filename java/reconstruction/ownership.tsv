@@ -361,3 +361,22 @@ CharacterMenu	a	singleton	Lai;	CharacterMenuState	singleton
 #                              attackEffectScripts/deathFxScripts/bossFrames Object[] banks
 #                              remain per-INSTANCE-of-the-static on AssetCacheState.)
 AssetCache	d	guardianFrames	[Ljava/lang/Object;	AssetCacheState	guardian_frames
+#
+# obf class map (the craft/refine menu cluster):
+#   RefineMenu       -> ax.class (four static rows below; the obf names collide — panelX/
+#                              text/singleton are all `a`, panelY is `b` — disambiguated
+#                              by descriptor.)
+#   EnchantMenu      -> ap.class (no rows: instance-only, no statics — armor (`a`, `Lt;`) /
+#                              material (`a`, `Lad;`) are per-INSTANCE on EnchantMenuState.)
+#   CombineMenu      -> k.class  (no rows: instance-only, no statics — craftSlots (`a`,
+#                              `[Lad;`) is per-INSTANCE on CombineMenuState.)
+#   CostConfirmDialog-> bo.class (no rows: instance-only, no statics — title (`a`, `[C`) /
+#                              itemLines (`a`, `[Ljava/lang/Object;`) / costLabel (`b`,
+#                              `[C`) / cost (`a`, `I`) / resultTag (`c`, `B`) are
+#                              per-INSTANCE on CostConfirmDialogState; the flat model
+#                              carries the reusable child slots for the three non-singleton
+#                              menus as Game fields, linked by Menu.child.)
+RefineMenu	a	panelX	I	RefineMenuState	panel_x
+RefineMenu	b	panelY	I	RefineMenuState	panel_y
+RefineMenu	a	text	Lz;	RefineMenuState	text
+RefineMenu	a	singleton	Lax;	RefineMenuState	singleton

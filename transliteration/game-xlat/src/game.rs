@@ -32,9 +32,12 @@ use crate::byte_util::ByteUtilState;
 use crate::character_menu::CharacterMenuState;
 use crate::class_confirm_menu::ClassConfirmMenuState;
 use crate::class_select_menu::ClassSelectMenuState;
+use crate::combine_menu::CombineMenuState;
 use crate::confirm_dialog::ConfirmDialogState;
 use crate::continue_menu::ContinueMenuState;
+use crate::cost_confirm_dialog::CostConfirmDialogState;
 use crate::debug::DebugState;
+use crate::enchant_menu::EnchantMenuState;
 use crate::enemy_type::EnemyTypeState;
 use crate::entity::{EntityArena, EntityState};
 use crate::font_manager::FontManagerState;
@@ -47,6 +50,7 @@ use crate::item_picker_list::ItemPickerListState;
 use crate::main_menu::MainMenuState;
 use crate::options_menu::OptionsMenuState;
 use crate::popup_menu::PopupMenuState;
+use crate::refine_menu::RefineMenuState;
 use crate::resources::ResourceBank;
 use crate::sell_list::SellListState;
 use crate::shop_item_list::ShopItemListState;
@@ -203,6 +207,26 @@ pub struct Game {
     /// child of `StatusPage`; the flat model carries the reusable child slot as a `Game`
     /// field, linked by the [`MenuChild`](crate::menu::MenuChild).
     pub stat_alloc_menu: StatAllocMenuState,
+    /// `ax` / `RefineMenu` state (the item-refinery hub singleton — its `Menu` base +
+    /// the `panelX`/`panelY`/`text`/`singleton` statics). A separate menu root from
+    /// `MainMenu`, reached via the world's screen-7 dispatch (that wiring is DEFERRED to
+    /// the game-state lane).
+    pub refine_menu: RefineMenuState,
+    /// `ap` / `EnchantMenu` state (the refinery's armor-enchant screen + its `cb`/`Menu`
+    /// base fields + the per-instance `armor`/`material` picks). Not a Java static — a
+    /// per-instance child of `RefineMenu`; the flat model carries the reusable child slot
+    /// as a `Game` field, linked by the [`MenuChild`](crate::menu::MenuChild).
+    pub enchant_menu: EnchantMenuState,
+    /// `k` / `CombineMenu` state (the refinery's item-combine screen + its `cb`/`Menu`
+    /// base fields + the per-instance `craftSlots`). Not a Java static — a per-instance
+    /// child of `RefineMenu`; the flat model carries the reusable child slot as a `Game`
+    /// field, linked by the [`MenuChild`](crate::menu::MenuChild).
+    pub combine_menu: CombineMenuState,
+    /// `bo` / `CostConfirmDialog` state (the combine fee confirm dialog + its `cb`/`Menu`
+    /// base fields + the per-instance title/lines/cost/tag). Not a Java static — a
+    /// per-instance child of `CombineMenu`; the flat model carries the reusable child slot
+    /// as a `Game` field, linked by the [`MenuChild`](crate::menu::MenuChild).
+    pub cost_confirm_dialog: CostConfirmDialogState,
     /// `bw` / `AudioManager` state (the `snd/` clip pool + volume/mixer state).
     pub audio: AudioManagerState,
     /// `ce` / `AssetCache` state (PARTIAL — only the title/logo render-path banks
@@ -286,6 +310,10 @@ impl Game {
             character_menu: CharacterMenuState::default(),
             status_page: StatusPageState::default(),
             stat_alloc_menu: StatAllocMenuState::default(),
+            refine_menu: RefineMenuState::default(),
+            enchant_menu: EnchantMenuState::default(),
+            combine_menu: CombineMenuState::default(),
+            cost_confirm_dialog: CostConfirmDialogState::default(),
             asset_cache: AssetCacheState::new(),
             asset_loader: AssetLoaderState::default(),
             font_manager: FontManagerState::default(),

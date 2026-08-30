@@ -76,6 +76,9 @@ fn menu_depth(g: &Game) -> u32 {
             MenuChild::BuySell => g.buy_sell_dialog.base.child,
             MenuChild::Status => g.status_page.base.child,
             MenuChild::StatAlloc => g.stat_alloc_menu.base.child,
+            MenuChild::Enchant => g.enchant_menu.base.child,
+            MenuChild::Combine => g.combine_menu.base.child,
+            MenuChild::CostConfirm => g.cost_confirm_dialog.base.child,
         };
         depth += 1;
         child = next;
