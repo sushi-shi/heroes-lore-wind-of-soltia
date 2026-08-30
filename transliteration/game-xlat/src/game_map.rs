@@ -10,15 +10,22 @@
 //! [`GameMapState`]; its per-instance fields live there while the class-level
 //! mutable statics live on the always-present [`GameMapClassState`].
 //!
-//! **This slice ports the FIELD LAYER + the constructor + the TILE render path.**
-//! [`load`] reads the packed `/m/<NN>.map` (tileset id + dimensions + the flat tile
-//! grid) and decodes the `/m/t/t<NN>` tileset atlas via [`crate::png_merger`];
-//! [`paint`]/[`draw_tiles`] resolve + clamp the camera and blit the visible 16px
-//! tile window. Still DEFERRED: the `/m/<classId>/<NN>.evt` parse (`parse*` helpers —
-//! collision/objects/npcs/enemies/faces/triggers + boss setup), the map's
-//! audio/zone-name, and the entity/pickup/minimap rendering (`drawEntities`,
-//! `drawPickups`, `paintMinimap`) — those reach `EnemyType`/`AudioManager`/the
-//! enemy-NPC hierarchy and the DEFERRED sprite banks.
+//! **This slice ports the FIELD LAYER + the constructor + the TILE render path + the
+//! COLLISION LOAD.** [`load`] reads the packed `/m/<NN>.map` (tileset id + dimensions +
+//! the flat tile grid) and decodes the `/m/t/t<NN>` tileset atlas via
+//! [`crate::png_merger`]; [`paint`]/[`draw_tiles`] resolve + clamp the camera and blit
+//! the visible 16px tile window. [`load`] now ALSO reads `/m/<classId>/<NN>.evt` and runs
+//! `parseCollision` (section 1) into [`GameMapState::collision_grid`], and the tile-walk
+//! block-tests [`is_walkable`]/[`is_walkable_span`]/[`can_occupy`]/[`can_step`] are ported
+//! — closing the port's #1 runtime crash (a walk running an actor off the tile grid,
+//! because the collision grid was never populated / never read).
+//!
+//! Still DEFERRED from the `.evt`: `parseObjects`/`parseNpcs`/`parseEnemies`/`parseFaces`/
+//! `parseTriggers`/`applyInitialPatches` (the object/npc/enemy/face/trigger/patch spawn
+//! sections) + the `mapType` boss setup, the map's audio/zone-name, and the pickup/minimap
+//! rendering (`drawPickups`, `paintMinimap`) — those reach `EnemyType`/`AudioManager`/the
+//! unported `AssetCache` sprite banks / boss subclasses. The collision grid is section 1
+//! (offset 0) and self-contained, so it lands independently of those.
 //!
 //! `ownership.tsv` rows: `minimapScale` (`ae.c`) and `lastTilesetId` (`ae.d`) are
 //! mutable statics owned by [`GameMapClassState`]; `minimapColors` (`ae.a`) and
@@ -31,6 +38,7 @@ use crate::asset_cache;
 use crate::base_canvas::BaseCanvasState;
 use crate::battler;
 use crate::boss;
+use crate::directions::{DIR_DX, DIR_DY};
 use crate::effect;
 use crate::enemy;
 use crate::entity::{EntityId, EntityKind};
@@ -464,14 +472,16 @@ pub fn fade_step(g: &mut Game) {
 /// into the tile grid + occupancy array, and lazily decodes the `/m/t/t<NN>` tileset
 /// atlas into [`asset_cache::AssetCacheState::map_tiles`] via [`png_merger`].
 ///
-/// **The `.evt` half is DEFERRED.** The original then reads
-/// `/m/<classId>/<NN>.evt` and runs `parseCollision`/`parseObjects`/`parseNpcs`/
-/// `parseEnemies`/`parseFaces`/`parseTriggers` + `applyInitialPatches` + the boss
-/// setup, plus the map's audio/zone-name. Those reach `EnemyType`/`AudioManager`/the
-/// enemy-NPC hierarchy and the `mapNameText` table; they are stubbed here
-/// (`collisionGrid`/entity tables stay null, `zoneBannerTimer = 0`), which the
-/// tile-render path does not read. The leading `AssetCache.unload*` / `AudioManager`
-/// / `System.out` / `clearFloaters` calls are DEFERRED no-ops on this path.
+/// **The `.evt` collision section is now ported.** The original reads
+/// `/m/<classId>/<NN>.evt` and runs `parseCollision` (section 1) then `parseObjects`/
+/// `parseNpcs`/`parseEnemies`/`parseFaces`/`parseTriggers` + `applyInitialPatches` + the
+/// boss setup, plus the map's audio/zone-name. `parseCollision` is ported here (it fills
+/// [`GameMapState::collision_grid`], the grid [`is_walkable`]/[`can_step`] read — the
+/// crash-#1 closer); the remaining spawn/patch sections + boss setup + audio/zone-name are
+/// DEFERRED (they reach `EnemyType`/`AudioManager`/the unported `AssetCache` sprite banks /
+/// `mapNameText` table / boss subclasses), leaving those tables null (which the tile-render
+/// path does not read) and `zoneBannerTimer = 0`. The leading `AssetCache.unload*` /
+/// `AudioManager` / `System.out` / `clearFloaters` calls are DEFERRED no-ops on this path.
 pub fn load(g: &mut Game) {
     // this.mapData = readResource("/m/" + (storyMapId < 10 ? "0" : "") + storyMapId + ".map");
     let story = g.game_state.story_map_id as i32;
@@ -504,7 +514,47 @@ pub fn load(g: &mut Game) {
     if g.game_map_class.last_tileset_id != tileset_id {
         asset_cache::unload_map_tiles(g);
     }
-    // (DEFERRED: the whole /m/<classId>/<NN>.evt parse + boss setup + music/zone name.)
+    // System.gc();  — no-op.
+    // this.mapData = readResource("/m/" + classId + "/" + (storyMapId < 10 ? "0" : "")
+    //   + storyMapId + ".evt");
+    let class_id = g.game_state.class_id as i32;
+    let evt_path = format!("/m/{class_id}/{pad}{story}.evt");
+    let evt_data =
+        asset_cache::read_resource(g, &evt_path).expect("readResource(.evt) returned null");
+    // parseCollision(mapData, 0) — the CRASH-#1 CLOSER: heightTiles rows of widthTiles
+    //   bytes copied from offset 0 into collisionGrid. `isWalkable`/`canStep`/`canOccupy`
+    //   read this grid (a negative cell = blocked, `>= 0` = walkable), which is what the
+    //   walk-block (`Battler.tryStepForward` → `GameMap.canStep`) consults; with the grid
+    //   populated the walk no longer runs the actor off the tile grid.
+    //     this.collisionGrid = new byte[heightTiles][widthTiles];
+    let mut collision_grid: Vec<Vec<i8>> =
+        vec![vec![0i8; width_tiles as usize]; height_tiles as usize];
+    let mut coff: usize = 0;
+    for row in collision_grid.iter_mut() {
+        // System.arraycopy(bArr, i, collisionGrid[i2], 0, widthTiles); i += widthTiles;
+        row.copy_from_slice(&evt_data[coff..coff + width_tiles as usize]);
+        coff += width_tiles as usize;
+    }
+    // DEFERRED — the remaining `.evt` sections + the boss setup switch, each reaching
+    //   still-unported infrastructure this lane may not add (asset_cache/enemy/npc/boss are
+    //   READ-only here):
+    //     int i = 0 + widthTiles*heightTiles;
+    //     i += parseObjects(mapData, i);   // MapObject spawn: AssetCache.mapObjects /
+    //         unloadMapObjects + the `/m/t/o<NN>` PngMerger object atlas (unported).
+    //     i += parseNpcs(mapData, i);      // Npc spawn: AssetCache.mapNpcImages /
+    //         enemySpriteIds / loadNpcSprite / loadEnemySprite + the `/npc/all` atlas.
+    //     i += parseEnemies(mapData, i);   // queueEnemySpawn + EnemyType sprite binding /
+    //         AssetCache.bossSpriteIds / loadEnemySprite (the delayed Enemy spawn).
+    //     i += parseFaces(mapData, i);     // AssetCache.dialoguePortraits + `/m/face` atlas.
+    //     applyInitialPatches(mapData, i + parseTriggers(mapData, i));
+    //         // triggers/eventScripts/dialogueStrings (FontManager.getStringChars) + the
+    //         // op 100/101 tileGrid/collisionGrid patches, gated on GameState.isSwitch.
+    //     switch (mapType) { 11/13/15/82: load*BossData + spawn*Boss }
+    //         // RockyBoss / Nord{Body1,Body2,Healer,Tentacle} / Geb{Head,HandLeft,
+    //         // HandRight,Core} subclasses (unported).
+    //   parseCollision above is the FIRST section (offset 0) and is self-contained, so the
+    //   walk-block is closed independently of the DEFERRED spawn/patch sections.
+    // this.mapData = null;  (evt_data is dropped after the collision copy above.)
     // if (AssetCache.mapTiles == null) mapTiles = new PngMerger("/m/t/t"+pad+tilesetId).allImages();
     if g.asset_cache.map_tiles.is_none() {
         let tid = tileset_id as i32;
@@ -531,7 +581,111 @@ pub fn load(g: &mut Game) {
     map.width_px = width_px;
     map.height_px = height_px;
     map.tile_grid = Some(tile_grid);
+    map.collision_grid = Some(collision_grid);
     map.zone_banner_timer = 0;
+}
+
+/// `public final boolean isWalkable(int i, int i2)` (`ae`) — tile `(i, i2)` is inside
+/// the map, its collision cell is non-blocking (`>= 0`), and it is unoccupied.
+///
+/// The four bounds tests short-circuit BEFORE the `collisionGrid`/`occupancy` index
+/// (Java `&&`), so an off-map `(i, i2)` returns `false` without indexing — the panic-safe
+/// boundary the walk-block relies on (this is why populating the grid closes crash #1
+/// rather than merely moving the panic). A negative cell (e.g. the all-`-128` map border)
+/// is blocked; `0..` is walkable.
+pub fn is_walkable(g: &Game, i: i32, i2: i32) -> bool {
+    let map = g
+        .game_state
+        .map
+        .as_ref()
+        .expect("GameState.map null in isWalkable");
+    // return i>=0 && i2>=0 && i<widthTiles && i2<heightTiles
+    //   && collisionGrid[i2][i] >= 0 && occupancy[i2][i] == null;
+    // index-safe: the `i>=0 && i2>=0 && i<widthTiles && i2<heightTiles` conjuncts
+    //   short-circuit before the indices, so `i`/`i2` are in `0..dim` here.
+    i >= 0
+        && i2 >= 0
+        && i < map.width_tiles
+        && i2 < map.height_tiles
+        && map
+            .collision_grid
+            .as_ref()
+            .expect("collisionGrid null in isWalkable")[i2 as usize][i as usize]
+            >= 0
+        && map
+            .occupancy
+            .as_ref()
+            .expect("occupancy null in isWalkable")[i2 as usize][i as usize]
+            .is_none()
+}
+
+/// `public final boolean isWalkableSpan(int i, int i2, byte b)` (`ae`) — every tile of
+/// the `b`-wide horizontal span starting at `(i, i2)` is [`is_walkable`]. Used by the
+/// (DEFERRED) `spawnEnemyAt` to place a two-wide enemy.
+pub fn is_walkable_span(g: &Game, i: i32, i2: i32, b: i8) -> bool {
+    // for (int i3 = 0; i3 < b; i3++) if (!isWalkable(i + i3, i2)) return false;
+    let mut i3: i32 = 0;
+    while i3 < b as i32 {
+        if !is_walkable(g, i.wrapping_add(i3), i2) {
+            return false;
+        }
+        i3 = i3.wrapping_add(1);
+    }
+    // return true;
+    true
+}
+
+/// `public final boolean canOccupy(Battler oVar, int i, int i2)` (`ae`) — the `layer`
+/// tiles rightward from `(i, i2)` are each walkable, or already occupied by `oVar` itself
+/// (so an actor can re-occupy the footprint it stands on). An out-of-bounds tile blocks.
+pub fn can_occupy(g: &Game, o_var: EntityId, i: i32, i2: i32) -> bool {
+    // for (int i3 = 0; i3 < oVar.layer; i3++) { ... }   (layer is a byte → int)
+    let layer = g.entity_arena[o_var].layer as i32;
+    let mut i3: i32 = 0;
+    while i3 < layer {
+        let map = g
+            .game_state
+            .map
+            .as_ref()
+            .expect("GameState.map null in canOccupy");
+        // if (i+i3<0 || i2<0 || i+i3>=widthTiles || i2>=heightTiles) return false;
+        if i.wrapping_add(i3) < 0
+            || i2 < 0
+            || i.wrapping_add(i3) >= map.width_tiles
+            || i2 >= map.height_tiles
+        {
+            return false;
+        }
+        // if (!isWalkable(i+i3, i2) && occupancy[i2][i+i3] != oVar) return false;
+        //   (Java `&&` short-circuits: occupancy is read only when the tile is blocked,
+        //   and only inside the bounds check above → the index is in range.)
+        // index-safe: guarded by the `i+i3` / `i2` bounds return directly above.
+        if !is_walkable(g, i.wrapping_add(i3), i2)
+            && map.occupancy.as_ref().expect("occupancy null in canOccupy")[i2 as usize]
+                [(i.wrapping_add(i3)) as usize]
+                != Some(o_var)
+        {
+            return false;
+        }
+        i3 = i3.wrapping_add(1);
+    }
+    // return true;
+    true
+}
+
+/// `public final boolean canStep(Battler oVar, byte b)` (`ae`) — `oVar` can occupy the
+/// tile one step in direction `b` (1 up, 2 down, 3 left, 4 right) from its current tile.
+/// This is the block-test `Battler.tryStepForward` consults to halt a walk at a wall.
+pub fn can_step(g: &Game, o_var: EntityId, b: i8) -> bool {
+    // return canOccupy(oVar, oVar.tileX + dirDx[b], oVar.tileY + dirDy[b]);
+    let tile_x = g.entity_arena[o_var].tile_x as i32;
+    let tile_y = g.entity_arena[o_var].tile_y as i32;
+    can_occupy(
+        g,
+        o_var,
+        tile_x.wrapping_add(DIR_DX[b as usize] as i32),
+        tile_y.wrapping_add(DIR_DY[b as usize] as i32),
+    )
 }
 
 /// `public final void paint(Graphics graphics)` — resolves + clamps the camera and
