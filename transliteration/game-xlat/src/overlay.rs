@@ -31,22 +31,24 @@
 //! `paint` is abstract, no body).
 
 use crate::floater::{self, FloaterData};
+use crate::guardian_cast_fx::{self, GuardianCastFxData};
 use crate::status_icon::{self, StatusIconData};
 
 /// The per-subclass data of an overlay — the flattened tagged union standing in for
 /// the concrete runtime type (a `StatusIcon` or a `Floater`), modelled on
 /// [`crate::entity::EntityData`].
 ///
-/// `GuardianCastFx` (the third `Overlay` subclass — the guardian-cast animation) is
-/// **DEFERRED**: not ported in this batch, so it has no variant here. A Java
-/// `floaters` list could hold one; once `GuardianCastFx` lands a variant is added.
+/// The three concrete `Overlay` subclasses are all modelled: `StatusIcon`, `Floater`,
+/// and `GuardianCastFx` (the guardian summon/cast animation, carried in a battler's
+/// `floaters` list like a `Floater`).
 #[derive(Debug)]
 pub enum OverlayData {
     /// `StatusIcon` (`cf`) instance data — a buff/debuff icon.
     StatusIcon(StatusIconData),
     /// `Floater` (`aw`) instance data — a floating damage/heal/effect popup.
     Floater(FloaterData),
-    // DEFERRED: GuardianCastFx (the third `Overlay` subclass) — not ported here.
+    /// `GuardianCastFx` (`bj`) instance data — a guardian summon/cast animation.
+    GuardianCastFx(GuardianCastFxData),
 }
 
 /// The `Overlay` (`f`) base record: the fields every effect subclass inherits, plus
@@ -109,6 +111,23 @@ impl Overlay {
             _ => None,
         }
     }
+
+    /// `this instanceof GuardianCastFx` → the borrowed [`GuardianCastFxData`], or
+    /// `None` (the concrete-type access used by [`guardian_cast_fx::paint`]).
+    pub fn as_guardian_cast_fx(&self) -> Option<&GuardianCastFxData> {
+        match &self.data {
+            OverlayData::GuardianCastFx(g) => Some(g),
+            _ => None,
+        }
+    }
+
+    /// Mutable [`Self::as_guardian_cast_fx`].
+    pub fn as_guardian_cast_fx_mut(&mut self) -> Option<&mut GuardianCastFxData> {
+        match &mut self.data {
+            OverlayData::GuardianCastFx(g) => Some(g),
+            _ => None,
+        }
+    }
 }
 
 /// The virtual `Overlay.paint(Graphics, int, int)` dispatch: routes to the concrete
@@ -119,5 +138,6 @@ pub fn paint(o: &mut Overlay, graphics: &mut j2me_me::Graphics, x: i32, y: i32) 
     match o.data {
         OverlayData::Floater(_) => floater::paint(o, graphics, x, y),
         OverlayData::StatusIcon(_) => status_icon::paint(o, graphics, x, y),
+        OverlayData::GuardianCastFx(_) => guardian_cast_fx::paint(o, graphics, x, y),
     }
 }

@@ -348,3 +348,16 @@ CharacterMenu	a	panelX	I	CharacterMenuState	panel_x
 CharacterMenu	b	panelY	I	CharacterMenuState	panel_y
 CharacterMenu	a	text	Lz;	CharacterMenuState	text
 CharacterMenu	a	singleton	Lai;	CharacterMenuState	singleton
+#
+# obf class map (the boss + guardian-cast overlay lane):
+#   Boss          -> av.class  (no rows: instance-only, no statics — heroDistX/heroDistY
+#                              (`f`/`g`, `B`) are per-INSTANCE on boss::BossData, which
+#                              embeds the Enemy base EnemyData as its "super".)
+#   GuardianCastFx-> bj.class  (no rows: instance-only, no statics — skillSlot/guardianType
+#                              /startDelay + the beamFrames/elementSprites/guardianFrames
+#                              captures are per-INSTANCE on guardian_cast_fx::GuardianCastFxData.)
+#   AssetCache    -> ce.class  (one NEW row: guardianFrames, the guardian pose-script bank
+#                              GuardianCastFx captures; the enemy-lane enemyFrames/
+#                              attackEffectScripts/deathFxScripts/bossFrames Object[] banks
+#                              remain per-INSTANCE-of-the-static on AssetCacheState.)
+AssetCache	d	guardianFrames	[Ljava/lang/Object;	AssetCacheState	guardian_frames

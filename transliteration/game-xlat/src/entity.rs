@@ -29,6 +29,7 @@
 //! `ck.b:()V (syncTile) => ["ishr","i2b","ishr","i2b","iand","iand"]`
 //! (`pixelY >> 4`, `pixelX >> 4`, `pixelY & 15`, `pixelX & 15`).
 
+use crate::boss::BossData;
 use crate::byte_util::JavaRandom;
 use crate::effect::EffectData;
 use crate::enemy::EnemyData;
@@ -58,6 +59,8 @@ pub enum EntityKind {
     Npc,
     /// `Enemy` (`al`) — a hostile monster actor (a `Battler`; base of every `Boss`).
     Enemy,
+    /// `Boss` (`av`) — a multi-tile boss (an `Enemy`; base of the concrete encounters).
+    Boss,
     /// `Effect` (`y`) — a transient animated visual effect.
     Effect,
     /// `Projectile` (`i`) — a moving ranged-attack effect (an `Effect`).
@@ -86,6 +89,10 @@ pub enum EntityData {
     /// a Java `Enemy` is itself a heap object and the leaf (with its cloned stat
     /// template) is large; boxing keeps it off the shared [`EntityNode`] size.
     Enemy(Box<EnemyData>),
+    /// `Boss` (`av`) instance data (embeds the `Enemy` base as its "super"). Boxed
+    /// like `Enemy`: `Boss extends Enemy`, so it carries the (large) `EnemyData` plus
+    /// its own `heroDistX`/`heroDistY`.
+    Boss(Box<BossData>),
     /// `Effect` (`y`) instance data. Boxed: the effect carries an (unloaded here)
     /// image bank + sprite script, kept off the shared [`EntityNode`] size.
     Effect(Box<EffectData>),
@@ -158,6 +165,7 @@ impl EntityNode {
             EntityData::Hero(_) => EntityKind::Hero,
             EntityData::Npc(_) => EntityKind::Npc,
             EntityData::Enemy(_) => EntityKind::Enemy,
+            EntityData::Boss(_) => EntityKind::Boss,
             EntityData::Effect(_) => EntityKind::Effect,
             EntityData::Projectile(_) => EntityKind::Projectile,
         }
@@ -189,6 +197,7 @@ impl EntityNode {
             EntityData::Hero(h) => Some(&h.battler),
             EntityData::Npc(n) => Some(&n.battler),
             EntityData::Enemy(e) => Some(&e.battler),
+            EntityData::Boss(b) => Some(&b.enemy.battler),
             _ => None,
         }
     }
@@ -199,6 +208,7 @@ impl EntityNode {
             EntityData::Hero(h) => Some(&mut h.battler),
             EntityData::Npc(n) => Some(&mut n.battler),
             EntityData::Enemy(e) => Some(&mut e.battler),
+            EntityData::Boss(b) => Some(&mut b.enemy.battler),
             _ => None,
         }
     }
@@ -227,12 +237,15 @@ impl EntityNode {
         }
     }
 
-    /// `this instanceof Enemy` → the borrowed [`EnemyData`], or `None`. (A `Boss`
-    /// node would also answer here once `Boss` lands — a later batch; no `Boss`
-    /// variant exists yet.)
+    /// `this instanceof Enemy` → the borrowed `Enemy` **base** [`EnemyData`], or
+    /// `None`. Answers for a `Boss` node too (returning its embedded `Enemy` "super"),
+    /// because `Boss extends Enemy` — the `instanceof Enemy` accessor, mirroring
+    /// [`Self::as_effect`] answering for a `Projectile`. A Java `((Enemy) this).hp` /
+    /// `stats` on a `Boss` routes here.
     pub fn as_enemy(&self) -> Option<&EnemyData> {
         match &self.data {
             EntityData::Enemy(e) => Some(e.as_ref()),
+            EntityData::Boss(b) => Some(&b.enemy),
             _ => None,
         }
     }
@@ -241,6 +254,24 @@ impl EntityNode {
     pub fn as_enemy_mut(&mut self) -> Option<&mut EnemyData> {
         match &mut self.data {
             EntityData::Enemy(e) => Some(e.as_mut()),
+            EntityData::Boss(b) => Some(&mut b.enemy),
+            _ => None,
+        }
+    }
+
+    /// `this instanceof Boss` → the borrowed [`BossData`], or `None` (the concrete-type
+    /// access for `heroDistX`/`heroDistY`; `Boss`'s `Enemy` base is [`Self::as_enemy`]).
+    pub fn as_boss(&self) -> Option<&BossData> {
+        match &self.data {
+            EntityData::Boss(b) => Some(b.as_ref()),
+            _ => None,
+        }
+    }
+
+    /// Mutable [`Self::as_boss`].
+    pub fn as_boss_mut(&mut self) -> Option<&mut BossData> {
+        match &mut self.data {
+            EntityData::Boss(b) => Some(b.as_mut()),
             _ => None,
         }
     }

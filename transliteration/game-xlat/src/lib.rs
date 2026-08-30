@@ -83,6 +83,7 @@ pub mod weapon;
 // extends `entity_list`), plus the per-level `GameMap`. Field-layer foundation for
 // the render + world-logic lanes.
 pub mod battler;
+pub mod boss;
 pub mod enemy;
 pub mod enemy_type;
 pub mod entity;
@@ -90,12 +91,14 @@ pub mod game_map;
 pub mod hero;
 pub mod map_object;
 
-// The on-battler overlay family: the abstract `Overlay` base (`f`) and its two leaf
-// subclasses — the floating damage/heal popups (`Floater`, `aw`) and the buff/debuff
-// status icons (`StatusIcon`, `cf`). These are the real tagged union backing a
-// `Battler`'s `floaters`/`statuses` lists (`GuardianCastFx`, the third subclass, is
-// DEFERRED). Their drawing bottoms out in DEFERRED `AssetCache` overlay banks.
+// The on-battler overlay family: the abstract `Overlay` base (`f`) and its three leaf
+// subclasses — the floating damage/heal popups (`Floater`, `aw`), the buff/debuff
+// status icons (`StatusIcon`, `cf`), and the guardian summon/cast animation
+// (`GuardianCastFx`, `bj`). These are the real tagged union backing a `Battler`'s
+// `floaters`/`statuses` lists. Their drawing bottoms out in DEFERRED `AssetCache`
+// overlay banks.
 pub mod floater;
+pub mod guardian_cast_fx;
 pub mod overlay;
 pub mod status_icon;
 
