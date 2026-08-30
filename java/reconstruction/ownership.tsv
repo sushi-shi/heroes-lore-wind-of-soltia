@@ -301,3 +301,16 @@ Floater	h	DEFAULT_LIFETIME	[B	floater	DEFAULT_LIFETIME
 #                              the Battler base BattlerData as its "super".)
 Effect	a	FRAME_COUNTS	[S	effect	FRAME_COUNTS
 Effect	i	TYPE_SPRITE_INDEX	[B	effect	TYPE_SPRITE_INDEX
+#
+# obf class map (the enemy stat/AI foundation):
+#   EnemyType   -> j.class    (two rows: `types`, the mutable static template array
+#                              -> EnemyTypeState; and `attackHitFrame`, a `static
+#                              final byte[]` per-kind hit-frame table -> module const.
+#                              Every other field is per-INSTANCE on
+#                              enemy_type::EnemyTypeData, cloned into each Enemy.)
+#   Enemy       -> al.class   (no rows: instance-only, no statics — kind/statRow/
+#                              stats/hp/cooldowns/timers/statusFlags/target/... are
+#                              per-INSTANCE on enemy::EnemyData, which embeds the
+#                              Battler base BattlerData as its "super".)
+EnemyType	a	types	[Lj;	EnemyTypeState	types
+EnemyType	a	attackHitFrame	[B	enemy_type	ATTACK_HIT_FRAME

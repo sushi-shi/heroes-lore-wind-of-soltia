@@ -31,6 +31,7 @@ use crate::asset_cache;
 use crate::base_canvas::BaseCanvasState;
 use crate::battler;
 use crate::effect;
+use crate::enemy;
 use crate::entity::{EntityId, EntityKind};
 use crate::entity_list::{self, EntityListState};
 use crate::game::Game;
@@ -313,8 +314,36 @@ fn update_combatants(g: &mut Game) {
         // if (ckVar instanceof MapObject) ckVar = ckVar.next;
         if node_kind == EntityKind::MapObject {
             cursor = g.entity_arena[cur].next;
-        // else if ((ckVar instanceof Enemy) && !ckVar.removed) { update; reorder; if dead remove }
-        //   DEFERRED: Enemy (al) unported — no Enemy nodes in this slice.
+        // else if ((ckVar instanceof Enemy) && !ckVar.removed) {
+        //   Enemy alVar = (Enemy) ckVar; alVar.update(); ckVar = ckVar.next;
+        //   this.entities.reorderByDepth(alVar); if (alVar.state == 6) removeEntity(alVar); }
+        } else if node_kind == EntityKind::Enemy && !removed {
+            // alVar.update();
+            enemy::update(g, cur);
+            // ckVar = ckVar.next;  (read before reorder/remove — update may relink it.)
+            cursor = g.entity_arena[cur].next;
+            // this.entities.reorderByDepth(alVar);
+            {
+                let Game {
+                    game_state,
+                    entity_arena,
+                    ..
+                } = &mut *g;
+                let map = game_state
+                    .map
+                    .as_mut()
+                    .expect("GameState.map null in updateCombatants");
+                entity_list::reorder_by_depth(&mut map.entities, entity_arena, cur);
+            }
+            // if (alVar.state == 6) removeEntity(alVar);
+            let dead = g.entity_arena[cur]
+                .as_battler()
+                .expect("Enemy battler")
+                .state
+                == battler::STATE_DEAD;
+            if dead {
+                remove_entity(g, cur);
+            }
         // else if ((ckVar instanceof Effect) && !ckVar.removed) {
         } else if (node_kind == EntityKind::Effect || node_kind == EntityKind::Projectile)
             && !removed
@@ -607,9 +636,10 @@ pub fn draw_entities(g: &mut Game, i: i32, i2: i32) {
         match g.entity_arena[id].kind() {
             EntityKind::Hero => hero::paint(g, id, i, i2),
             EntityKind::Npc => npc::paint(g, id, i, i2),
+            EntityKind::Enemy => enemy::paint(g, id, i, i2),
             EntityKind::Effect => effect::paint(g, id, i, i2),
             EntityKind::Projectile => projectile::paint(g, id, i, i2),
-            // (MapObject.paint DEFERRED — the render lane; Enemy unported; Bare synthetic.)
+            // (MapObject.paint DEFERRED — the render lane; Bare synthetic.)
             EntityKind::MapObject | EntityKind::Bare => {}
         }
         // ckVar = ckVar2.next;   (read after paint — effect paint may relink/unlink it.)
